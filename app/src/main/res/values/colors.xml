@@ -6,6 +6,6 @@
     <color name="primary">#00BF63</color>
     <color name="text_gray">#6B6B6B</color>
     <color name="warning">#522504</color>
-
-
+    <color name="progress_green">#66F1AE</color>
+    <color name="progress_yellow">#F1EA66</color>
 </resources>

@@ -11,4 +11,13 @@
     <string name="owner_username">owner username</string>
     <string name="add_flashcard">Add Flashcard</string>
     <string name="edit_flashcard">Edit Flashcard</string>
+    <string name="generate_from_image">Generate set from Image</string>
+    <string name="generate_from_pdf">Generate set from PDF</string>
+    <string name="add_new_set">Add a new set</string>
+    <string name="download">Download for Offline Use</string>
+    <string name="privacy">Set as Private/Public</string>
+    <string name="reminder">Set a Reminder</string>
+    <string name="send">Send to Chat</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
 </resources>
