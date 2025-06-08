@@ -1,3 +1,14 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">StudySync</string>
+    <string name="flashcard_set">Flashcard Sets</string>
+    <string name="search_flashcard">Search Flashcard Sets</string>
+    <string name="flashcard_name">Flashcard Set Name</string>
+    <string name="items">Items</string>
+    <string name="dont_know_text" tools:ignore="StringEscaping">Don't Know</string>
+    <string name="know_text">Know</string>
+    <string name="tap_text">Tap the card to flip</string>
+    <string name="title">Title</string>
+    <string name="owner_username">owner username</string>
+    <string name="add_flashcard">Add Flashcard</string>
+    <string name="edit_flashcard">Edit Flashcard</string>
 </resources>
