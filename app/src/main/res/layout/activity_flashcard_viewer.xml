@@ -24,7 +24,6 @@
             android:layout_height="42dp"
             android:layout_gravity="left|center_vertical"
             android:layout_margin="16dp"
-            android:contentDescription="Back"
             android:src="@drawable/outline_arrow_back_24"
             app:srcCompat="@drawable/arrow_back" />
 
@@ -60,36 +59,31 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/navigationView" />
 
-    <LinearLayout
-        android:id="@+id/linearLayout2"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
+    <TextView
+        android:id="@+id/owner_username"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:orientation="horizontal"
+        android:drawableStart="@drawable/user_profile_small"
+        android:drawablePadding="16dp"
+        android:gravity="center"
+        android:text="@string/owner_username"
+        android:textColor="@color/text_gray"
+        android:textSize="16sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/flashcard_title">
+        app:layout_constraintTop_toBottomOf="@+id/flashcard_title" />
 
-        <ImageView
-            android:id="@+id/owner_profile"
-            android:layout_width="64dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center_vertical"
-            android:layout_weight="1"
-            app:srcCompat="@drawable/user_profile" />
-
-        <TextView
-            android:id="@+id/owner_username"
-            android:layout_width="64dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_weight="1"
-            android:text="@string/owner_username"
-            android:textColor="@color/text_gray"
-            android:textSize="16sp" />
-
-    </LinearLayout>
+    <ImageView
+        android:id="@+id/owner_profile"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="123dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/flashcard_title"
+        app:srcCompat="@drawable/user_profile_small" />
 
     <FrameLayout
         android:id="@+id/card_container"
@@ -99,7 +93,7 @@
         android:padding="24dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout2">
+        app:layout_constraintTop_toBottomOf="@+id/owner_username">
 
 
         <TextView
@@ -200,4 +194,5 @@
             android:textSize="16sp"
             android:textStyle="bold" />
     </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -48,7 +48,7 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:background="#FAFAFA"
+        android:background="@color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -94,7 +94,6 @@
                 android:layout_height="80dp"
                 android:layout_gravity="center_vertical|end"
                 android:layout_marginTop="16dp"
-                android:layout_marginBottom="16dp"
                 app:srcCompat="@drawable/add_button" />
 
         </LinearLayout>
