@@ -23,7 +23,7 @@
         android:id="@+id/privacy"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:drawableStart="@drawable/Lock"
+        android:drawableStart="@drawable/lock"
         android:drawablePadding="16dp"
         android:paddingTop="8dp"
         android:paddingBottom="8dp"
