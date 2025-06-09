@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="true"
+    tools:context=".FlashcardViewerActivity">
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"

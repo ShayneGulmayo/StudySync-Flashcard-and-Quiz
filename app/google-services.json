@@ -12,7 +12,20 @@
           "package_name": "com.labactivity.studysync"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "663259425490-8bakn0b8700hjnooi9ei6ol4sqp8mjdt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.labactivity.studysync",
+            "certificate_hash": "04a895dc39612db0cea6015ae82708823e1aaafd"
+          }
+        },
+        {
+          "client_id": "663259425490-4fnnc8ulc32vee3sp7p5u99ocnaoj3ei.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBHjVx3JdQIhQjdXHkDHEJPX00pTVsU7EI"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "663259425490-4fnnc8ulc32vee3sp7p5u99ocnaoj3ei.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

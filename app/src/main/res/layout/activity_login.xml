@@ -52,7 +52,7 @@
             <EditText
                 android:id="@+id/editTxtEmail"
                 android:layout_width="match_parent"
-                android:layout_height="45dp"
+                android:layout_height="48dp"
                 android:layout_marginTop="30dp"
                 android:background="@drawable/custom_edittxt"
                 android:drawableLeft="@drawable/mail"
@@ -65,7 +65,7 @@
             <EditText
                 android:id="@+id/editTxtPassword"
                 android:layout_width="match_parent"
-                android:layout_height="45dp"
+                android:layout_height="48dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/custom_edittxt"
                 android:drawableLeft="@drawable/lock"
@@ -84,16 +84,18 @@
                 android:text="Login" />
 
             <Button
+                android:id="@+id/googleLogin"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:backgroundTint="@color/light_gray"
                 android:drawableLeft="@drawable/google"
-                android:text="Sign up with Google"
+                android:text="Login with Google"
                 android:textColor="@color/black"
                 app:strokeColor="@color/text_gray"
                 app:strokeWidth="1dp" />
 
             <TextView
+                android:id="@+id/txtSignupRedirect"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"

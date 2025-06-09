@@ -4,7 +4,7 @@
     <string name="search_flashcard">Search Flashcard Sets</string>
     <string name="flashcard_name">Flashcard Set Name</string>
     <string name="items">Items</string>
-    <string name="dont_know_text" tools:ignore="StringEscaping">Don't Know</string>
+    <string name="dont_know_text">Don\'t Know</string>
     <string name="know_text">Know</string>
     <string name="tap_text">Tap the card to flip</string>
     <string name="title">Title</string>
@@ -47,4 +47,6 @@
     <string name="still_learning">Still Learning</string>
     <string name="keep_reviewing_terms">Keep Reviewing Terms</string>
     <string name="restart_flashcard">Restart Flashcards</string>
+    <string name="default_web_client_id">663259425490-4fnnc8ulc32vee3sp7p5u99ocnaoj3ei.apps.googleusercontent.com</string>
+
 </resources>
