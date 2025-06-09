@@ -35,7 +35,7 @@
             app:srcCompat="@drawable/check" />
 
         <TextView
-            android:id="@+id/txtView_flashcard"
+            android:id="@+id/txtView_add_flashcard"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
