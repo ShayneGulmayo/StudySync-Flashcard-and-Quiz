@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.credentials)
     implementation("com.google.android.gms:play-services-auth:21.0.0")
     implementation(libs.googleid)
+    implementation(libs.play.services.auth)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
