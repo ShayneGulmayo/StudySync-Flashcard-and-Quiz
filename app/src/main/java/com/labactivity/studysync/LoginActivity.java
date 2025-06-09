@@ -59,8 +59,6 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         loginButton.setOnClickListener(view -> loginWithEmailPassword());
-
-
         googleButton.setOnClickListener(view -> signInWithGoogle());
 
         oneTapClient = Identity.getSignInClient(this);
@@ -86,7 +84,6 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
-                        Toast.makeText(this, "Welcome back, " + user.getEmail(), Toast.LENGTH_SHORT).show();
                         startActivity(new Intent(LoginActivity.this, MainActivity.class));
                     } else {
                         Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show();
