@@ -7,10 +7,9 @@
     android:layout_height="match_parent"
     android:background="@color/white">
 
-    <!-- Navigation Top Bar -->
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/navigationView"
-        android:layout_width="match_parent"
+    <RelativeLayout
+        android:id="@+id/navigation_bar"
+        android:layout_width="0dp"
         android:layout_height="80dp"
         android:background="@color/white"
         app:layout_constraintTop_toTopOf="parent"
@@ -21,119 +20,104 @@
             android:id="@+id/back_button"
             android:layout_width="42dp"
             android:layout_height="42dp"
-            android:layout_gravity="left|center_vertical"
             android:layout_margin="16dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
             android:src="@drawable/arrow_back" />
-
-        <ImageView
-            android:id="@+id/more_button"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_gravity="right|center_vertical"
-            android:layout_margin="16dp"
-            app:srcCompat="@drawable/more_vert" />
 
         <TextView
             android:id="@+id/txtView_flashcard_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
+            android:layout_centerInParent="true"
             android:text="@string/flashcard_name"
             android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold" />
-    </com.google.android.material.navigation.NavigationView>
 
-    <!-- Progress Label -->
+        <ImageView
+            android:id="@+id/more_button"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_alignParentEnd="true"
+            android:layout_margin="16dp"
+            android:layout_centerVertical="true"
+            app:srcCompat="@drawable/more_vert" />
+    </RelativeLayout>
+
     <TextView
         android:id="@+id/progress_txt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/your_progress"
-        android:textAlignment="center"
         android:textColor="@color/black"
         android:textSize="20sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/navigation_bar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/navigationView" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/constraintLayout"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <FrameLayout
+        android:id="@+id/frameLayout"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
         android:layout_marginTop="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progress_txt"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/progress_txt">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <ProgressBar
             android:id="@+id/background_progressbar"
             style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:indeterminate="false"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:max="100"
             android:progress="100"
-            android:progressDrawable="@drawable/full_progress"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:indeterminate="false"
+            android:progressDrawable="@drawable/full_progress" />
 
         <ProgressBar
             android:id="@+id/stats_progressbar"
             style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:indeterminate="false"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:max="100"
             android:progress="75"
-            android:progressDrawable="@drawable/progress"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.0" />
+            android:indeterminate="false"
+            android:progressDrawable="@drawable/progress" />
 
         <TextView
             android:id="@+id/progress_percentage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:text="0%"
-            android:textColor="@color/black"
+            android:textColor="@android:color/black"
             android:textSize="20sp"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            android:textStyle="bold" />
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/know_progress_value"
         android:layout_width="250dp"
         android:layout_height="40dp"
-        android:layout_marginStart="32dp"
         android:layout_marginTop="16dp"
+        android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
         android:background="@drawable/progress_bg"
         android:orientation="horizontal"
-        app:circularflow_radiusInDP="20dp"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/frameLayout"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/constraintLayout">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
             android:id="@+id/know_progress"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:layout_gravity="center_vertical"
             android:layout_marginStart="16dp"
-            android:layout_weight="1"
             android:text="@string/know_text"
             android:textColor="@color/black"
             android:textSize="16sp"
@@ -141,11 +125,11 @@
 
         <TextView
             android:id="@+id/know_items"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:layout_gravity="center_vertical"
             android:layout_marginEnd="16dp"
-            android:layout_weight="1"
             android:text="@string/items"
             android:textAlignment="textEnd"
             android:textColor="@color/black"
@@ -158,23 +142,22 @@
         android:id="@+id/still_learning_value"
         android:layout_width="250dp"
         android:layout_height="40dp"
-        android:layout_marginStart="32dp"
         android:layout_marginTop="16dp"
+        android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
         android:background="@drawable/proggress_bg_2"
         android:orientation="horizontal"
-        app:circularflow_radiusInDP="20dp"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/know_progress_value"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/know_progress_value">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
             android:id="@+id/still_learning_progress"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:layout_gravity="center_vertical"
             android:layout_marginStart="16dp"
-            android:layout_weight="1"
             android:text="@string/still_learning"
             android:textColor="@color/black"
             android:textSize="16sp"
@@ -182,11 +165,11 @@
 
         <TextView
             android:id="@+id/still_learning_items"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:layout_gravity="center_vertical"
             android:layout_marginEnd="16dp"
-            android:layout_weight="1"
             android:text="@string/items"
             android:textAlignment="textEnd"
             android:textColor="@color/black"
@@ -204,12 +187,12 @@
         android:text="@string/keep_reviewing_terms"
         android:textColor="@color/white"
         android:textSize="16sp"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/still_learning_value"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/still_learning_value" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
-        android:id="@+id/textView6"
+        android:id="@+id/restart_flashcard_txt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
@@ -217,8 +200,8 @@
         android:textColor="@color/black"
         android:textSize="16sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/button2"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button2" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
