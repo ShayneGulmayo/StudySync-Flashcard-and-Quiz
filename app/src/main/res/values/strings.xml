@@ -20,4 +20,27 @@
     <string name="send">Send to Chat</string>
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>
+    <string name="save">Save</string>
+    <string name="username">Username</string>
+    <string name="fullname">Full Name</string>
+    <string name="email">Email</string>
+    <string name="first_name">First Name</string>
+    <string name="last_name">Last Name</string>
+    <string name="new_email">New Email</string>
+    <string name="new_pass">New Password</string>
+    <string name="confirm_new_pass">Confirm New Password</string>
+    <string name="curr_pass">Current Password</string>
+    <string name="change_username">Change Username</string>
+    <string name="change_fullname">Change Full Name</string>
+    <string name="change_email">Change Email</string>
+    <string name="change_pass">Change Password</string>
+    <string name="no_flashcard">No Flashcard Set Yet</string>
+    <string name="settings">Settings</string>
+    <string name="set_up_profile">Set Up Profile</string>
+    <string name="see_members">See Members</string>
+    <string name="shared_media">Shared Media/Files</string>
+    <string name="notif">Notifications</string>
+    <string name="leave_chatroom">Leave Chat Room</string>
+    <string name="delete_chatroom">Delete Chat Room</string>
+    <string name="chatroom_name">Chat Room Name</string>
 </resources>
