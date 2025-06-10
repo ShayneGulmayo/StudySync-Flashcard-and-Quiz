@@ -43,6 +43,9 @@
     <string name="leave_chatroom">Leave Chat Room</string>
     <string name="delete_chatroom">Delete Chat Room</string>
     <string name="chatroom_name">Chat Room Name</string>
+    <string name="add_quiz">Add Quiz</string>
+    <string name="quiz_title">Quiz Title</string>
+    <string name="no_quizzes">No Quizzes Yet</string>
     <string name="your_progress">Your Progress</string>
     <string name="still_learning">Still Learning</string>
     <string name="keep_reviewing_terms">Keep Reviewing Terms</string>
