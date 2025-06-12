@@ -40,8 +40,8 @@
 
         <ImageView
             android:id="@+id/chatroom_photo"
-            android:layout_width="115dp"
-            android:layout_height="115dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:layout_gravity="center"
             android:layout_marginTop="16dp"
             app:srcCompat="@drawable/user_profile" />
