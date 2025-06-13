@@ -1,4 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <string name="app_name">StudySync</string>
     <string name="flashcard_set">Flashcard Sets</string>
     <string name="search_flashcard">Search Flashcard Sets</string>
@@ -46,14 +46,23 @@
     <string name="add_quiz">Add Quiz</string>
     <string name="quiz_title">Quiz Title</string>
     <string name="no_quizzes">No Quizzes Yet</string>
+    <string name="quiz_review">Quiz Review</string>
+    <string name="quiz_list">Quiz List</string>
     <string name="your_progress">Your Progress</string>
     <string name="still_learning">Still Learning</string>
     <string name="keep_reviewing_terms">Keep Reviewing Terms</string>
     <string name="restart_flashcard">Restart Flashcards</string>
+    <string name="keep_reviewing_questions">Keep Reviewing Questions</string>
+    <string name="retake_quiz">Retake Quiz</string>
     <string name="default_web_client_id">663259425490-4fnnc8ulc32vee3sp7p5u99ocnaoj3ei.apps.googleusercontent.com</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="group_photo">Group Photo</string>
     <string name="profile">Profile</string>
+    <string name="submit">Submit</string>
+    <string name="choose_your_answer">Choose_your_answer</string>
+    <string name="score">Score: </string>
+
+
 
 </resources>
