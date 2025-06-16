@@ -87,6 +87,7 @@
                 android:text="Sign up" />
 
             <Button
+                android:id="@+id/btnGoogleSignup"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:backgroundTint="@color/light_gray"

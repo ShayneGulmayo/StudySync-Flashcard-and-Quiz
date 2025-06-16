@@ -62,7 +62,7 @@
             android:layout_width="300dp"
             android:layout_height="60dp"
             android:layout_marginTop="30dp"
-            android:text="Your Seetings"
+            android:text="Your Settings"
             android:textAlignment="textStart"
             android:textColor="@color/primary"
             android:textSize="16sp"
