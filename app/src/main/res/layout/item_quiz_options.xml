@@ -13,6 +13,6 @@
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
         android:padding="8dp"
-        android:text="Option Text" />
+        android:text="@string/option_text" />
 
 </LinearLayout>
