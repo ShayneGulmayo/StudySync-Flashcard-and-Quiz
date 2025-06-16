@@ -32,7 +32,7 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <ImageView
-            android:id="@+id/chatroom_photo"
+            android:id="@+id/profileImg"
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:layout_gravity="center"
@@ -58,7 +58,7 @@
             android:textSize="15sp" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/see_members_btn"
+            android:id="@+id/settingsBtn"
             android:layout_width="300dp"
             android:layout_height="60dp"
             android:layout_marginTop="30dp"
