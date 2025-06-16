@@ -2,8 +2,10 @@ package com.labactivity.studysync;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -21,7 +23,6 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 public class LoginActivity extends AppCompatActivity {
@@ -31,6 +32,8 @@ public class LoginActivity extends AppCompatActivity {
     private Button loginButton, googleButton;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
+
+    private boolean isPasswordVisible = false;
 
     private SignInClient oneTapClient;
     private BeginSignInRequest signInRequest;
@@ -51,6 +54,8 @@ public class LoginActivity extends AppCompatActivity {
         googleButton = findViewById(R.id.googleLogin);
         signUpRedirect = findViewById(R.id.txtSignupRedirect);
 
+        setupPasswordToggle(passwordEditText, () -> isPasswordVisible = !isPasswordVisible, () -> isPasswordVisible);
+
         signUpRedirect.setOnClickListener(v -> {
             startActivity(new Intent(LoginActivity.this, SignupActivity.class));
             finish();
@@ -69,12 +74,54 @@ public class LoginActivity extends AppCompatActivity {
                 .build();
     }
 
+    private void setupPasswordToggle(EditText editText, Runnable toggleState, Supplier<Boolean> isVisibleSupplier) {
+        editText.setOnTouchListener((v, event) -> {
+            final int DRAWABLE_END = 2;
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (event.getRawX() >= (editText.getRight() - editText.getCompoundDrawables()[DRAWABLE_END].getBounds().width())) {
+                    toggleState.run();
+                    if (isVisibleSupplier.get()) {
+                        editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                        editText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye, 0);
+                    } else {
+                        editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                        editText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_closed, 0);
+                    }
+                    editText.setSelection(editText.getText().length());
+                    return true;
+                }
+            }
+            return false;
+        });
+        editText.setHapticFeedbackEnabled(false);
+
+    }
+
     private void loginWithEmailPassword() {
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
 
-        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
-            Toast.makeText(this, "Please enter all fields", Toast.LENGTH_SHORT).show();
+        if (TextUtils.isEmpty(email)) {
+            emailEditText.setError("Email is required");
+            emailEditText.requestFocus();
+            return;
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            emailEditText.setError("Please enter a valid email address");
+            emailEditText.requestFocus();
+            return;
+        }
+
+        if (TextUtils.isEmpty(password)) {
+            passwordEditText.setError("Password is required");
+            passwordEditText.requestFocus();
+            return;
+        }
+
+        if (password.length() < 6) {
+            passwordEditText.setError("Password must be at least 6 characters");
+            passwordEditText.requestFocus();
             return;
         }
 
@@ -84,7 +131,21 @@ public class LoginActivity extends AppCompatActivity {
                         FirebaseUser user = mAuth.getCurrentUser();
                         checkUserProfileCompletion(user);
                     } else {
-                        Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show();
+                        String errorMessage;
+                        try {
+                            throw task.getException();
+                        } catch (Exception e) {
+                            errorMessage = e.getMessage();
+                            if (errorMessage.contains("There is no user record")) {
+                                emailEditText.setError("No account found with this email");
+                                emailEditText.requestFocus();
+                            } else if (errorMessage.contains("The password is invalid")) {
+                                passwordEditText.setError("Incorrect password");
+                                passwordEditText.requestFocus();
+                            } else {
+                                Toast.makeText(this, "Login failed: " + errorMessage, Toast.LENGTH_LONG).show();
+                            }
+                        }
                     }
                 });
     }
@@ -150,7 +211,6 @@ public class LoginActivity extends AppCompatActivity {
                         }
                         finish();
                     } else {
-                        // Document doesn't exist — treat as incomplete profile
                         startActivity(new Intent(LoginActivity.this, UserSetUpProfileActivity.class));
                         finish();
                     }
@@ -158,5 +218,9 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(LoginActivity.this, "Error checking profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    interface Supplier<T> {
+        T get();
     }
 }

@@ -48,19 +48,49 @@
             android:textStyle="bold" />
     </com.google.android.material.navigation.NavigationView>
 
-    <EditText
-        android:id="@+id/change_email"
+    <FrameLayout
+        android:id="@+id/frameLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:background="@drawable/custom_edittxt"
-        android:hint="@string/new_email"
-        android:minHeight="48dp"
-        android:padding="12dp"
-        android:textColor="@color/black"
-        android:textColorHint="@color/text_gray"
-        android:textSize="16sp"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/navigationView"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/navigationView" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <EditText
+            android:id="@+id/change_email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Email"
+            android:background="@drawable/custom_edittxt"
+            android:minHeight="48dp"
+            android:paddingEnd="48dp"
+            android:paddingStart="12dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:textColor="@color/black"
+            android:textColorHint="@color/text_gray"
+            android:textSize="16sp" />
+
+        <ImageView
+            android:id="@+id/email_status_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="12dp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/email_warning"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/warning"
+        android:textSize="14sp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="4dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/frameLayout"
+        app:layout_constraintStart_toStartOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -2,8 +2,10 @@ package com.labactivity.studysync;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -22,7 +24,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
@@ -41,6 +42,8 @@ public class SignupActivity extends AppCompatActivity {
     private static final int REQ_ONE_TAP = 101;
     private boolean showOneTapUI = true;
 
+    private boolean isPasswordVisible = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,10 +60,10 @@ public class SignupActivity extends AppCompatActivity {
         loginRedirect = findViewById(R.id.loginRedirect);
 
         btnSignup.setOnClickListener(v -> registerUser());
-        loginRedirect.setOnClickListener(v ->
-                startActivity(new Intent(SignupActivity.this, LoginActivity.class)));
-
+        loginRedirect.setOnClickListener(v -> startActivity(new Intent(SignupActivity.this, LoginActivity.class)));
         googleSignupBtn.setOnClickListener(v -> signUpWithGoogle());
+
+        setupPasswordToggle(editTxtPassword);
 
         oneTapClient = Identity.getSignInClient(this);
         signInRequest = BeginSignInRequest.builder()
@@ -72,24 +75,52 @@ public class SignupActivity extends AppCompatActivity {
                 .build();
     }
 
+    private void setupPasswordToggle(EditText passwordField) {
+        passwordField.setOnTouchListener((v, event) -> {
+            final int DRAWABLE_END = 2;
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (event.getRawX() >= (passwordField.getRight() - passwordField.getCompoundDrawables()[DRAWABLE_END].getBounds().width())) {
+                    isPasswordVisible = !isPasswordVisible;
+                    if (isPasswordVisible) {
+                        passwordField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                        passwordField.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye, 0);
+                    } else {
+                        passwordField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                        passwordField.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_closed, 0);
+                    }
+                    passwordField.setSelection(passwordField.getText().length());
+                    return true;
+                }
+            }
+            return false;
+        });
+        passwordField.setHapticFeedbackEnabled(false);
+
+    }
+
     private void registerUser() {
         String email = editTxtEmail.getText().toString().trim();
         String password = editTxtPassword.getText().toString().trim();
 
+        boolean isValid = true;
+
         if (TextUtils.isEmpty(email)) {
             editTxtEmail.setError("Email is required");
-            return;
+            isValid = false;
+        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            editTxtEmail.setError("Enter a valid email address");
+            isValid = false;
         }
 
         if (TextUtils.isEmpty(password)) {
             editTxtPassword.setError("Password is required");
-            return;
+            isValid = false;
+        } else if (password.length() < 6) {
+            editTxtPassword.setError("Password must be at least 6 characters");
+            isValid = false;
         }
 
-        if (password.length() < 6) {
-            editTxtPassword.setError("Password must be at least 6 characters");
-            return;
-        }
+        if (!isValid) return;
 
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(SignupActivity.this, task -> {
@@ -101,9 +132,10 @@ public class SignupActivity extends AppCompatActivity {
                         }
                     } else {
                         if (task.getException() instanceof FirebaseAuthUserCollisionException) {
-                            Toast.makeText(SignupActivity.this, "This email is already registered", Toast.LENGTH_SHORT).show();
+                            editTxtEmail.setError("This email is already registered");
+                            editTxtEmail.requestFocus();
                         } else {
-                            Toast.makeText(SignupActivity.this, "Registration Failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(SignupActivity.this, "Registration Failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
                         }
                     }
                 });
@@ -115,9 +147,7 @@ public class SignupActivity extends AppCompatActivity {
                     try {
                         startIntentSenderForResult(
                                 result.getPendingIntent().getIntentSender(),
-                                REQ_ONE_TAP,
-                                null,
-                                0, 0, 0
+                                REQ_ONE_TAP, null, 0, 0, 0
                         );
                     } catch (Exception e) {
                         Log.e("SignupActivity", "Couldn't start One Tap UI: " + e.getLocalizedMessage());
@@ -169,16 +199,13 @@ public class SignupActivity extends AppCompatActivity {
                                 data.containsKey("username") &&
                                 data.containsKey("firstName") &&
                                 data.containsKey("lastName")) {
-                            // Profile complete
                             startActivity(new Intent(SignupActivity.this, MainActivity.class));
                             finish();
                         } else {
-                            // Profile incomplete
                             startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
                             finish();
                         }
                     } else {
-                        // Create initial document with email only
                         Map<String, Object> userData = new HashMap<>();
                         userData.put("email", email);
 
