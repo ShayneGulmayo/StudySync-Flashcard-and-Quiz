@@ -26,7 +26,7 @@
             android:src="@drawable/arrow_back" />
 
         <TextView
-            android:id="@+id/txtView_flashcard_name"
+            android:id="@+id/txtView_quiz_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
@@ -192,7 +192,7 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
-        android:id="@+id/restart_flashcard_txt"
+        android:id="@+id/retake_quiz_txt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
