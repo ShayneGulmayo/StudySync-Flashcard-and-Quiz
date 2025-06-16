@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -17,25 +16,25 @@ import com.google.android.gms.auth.api.identity.BeginSignInRequest;
 import com.google.android.gms.auth.api.identity.Identity;
 import com.google.android.gms.auth.api.identity.SignInClient;
 import com.google.android.gms.auth.api.identity.SignInCredential;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+
 public class LoginActivity extends AppCompatActivity {
 
     private EditText emailEditText, passwordEditText;
-
     private TextView signUpRedirect;
     private Button loginButton, googleButton;
     private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
 
     private SignInClient oneTapClient;
     private BeginSignInRequest signInRequest;
     private static final int REQ_ONE_TAP = 100;
-    private boolean showOneTapUI = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +43,7 @@ public class LoginActivity extends AppCompatActivity {
 
         FirebaseApp.initializeApp(this);
         mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
 
         emailEditText = findViewById(R.id.editTxtEmail);
         passwordEditText = findViewById(R.id.editTxtPassword);
@@ -51,12 +51,9 @@ public class LoginActivity extends AppCompatActivity {
         googleButton = findViewById(R.id.googleLogin);
         signUpRedirect = findViewById(R.id.txtSignupRedirect);
 
-        signUpRedirect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(LoginActivity.this, SignupActivity.class));
-                finish();
-            }
+        signUpRedirect.setOnClickListener(v -> {
+            startActivity(new Intent(LoginActivity.this, SignupActivity.class));
+            finish();
         });
 
         loginButton.setOnClickListener(view -> loginWithEmailPassword());
@@ -85,7 +82,7 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
-                        startActivity(new Intent(LoginActivity.this, UserSetUpProfileActivity.class));
+                        checkUserProfileCompletion(user);
                     } else {
                         Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show();
                     }
@@ -99,10 +96,7 @@ public class LoginActivity extends AppCompatActivity {
                         startIntentSenderForResult(
                                 result.getPendingIntent().getIntentSender(),
                                 REQ_ONE_TAP,
-                                null,
-                                0,
-                                0,
-                                0
+                                null, 0, 0, 0
                         );
                     } catch (Exception e) {
                         Log.e("LoginActivity", "Couldn't start One Tap UI: " + e.getLocalizedMessage());
@@ -127,8 +121,7 @@ public class LoginActivity extends AppCompatActivity {
                             .addOnCompleteListener(this, task -> {
                                 if (task.isSuccessful()) {
                                     FirebaseUser user = mAuth.getCurrentUser();
-                                    Toast.makeText(this, "Signed in as " + user.getEmail(), Toast.LENGTH_SHORT).show();
-                                    startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                                    checkUserProfileCompletion(user);
                                 } else {
                                     Toast.makeText(this, "Google Sign-In failed.", Toast.LENGTH_SHORT).show();
                                 }
@@ -138,5 +131,32 @@ public class LoginActivity extends AppCompatActivity {
                 Log.e("LoginActivity", "Google Sign-In Exception: " + e.getLocalizedMessage());
             }
         }
+    }
+
+    private void checkUserProfileCompletion(FirebaseUser user) {
+        if (user == null) return;
+
+        db.collection("users").document(user.getUid()).get()
+                .addOnSuccessListener(document -> {
+                    if (document.exists()) {
+                        String firstName = document.getString("firstName");
+                        String lastName = document.getString("lastName");
+                        String username = document.getString("username");
+
+                        if (TextUtils.isEmpty(firstName) || TextUtils.isEmpty(lastName) || TextUtils.isEmpty(username)) {
+                            startActivity(new Intent(LoginActivity.this, UserSetUpProfileActivity.class));
+                        } else {
+                            startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                        }
+                        finish();
+                    } else {
+                        // Document doesn't exist — treat as incomplete profile
+                        startActivity(new Intent(LoginActivity.this, UserSetUpProfileActivity.class));
+                        finish();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(LoginActivity.this, "Error checking profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 }

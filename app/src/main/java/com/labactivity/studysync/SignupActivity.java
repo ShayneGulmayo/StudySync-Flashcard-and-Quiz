@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -23,6 +22,11 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SignupActivity extends AppCompatActivity {
 
@@ -30,10 +34,11 @@ public class SignupActivity extends AppCompatActivity {
     private TextView loginRedirect;
     private Button btnSignup, googleSignupBtn;
     private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
 
     private SignInClient oneTapClient;
     private BeginSignInRequest signInRequest;
-    private static final int REQ_ONE_TAP = 101; // different from login
+    private static final int REQ_ONE_TAP = 101;
     private boolean showOneTapUI = true;
 
     @Override
@@ -43,6 +48,7 @@ public class SignupActivity extends AppCompatActivity {
 
         FirebaseApp.initializeApp(this);
         mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
 
         editTxtEmail = findViewById(R.id.editTxtEmail);
         editTxtPassword = findViewById(R.id.editTxtPassword);
@@ -88,9 +94,11 @@ public class SignupActivity extends AppCompatActivity {
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(SignupActivity.this, task -> {
                     if (task.isSuccessful()) {
-                        Toast.makeText(SignupActivity.this, "Registration Successful", Toast.LENGTH_SHORT).show();
-                        startActivity(new Intent(SignupActivity.this, LoginActivity.class));
-                        finish();
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        if (user != null) {
+                            checkUserProfileAndRedirect(user);
+                            Toast.makeText(SignupActivity.this, "Registration Successful", Toast.LENGTH_SHORT).show();
+                        }
                     } else {
                         if (task.getException() instanceof FirebaseAuthUserCollisionException) {
                             Toast.makeText(SignupActivity.this, "This email is already registered", Toast.LENGTH_SHORT).show();
@@ -134,8 +142,10 @@ public class SignupActivity extends AppCompatActivity {
                             .addOnCompleteListener(this, task -> {
                                 if (task.isSuccessful()) {
                                     FirebaseUser user = mAuth.getCurrentUser();
-                                    Toast.makeText(this, "Signed up as " + user.getEmail(), Toast.LENGTH_SHORT).show();
-                                    startActivity(new Intent(SignupActivity.this, LoginActivity.class));
+                                    if (user != null) {
+                                        checkUserProfileAndRedirect(user);
+                                        Toast.makeText(this, "Signed up as " + user.getEmail(), Toast.LENGTH_SHORT).show();
+                                    }
                                 } else {
                                     Toast.makeText(this, "Google Sign-Up failed.", Toast.LENGTH_SHORT).show();
                                 }
@@ -145,5 +155,45 @@ public class SignupActivity extends AppCompatActivity {
                 Log.e("SignupActivity", "Google Sign-Up Exception: " + e.getLocalizedMessage());
             }
         }
+    }
+
+    private void checkUserProfileAndRedirect(FirebaseUser user) {
+        String uid = user.getUid();
+        String email = user.getEmail();
+
+        db.collection("users").document(uid).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Map<String, Object> data = documentSnapshot.getData();
+                        if (data != null &&
+                                data.containsKey("username") &&
+                                data.containsKey("firstName") &&
+                                data.containsKey("lastName")) {
+                            // Profile complete
+                            startActivity(new Intent(SignupActivity.this, MainActivity.class));
+                            finish();
+                        } else {
+                            // Profile incomplete
+                            startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
+                            finish();
+                        }
+                    } else {
+                        // Create initial document with email only
+                        Map<String, Object> userData = new HashMap<>();
+                        userData.put("email", email);
+
+                        db.collection("users").document(uid).set(userData)
+                                .addOnSuccessListener(unused -> {
+                                    startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
+                                    finish();
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(SignupActivity.this, "Error creating user profile", Toast.LENGTH_SHORT).show();
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(SignupActivity.this, "Error loading user data", Toast.LENGTH_SHORT).show();
+                });
     }
 }
