@@ -1,5 +1,6 @@
 package com.labactivity.studysync;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,10 +9,15 @@ import android.widget.LinearLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 public class CreateQuizActivity extends AppCompatActivity {
 
     private LinearLayout containerAddQuiz;
-    private ImageView addButton;
+    private FloatingActionButton floatingActionButton;
+
+    private ImageView backButton;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,19 +25,30 @@ public class CreateQuizActivity extends AppCompatActivity {
         setContentView(R.layout.activity_create_quiz);
 
         containerAddQuiz = findViewById(R.id.container_add_quiz);
-        addButton = findViewById(R.id.imageView); // your add_button ImageView ID
 
-        addButton.setOnClickListener(new View.OnClickListener() {
+        floatingActionButton = findViewById(R.id.floatingActionButton);
+
+        backButton = findViewById(R.id.back_button);
+        floatingActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 addNewQuizItem();
+            }
+        });
+
+        backButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(CreateQuizActivity.this, QuizzesActivity.class);
+                startActivity(intent);
+                finish(); // Optional: removes this activity from the back stack
             }
         });
     }
 
     private void addNewQuizItem() {
         LayoutInflater inflater = LayoutInflater.from(this);
-        View quizItemView = inflater.inflate(R.layout.item_add_quiz, containerAddQuiz, false);
-        containerAddQuiz.addView(quizItemView);
+        View quizItem = inflater.inflate(R.layout.item_add_quiz, containerAddQuiz, false);
+        containerAddQuiz.addView(quizItem);
     }
 }
