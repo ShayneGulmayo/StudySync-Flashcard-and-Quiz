@@ -92,6 +92,7 @@
 
         </LinearLayout>
     </ScrollView>
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/floating_add_btn"
         android:layout_width="wrap_content"
