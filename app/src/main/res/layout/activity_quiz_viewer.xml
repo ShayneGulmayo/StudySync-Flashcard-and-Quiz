@@ -23,7 +23,6 @@
             android:layout_height="42dp"
             android:layout_gravity="left|center_vertical"
             android:layout_margin="16dp"
-            android:contentDescription="Back"
             android:src="@drawable/arrow_back" />
 
         <ImageView
@@ -127,7 +126,7 @@
         android:id="@+id/choose_answer_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="28dp"
         android:layout_marginTop="16dp"
         android:text="@string/choose_your_answer"
         android:textColor="@color/black"

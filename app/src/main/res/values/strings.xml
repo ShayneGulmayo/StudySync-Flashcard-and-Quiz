@@ -60,11 +60,13 @@
     <string name="group_photo">Group Photo</string>
     <string name="profile">Profile</string>
     <string name="submit">Submit</string>
-    <string name="choose_your_answer">Choose_your_answer</string>
+    <string name="choose_your_answer">Choose your answer</string>
     <string name="score">Score: </string>
     <string name="option_text">Option Text</string>
     <string name="term">Term</string>
     <string name="definition">Definition</string>
+    <string name="back">Back</string>
+
 
 
 </resources>

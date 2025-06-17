@@ -21,7 +21,8 @@
             android:id="@+id/back_button"
             android:layout_width="42dp"
             android:layout_height="42dp"
-            android:layout_gravity="left|center_vertical"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
             android:layout_margin="16dp"
             android:src="@drawable/arrow_back" />
 
@@ -44,6 +45,8 @@
             android:layout_centerVertical="true"
             app:srcCompat="@drawable/more_vert" />
     </RelativeLayout>
+
+    <!-- Everything else below remains untouched -->
 
     <TextView
         android:id="@+id/progress_txt"
@@ -179,7 +182,7 @@
     </LinearLayout>
 
     <Button
-        android:id="@+id/button2"
+        android:id="@+id/review_questions_btn"
         android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
@@ -192,7 +195,7 @@
         app:layout_constraintTop_toBottomOf="@id/still_learning_value" />
 
     <TextView
-        android:id="@+id/retake_quiz_txt"
+        android:id="@+id/retake_quiz_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
@@ -203,6 +206,6 @@
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/button2" />
+        app:layout_constraintTop_toBottomOf="@id/review_questions_btn" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
