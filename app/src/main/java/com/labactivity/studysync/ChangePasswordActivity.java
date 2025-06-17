@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,6 +21,8 @@ public class ChangePasswordActivity extends AppCompatActivity {
 
     private EditText currentPass, newPass, confirmPass;
     private TextView saveTxt;
+
+    private ImageView backButton;
 
     private boolean isCurrentVisible = false;
     private boolean isNewVisible = false;
@@ -40,6 +43,8 @@ public class ChangePasswordActivity extends AppCompatActivity {
         newPass = findViewById(R.id.set_pass);
         confirmPass = findViewById(R.id.confirm_pass);
         saveTxt = findViewById(R.id.save_txt);
+        backButton = findViewById(R.id.back_button);
+        backButton.setOnClickListener(v -> finish());
 
         setupPasswordToggle(currentPass, () -> isCurrentVisible = !isCurrentVisible, () -> isCurrentVisible);
         setupPasswordToggle(newPass, () -> isNewVisible = !isNewVisible, () -> isNewVisible);

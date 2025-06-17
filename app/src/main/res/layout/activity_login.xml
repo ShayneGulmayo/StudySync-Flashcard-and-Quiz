@@ -58,6 +58,7 @@
                 android:background="@drawable/custom_edittxt"
                 android:drawableRight="@drawable/mail"
                 android:drawablePadding="20dp"
+                android:drawableTint="@color/text_gray"
                 android:hint="Email"
                 android:inputType="textEmailAddress"
                 android:paddingStart="10dp"
