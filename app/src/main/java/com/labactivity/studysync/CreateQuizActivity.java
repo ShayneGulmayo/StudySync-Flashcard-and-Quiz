@@ -26,7 +26,7 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         containerAddQuiz = findViewById(R.id.container_add_quiz);
 
-        floatingActionButton = findViewById(R.id.floatingActionButton);
+        floatingActionButton = findViewById(R.id.floating_add_btn);
 
         backButton = findViewById(R.id.back_button);
         floatingActionButton.setOnClickListener(new View.OnClickListener() {

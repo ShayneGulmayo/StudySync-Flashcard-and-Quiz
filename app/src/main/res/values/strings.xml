@@ -63,7 +63,8 @@
     <string name="choose_your_answer">Choose_your_answer</string>
     <string name="score">Score: </string>
     <string name="option_text">Option Text</string>
-
+    <string name="term">Term</string>
+    <string name="definition">Definition</string>
 
 
 </resources>
