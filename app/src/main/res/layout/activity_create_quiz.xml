@@ -75,7 +75,7 @@
                 android:id="@+id/quiz_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
+                android:layout_marginBottom="10dp"
                 android:background="@drawable/custom_edittxt"
                 android:hint="@string/quiz_title"
                 android:minHeight="48dp"
@@ -88,6 +88,7 @@
                 android:id="@+id/container_add_quiz"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:clipToPadding="false"
                 android:orientation="vertical" />
 
         </LinearLayout>

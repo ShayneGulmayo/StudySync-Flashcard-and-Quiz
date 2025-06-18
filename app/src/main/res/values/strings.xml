@@ -66,6 +66,9 @@
     <string name="term">Term</string>
     <string name="definition">Definition</string>
     <string name="back">Back</string>
+    <string name="enter_option">Enter option</string>
+    <string name="delete_option">Delete option</string>
+
 
 
 

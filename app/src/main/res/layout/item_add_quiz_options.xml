@@ -4,24 +4,24 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="#F2F2F2"
-    android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="10dp">
+    android:orientation="horizontal">
 
     <RadioButton
         android:id="@+id/radioOption"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:clickable="true"
         android:focusable="false"
-        android:focusableInTouchMode="false"
-        android:clickable="true" />
+        android:focusableInTouchMode="false" />
 
     <EditText
         android:id="@+id/edit_option_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="2.5dp"
+        android:layout_marginBottom="2.5dp"
         android:layout_weight="1"
-        android:layout_marginStart="8dp"
         android:background="@drawable/custom_edittxt"
         android:hint="Enter option"
         android:padding="10dp"
@@ -29,6 +29,7 @@
         android:textSize="16sp" />
 
     <ImageButton
+        android:id="@+id/delete_option"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_marginStart="8dp"
