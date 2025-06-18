@@ -3,12 +3,13 @@ package com.labactivity.studysync;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -28,6 +29,12 @@ public class FlashcardsActivity extends AppCompatActivity {
     private ArrayList<FlashcardSet> flashcardSets;
 
     private ImageView backButton, addButton;
+    private String currentUid;
+
+    private final ActivityResultLauncher<Intent> createFlashcardLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> loadFlashcardSets()
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,27 +54,31 @@ public class FlashcardsActivity extends AppCompatActivity {
         addButton = findViewById(R.id.add_button);
 
         backButton.setOnClickListener(v -> onBackPressed());
+        addButton.setOnClickListener(v -> showAddBottomSheet());
+
+
+        currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         loadFlashcardSets();
-
-        addButton.setOnClickListener(v -> {
-            startActivity(new Intent(FlashcardsActivity.this, CreateFlashcardActivity.class));
-        });
-
-
     }
 
     private void loadFlashcardSets() {
         progressBar.setVisibility(View.VISIBLE);
-        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        db.collection("flashcardSets")
-                .whereEqualTo("ownerId", currentUserId)
+        String currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        db.collection("flashcards")
+                .whereEqualTo("owner_uid", currentUid)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     flashcardSets.clear();
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        FlashcardSet set = doc.toObject(FlashcardSet.class);
-                        set.setId(doc.getId());
+                        String id = doc.getId();
+                        String title = doc.getString("title");
+                        long numberOfItems = doc.getLong("number_of_items") != null ? doc.getLong("number_of_items") : 0;
+                        long progress = doc.getLong("progress") != null ? doc.getLong("progress") : 0;
+                        String ownerUsername = doc.getString("owner_username");  // 🔥 get it here
+
+                        FlashcardSet set = new FlashcardSet(id, title, (int) numberOfItems, ownerUsername, (int) progress);
                         flashcardSets.add(set);
                     }
                     adapter.notifyDataSetChanged();
@@ -79,29 +90,53 @@ public class FlashcardsActivity extends AppCompatActivity {
                 });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadFlashcardSets();
+    }
+
+
+
+    private void showAddBottomSheet() {
+        View view = getLayoutInflater().inflate(R.layout.add_bottom_sheet_menu, null);
+
+        TextView generateFromImage = view.findViewById(R.id.generate_from_image);
+        TextView generateFromPdf = view.findViewById(R.id.generate_from_pdf);
+        TextView addNewSet = view.findViewById(R.id.add_new_set);
+
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setView(view)
+                .create();
+
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        dialog.show();
+
+        // handle button clicks
+        generateFromImage.setOnClickListener(v -> {
+            dialog.dismiss();
+            Toast.makeText(this, "Generate from image coming soon!", Toast.LENGTH_SHORT).show();
+            // optional future: startActivity(new Intent(...));
+        });
+
+        generateFromPdf.setOnClickListener(v -> {
+            dialog.dismiss();
+            Toast.makeText(this, "Generate from PDF coming soon!", Toast.LENGTH_SHORT).show();
+            // optional future: startActivity(new Intent(...));
+        });
+
+        addNewSet.setOnClickListener(v -> {
+            dialog.dismiss();
+            Intent intent = new Intent(FlashcardsActivity.this, CreateFlashcardActivity.class);
+            createFlashcardLauncher.launch(intent);
+        });
+    }
+
+
     private void onFlashcardSetClicked(FlashcardSet set) {
         Intent intent = new Intent(this, FlashcardViewerActivity.class);
         intent.putExtra("setId", set.getId());
-        intent.putExtra("setName", set.getName());
+        intent.putExtra("setName", set.getTitle());
         startActivity(intent);
-    }
-
-    public void deleteFlashcardSet(FlashcardSet set) {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete Flashcard Set")
-                .setMessage("Are you sure you want to delete this set?")
-                .setPositiveButton("Delete", (dialog, which) -> {
-                    db.collection("flashcardSets").document(set.getId())
-                            .delete()
-                            .addOnSuccessListener(aVoid -> {
-                                flashcardSets.remove(set);
-                                adapter.notifyDataSetChanged();
-                                Toast.makeText(this, "Flashcard set deleted", Toast.LENGTH_SHORT).show();
-                            })
-                            .addOnFailureListener(e ->
-                                    Toast.makeText(this, "Failed to delete", Toast.LENGTH_SHORT).show());
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
     }
 }

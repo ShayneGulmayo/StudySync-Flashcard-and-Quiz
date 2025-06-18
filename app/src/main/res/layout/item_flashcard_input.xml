@@ -1,54 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@color/white"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:elevation="2dp"
+        app:cardCornerRadius="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:background="@drawable/card_background"
             android:orientation="vertical"
             android:padding="16dp">
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/linearLayout2"
+                android:id="@+id/flashcard_row"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="wrap_content">
 
                 <EditText
                     android:id="@+id/flashcard_term"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
                     android:backgroundTint="@color/primary"
-                    android:ems="10"
                     android:hint="@string/term"
                     android:inputType="text"
                     android:padding="8dp"
                     android:textColor="@color/black"
                     android:textColorHint="@color/text_gray"
                     android:textSize="16sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/delete_btn"
+                    app:layout_constraintHorizontal_weight="1"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="@+id/delete_btn" />
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <ImageButton
                     android:id="@+id/delete_btn"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="@color/light_gray"
-                    android:scaleType="fitEnd"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:padding="8dp"
+                    android:src="@drawable/delete"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:srcCompat="@drawable/delete" />
+                    app:layout_constraintTop_toTopOf="parent" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -56,17 +60,15 @@
                 android:id="@+id/flashcard_definition"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="12dp"
                 android:backgroundTint="@color/primary"
-                android:ems="10"
                 android:hint="@string/definition"
                 android:inputType="text"
                 android:padding="8dp"
                 android:textColor="@color/black"
                 android:textColorHint="@color/text_gray"
                 android:textSize="16sp" />
+
         </LinearLayout>
-
     </androidx.cardview.widget.CardView>
-
 </LinearLayout>

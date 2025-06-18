@@ -63,9 +63,7 @@
         android:id="@+id/owner_username"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:drawableStart="@drawable/user_profile_small"
+        android:layout_marginEnd="123dp"
         android:drawablePadding="16dp"
         android:gravity="center"
         android:text="@string/owner_username"
@@ -73,8 +71,11 @@
         android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/owner_profile"
         app:layout_constraintTop_toBottomOf="@+id/flashcard_title" />
+
+    <!-- default icon -->
+
 
     <ImageView
         android:id="@+id/owner_profile"
@@ -89,20 +90,23 @@
         android:id="@+id/card_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="16dp"
         android:background="@color/white"
-        android:padding="24dp"
+        android:padding="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/owner_username">
+        app:layout_constraintTop_toBottomOf="@+id/owner_profile">
 
 
         <TextView
             android:id="@+id/front_card"
             android:layout_width="match_parent"
-            android:layout_height="107dp"
-            android:layout_gravity="center"
+            android:layout_height="400dp"
+            android:layout_gravity="center|top"
             android:background="@drawable/card_background"
+            android:clickable="true"
             android:elevation="6dp"
+            android:gravity="center"
             android:padding="32dp"
             android:textColor="@color/black"
             android:textSize="24sp" />
@@ -110,9 +114,10 @@
         <TextView
             android:id="@+id/back_card"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
+            android:layout_height="400dp"
+            android:layout_gravity="center|top"
             android:background="@drawable/card_background"
+            android:clickable="true"
             android:elevation="6dp"
             android:gravity="center"
             android:padding="32dp"
@@ -120,30 +125,34 @@
             android:textSize="24sp"
             android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/tap_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|center"
-            android:layout_margin="16dp"
-            android:text="@string/tap_text"
-            android:textColor="@color/text_gray"
-            android:textStyle="bold" />
-
 
     </FrameLayout>
+
+    <TextView
+        android:id="@+id/tap_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_margin="16dp"
+        android:text="@string/tap_text"
+        android:textColor="@color/text_gray"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/card_container" />
 
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginTop="16dp"
         android:background="@color/white"
         android:gravity="center"
         android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/card_container">
+        app:layout_constraintTop_toBottomOf="@+id/tap_text">
 
         <ImageView
             android:id="@+id/dont_know_btn"

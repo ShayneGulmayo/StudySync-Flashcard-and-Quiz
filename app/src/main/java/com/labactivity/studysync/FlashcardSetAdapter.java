@@ -4,148 +4,74 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
+import java.util.ArrayList;
 
-import java.util.HashMap;
-import java.util.List;
+public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapter.ViewHolder> {
 
-public class FlashcardSetAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-
-    public interface OnFlashcardClickListener {
-        void onClick(FlashcardSet set);
+    public interface OnFlashcardSetClickListener {
+        void onFlashcardSetClick(FlashcardSet set);
     }
 
-    private List<FlashcardSet> flashcardSets;
-    private final OnFlashcardClickListener listener;
     private Context context;
-    private FirebaseFirestore db;
+    private ArrayList<FlashcardSet> flashcardSets;
+    private OnFlashcardSetClickListener listener;
 
-    private HashMap<String, String> usernameCache;
-
-    private String currentUserId;
-    private String currentUsername;
-
-    private static final int VIEW_TYPE_EMPTY = 0;
-    private static final int VIEW_TYPE_CONTENT = 1;
-
-    public FlashcardSetAdapter(Context context, List<FlashcardSet> flashcardSets, OnFlashcardClickListener listener) {
+    public FlashcardSetAdapter(Context context, ArrayList<FlashcardSet> flashcardSets, OnFlashcardSetClickListener listener) {
         this.context = context;
         this.flashcardSets = flashcardSets;
         this.listener = listener;
-        this.db = FirebaseFirestore.getInstance();
-        this.usernameCache = new HashMap<>();
-        this.currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
-        // fetch current user's username once
-        db.collection("users").document(currentUserId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        currentUsername = documentSnapshot.getString("username");
-                    } else {
-                        currentUsername = "Unknown";
-                    }
-                })
-                .addOnFailureListener(e -> currentUsername = "Unknown");
-    }
-
-    @Override
-    public int getItemViewType(int position) {
-        if (flashcardSets == null || flashcardSets.isEmpty()) {
-            return VIEW_TYPE_EMPTY;
-        }
-        return VIEW_TYPE_CONTENT;
     }
 
     @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        if (viewType == VIEW_TYPE_EMPTY) {
-            View view = inflater.inflate(R.layout.no_item_flashcard_set, parent, false);
-            return new EmptyViewHolder(view);
-        } else {
-            View view = inflater.inflate(R.layout.item_flashcard_set, parent, false);
-            return new ContentViewHolder(view);
-        }
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(context).inflate(R.layout.item_flashcard_set, parent, false);
+        return new ViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        if (holder instanceof ContentViewHolder) {
-            FlashcardSet set = flashcardSets.get(position);
-            ContentViewHolder contentHolder = (ContentViewHolder) holder;
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        FlashcardSet set = flashcardSets.get(position);
+        holder.setNameText.setText(set.getTitle());
+        holder.setItemText.setText(set.getNumberOfItems() + " items");
+        holder.flashcardOwner.setText(set.getOwnerUsername());
 
-            contentHolder.setName.setText(set.getName());
+        // Set progress value (0-100)
+        int progressValue = set.getProgress();
+        holder.statsProgressBar.setProgress(progressValue);
+        holder.progressPercentageText.setText(progressValue + "%");
 
-            // Set number of items (flashcards) in this set
-            int itemCount = (set.getFlashcards() != null) ? set.getFlashcards().size() : 0;
-            contentHolder.setItems.setText(itemCount + " items");
-
-            // Owner username fetching logic
-            if (set.getOwnerId().equals(currentUserId)) {
-                contentHolder.ownerName.setText(currentUsername);
-            } else if (usernameCache.containsKey(set.getOwnerId())) {
-                contentHolder.ownerName.setText(usernameCache.get(set.getOwnerId()));
-            } else {
-                db.collection("users").document(set.getOwnerId())
-                        .get()
-                        .addOnSuccessListener(documentSnapshot -> {
-                            if (documentSnapshot.exists()) {
-                                String username = documentSnapshot.getString("username");
-                                if (username != null) {
-                                    usernameCache.put(set.getOwnerId(), username);
-                                    contentHolder.ownerName.setText(username);
-                                } else {
-                                    contentHolder.ownerName.setText("Unknown");
-                                }
-                            } else {
-                                contentHolder.ownerName.setText("Unknown");
-                            }
-                        })
-                        .addOnFailureListener(e -> contentHolder.ownerName.setText("Unknown"));
-            }
-
-            contentHolder.itemView.setOnClickListener(v -> listener.onClick(set));
-        }
+        holder.itemView.setOnClickListener(v -> listener.onFlashcardSetClick(set));
     }
 
     @Override
     public int getItemCount() {
-        if (flashcardSets == null || flashcardSets.isEmpty()) {
-            return 1; // show 1 empty view
-        }
         return flashcardSets.size();
     }
 
-    static class EmptyViewHolder extends RecyclerView.ViewHolder {
-        EmptyViewHolder(View itemView) {
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView setNameText, setItemText, flashcardOwner, progressPercentageText;
+        ProgressBar backgroundProgressBar, statsProgressBar;
+        ImageView imageView;
+
+        public ViewHolder(@NonNull View itemView) {
             super(itemView);
+            setNameText = itemView.findViewById(R.id.set_name_text);
+            setItemText = itemView.findViewById(R.id.set_item_text);
+            flashcardOwner = itemView.findViewById(R.id.flashcard_owner);
+            progressPercentageText = itemView.findViewById(R.id.progress_percentage2);
+
+            backgroundProgressBar = itemView.findViewById(R.id.background_progressbar);
+            statsProgressBar = itemView.findViewById(R.id.stats_progressbar);
+
+            imageView = itemView.findViewById(R.id.imageView);
         }
-    }
-
-    static class ContentViewHolder extends RecyclerView.ViewHolder {
-        TextView setName;
-        TextView setItems;
-        TextView ownerName;
-
-        ContentViewHolder(View itemView) {
-            super(itemView);
-            setName = itemView.findViewById(R.id.set_name_text);
-            setItems = itemView.findViewById(R.id.set_item_text);
-            ownerName = itemView.findViewById(R.id.flashcard_owner);
-        }
-    }
-
-    public void updateData(List<FlashcardSet> newFlashcardSets) {
-        this.flashcardSets = newFlashcardSets;
-        notifyDataSetChanged();
     }
 }
