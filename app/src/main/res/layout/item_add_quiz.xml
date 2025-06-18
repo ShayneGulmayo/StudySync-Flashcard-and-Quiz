@@ -71,7 +71,9 @@
             android:layout_height="wrap_content"
             android:clickable="true"
             android:focusable="true"
-            android:padding="10dp"
+            android:paddingTop="10dp"
+            android:paddingRight="10dp"
+            android:paddingBottom="10dp"
             android:text="Add option"
             android:textColor="@color/black"
             android:textSize="16sp" />

@@ -67,8 +67,12 @@
     <string name="definition">Definition</string>
     <string name="back">Back</string>
     <string name="enter_option">Enter option</string>
+    <string name="enter_answer">Enter answer</string>
     <string name="delete_option">Delete option</string>
-
+    <string-array name="quiz_types">
+        <item>Multiple Choice</item>
+        <item>Enumeration</item>
+    </string-array>
 
 
 
