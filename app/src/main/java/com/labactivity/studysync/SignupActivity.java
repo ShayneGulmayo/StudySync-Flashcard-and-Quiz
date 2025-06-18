@@ -27,6 +27,7 @@ import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -211,13 +212,25 @@ public class SignupActivity extends AppCompatActivity {
                         Map<String, Object> userData = new HashMap<>();
                         userData.put("email", email);
 
-                        db.collection("users").document(uid).set(userData)
+                        db.collection("users").document(uid).set(userData, SetOptions.merge())
                                 .addOnSuccessListener(unused -> {
-                                    startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
+                                    if (documentSnapshot.exists()) {
+                                        Map<String, Object> data = documentSnapshot.getData();
+                                        if (data != null &&
+                                                data.containsKey("username") &&
+                                                data.containsKey("firstName") &&
+                                                data.containsKey("lastName")) {
+                                            startActivity(new Intent(SignupActivity.this, MainActivity.class));
+                                        } else {
+                                            startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
+                                        }
+                                    } else {
+                                        startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
+                                    }
                                     finish();
                                 })
                                 .addOnFailureListener(e -> {
-                                    Toast.makeText(SignupActivity.this, "Error creating user profile", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(SignupActivity.this, "Error saving user email", Toast.LENGTH_SHORT).show();
                                 });
                     }
                 })

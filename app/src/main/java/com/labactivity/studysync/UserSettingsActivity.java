@@ -89,7 +89,7 @@ public class UserSettingsActivity extends AppCompatActivity {
         });
     }
 
-        private void loadUserData(String uid) {
+    private void loadUserData(String uid) {
         db.collection("users").document(uid)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -97,12 +97,14 @@ public class UserSettingsActivity extends AppCompatActivity {
                         String username = documentSnapshot.getString("username");
                         String firstName = documentSnapshot.getString("firstName");
                         String lastName = documentSnapshot.getString("lastName");
-                        String email = documentSnapshot.getString("email");
 
                         usernameValue.setText(username != null ? username : "username");
                         fullnameValue.setText((firstName != null && lastName != null) ?
                                 firstName + " " + lastName : "-");
-                        emailValue.setText(email != null ? email : "email");
+
+                        // ✅ Get email directly from Firebase Authentication
+                        emailValue.setText(currentUser.getEmail() != null ? currentUser.getEmail() : "email");
+
                     } else {
                         Toast.makeText(this, "User data not found", Toast.LENGTH_SHORT).show();
                     }
@@ -111,4 +113,5 @@ public class UserSettingsActivity extends AppCompatActivity {
                         Toast.makeText(this, "Failed to load user data", Toast.LENGTH_SHORT).show()
                 );
     }
+
 }

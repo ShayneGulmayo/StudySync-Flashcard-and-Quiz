@@ -11,6 +11,10 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
+import com.bumptech.glide.request.RequestOptions;
+
 import java.util.ArrayList;
 
 public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapter.ViewHolder> {
@@ -39,15 +43,27 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         FlashcardSet set = flashcardSets.get(position);
+
         holder.setNameText.setText(set.getTitle());
         holder.setItemText.setText(set.getNumberOfItems() + " items");
         holder.flashcardOwner.setText(set.getOwnerUsername());
 
-        // Set progress value (0-100)
+        // Progress bar
         int progressValue = set.getProgress();
         holder.statsProgressBar.setProgress(progressValue);
         holder.progressPercentageText.setText(progressValue + "%");
 
+        // Load user profile photo
+        Glide.with(context)
+                .load(set.getPhotoUrl())
+                .apply(new RequestOptions()
+                        .placeholder(R.drawable.user_profile) // fallback icon
+                        .error(R.drawable.user_profile) // error icon
+                        .circleCrop())
+                .transition(DrawableTransitionOptions.withCrossFade())
+                .into(holder.userProfileImage);
+
+        // Click listener
         holder.itemView.setOnClickListener(v -> listener.onFlashcardSetClick(set));
     }
 
@@ -59,7 +75,7 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView setNameText, setItemText, flashcardOwner, progressPercentageText;
         ProgressBar backgroundProgressBar, statsProgressBar;
-        ImageView imageView;
+        ImageView userProfileImage;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -67,11 +83,9 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             setItemText = itemView.findViewById(R.id.set_item_text);
             flashcardOwner = itemView.findViewById(R.id.flashcard_owner);
             progressPercentageText = itemView.findViewById(R.id.progress_percentage2);
-
             backgroundProgressBar = itemView.findViewById(R.id.background_progressbar);
             statsProgressBar = itemView.findViewById(R.id.stats_progressbar);
-
-            imageView = itemView.findViewById(R.id.imageView);
+            userProfileImage = itemView.findViewById(R.id.user_profile); // ✅ your layout ID
         }
     }
 }

@@ -56,14 +56,12 @@ public class FlashcardsActivity extends AppCompatActivity {
         backButton.setOnClickListener(v -> onBackPressed());
         addButton.setOnClickListener(v -> showAddBottomSheet());
 
-
         currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         loadFlashcardSets();
     }
 
     private void loadFlashcardSets() {
         progressBar.setVisibility(View.VISIBLE);
-
         String currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         db.collection("flashcards")
@@ -71,18 +69,54 @@ public class FlashcardsActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     flashcardSets.clear();
+
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         String id = doc.getId();
                         String title = doc.getString("title");
                         long numberOfItems = doc.getLong("number_of_items") != null ? doc.getLong("number_of_items") : 0;
                         long progress = doc.getLong("progress") != null ? doc.getLong("progress") : 0;
-                        String ownerUsername = doc.getString("owner_username");  // 🔥 get it here
+                        String ownerUsername = doc.getString("owner_username");
+                        String ownerUid = doc.getString("owner_uid");
 
-                        FlashcardSet set = new FlashcardSet(id, title, (int) numberOfItems, ownerUsername, (int) progress);
-                        flashcardSets.add(set);
+                        // Fetch the owner's photoUrl from "users" collection
+                        db.collection("users").document(ownerUid).get()
+                                .addOnSuccessListener(userDoc -> {
+                                    String photoUrl = userDoc.getString("photoUrl");
+
+                                    FlashcardSet set = new FlashcardSet(
+                                            id,
+                                            title,
+                                            (int) numberOfItems,
+                                            ownerUsername,
+                                            (int) progress,
+                                            photoUrl
+                                    );
+
+                                    flashcardSets.add(set);
+                                    adapter.notifyDataSetChanged();
+                                    progressBar.setVisibility(View.GONE);
+                                })
+                                .addOnFailureListener(e -> {
+                                    // Fallback: create set without photo if user data fails
+                                    FlashcardSet set = new FlashcardSet(
+                                            id,
+                                            title,
+                                            (int) numberOfItems,
+                                            ownerUsername,
+                                            (int) progress,
+                                            null
+                                    );
+
+                                    flashcardSets.add(set);
+                                    adapter.notifyDataSetChanged();
+                                    progressBar.setVisibility(View.GONE);
+                                });
                     }
-                    adapter.notifyDataSetChanged();
-                    progressBar.setVisibility(View.GONE);
+
+                    // If no flashcard sets found
+                    if (queryDocumentSnapshots.isEmpty()) {
+                        progressBar.setVisibility(View.GONE);
+                    }
                 })
                 .addOnFailureListener(e -> {
                     progressBar.setVisibility(View.GONE);
@@ -90,13 +124,12 @@ public class FlashcardsActivity extends AppCompatActivity {
                 });
     }
 
+
     @Override
     protected void onResume() {
         super.onResume();
         loadFlashcardSets();
     }
-
-
 
     private void showAddBottomSheet() {
         View view = getLayoutInflater().inflate(R.layout.add_bottom_sheet_menu, null);
@@ -112,17 +145,14 @@ public class FlashcardsActivity extends AppCompatActivity {
         dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         dialog.show();
 
-        // handle button clicks
         generateFromImage.setOnClickListener(v -> {
             dialog.dismiss();
             Toast.makeText(this, "Generate from image coming soon!", Toast.LENGTH_SHORT).show();
-            // optional future: startActivity(new Intent(...));
         });
 
         generateFromPdf.setOnClickListener(v -> {
             dialog.dismiss();
             Toast.makeText(this, "Generate from PDF coming soon!", Toast.LENGTH_SHORT).show();
-            // optional future: startActivity(new Intent(...));
         });
 
         addNewSet.setOnClickListener(v -> {
@@ -131,7 +161,6 @@ public class FlashcardsActivity extends AppCompatActivity {
             createFlashcardLauncher.launch(intent);
         });
     }
-
 
     private void onFlashcardSetClicked(FlashcardSet set) {
         Intent intent = new Intent(this, FlashcardViewerActivity.class);
