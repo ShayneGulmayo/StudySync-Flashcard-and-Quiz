@@ -69,11 +69,12 @@
     <string name="enter_option">Enter option</string>
     <string name="enter_answer">Enter answer</string>
     <string name="delete_option">Delete option</string>
+    <string name="privacy_public">Public</string>
+    <string name="privacy_private">Private</string>
     <string-array name="quiz_types">
         <item>Multiple Choice</item>
         <item>Enumeration</item>
     </string-array>
-
 
 
 </resources>

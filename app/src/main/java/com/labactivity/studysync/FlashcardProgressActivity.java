@@ -188,7 +188,13 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                     if (documentSnapshot.exists()) {
                         String title = documentSnapshot.getString("title");
                         if (title != null && !title.isEmpty()) {
-                            flashcardTitleTxt.setText(title);
+                            // Limit title to 20 characters
+                            if (title.length() > 20) {
+                                String shortTitle = title.substring(0, 20) + "...";
+                                flashcardTitleTxt.setText(shortTitle);
+                            } else {
+                                flashcardTitleTxt.setText(title);
+                            }
                         } else {
                             flashcardTitleTxt.setText("Untitled Set");
                         }
@@ -200,4 +206,5 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                     flashcardTitleTxt.setText("Failed to load title.");
                 });
     }
+
 }

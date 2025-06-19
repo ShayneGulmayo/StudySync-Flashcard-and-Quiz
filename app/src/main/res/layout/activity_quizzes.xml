@@ -48,7 +48,7 @@
     </com.google.android.material.navigation.NavigationView>
 
     <SearchView
-        android:id="@+id/searchView"
+        android:id="@+id/search_set"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/navigationView"
@@ -64,7 +64,7 @@
         android:id="@+id/recycler_flashcards"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/searchView"
+        android:layout_below="@+id/search_set"
         android:layout_alignParentStart="true"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"

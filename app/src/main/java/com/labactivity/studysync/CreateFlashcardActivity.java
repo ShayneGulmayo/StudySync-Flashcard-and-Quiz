@@ -1,7 +1,9 @@
 package com.labactivity.studysync;
 
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -9,6 +11,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -27,7 +30,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
     private FirebaseAuth auth;
     private ImageView backButton, saveButton;
     private String username;
-    private String setId = null; // holds setId if in edit mode
+    private String setId = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,7 +46,8 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        backButton.setOnClickListener(v -> onBackPressed());
+        backButton.setOnClickListener(v -> showExitConfirmation());
+
         floatingAddButton.setOnClickListener(v -> addFlashcardView());
         saveButton.setOnClickListener(v -> {
             if (setId != null) {
@@ -53,9 +57,29 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             }
         });
 
-        addFlashcardView(); // initial card
+        // Add 2 flashcards by default
+        addFlashcardView();
+        addFlashcardView();
 
-        // fetch current user's username
+        // Limit title to 20 characters
+        setNameEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (s.length() > 20) {
+                    setNameEditText.setText(s.subSequence(0, 20));
+                    setNameEditText.setSelection(20);
+                    Toast.makeText(CreateFlashcardActivity.this, "Title cannot exceed 20 characters", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        // Fetch current user's username
         db.collection("users")
                 .document(auth.getCurrentUser().getUid())
                 .get()
@@ -65,7 +89,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                     }
                 });
 
-        // Check if this is an edit operation
         if (getIntent().hasExtra("setId")) {
             setId = getIntent().getStringExtra("setId");
             loadFlashcardSetForEditing(setId);
@@ -82,12 +105,11 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
                         Map<String, Object> terms = (Map<String, Object>) documentSnapshot.get("terms");
                         if (terms != null) {
-                            flashcardContainer.removeAllViews(); // remove initial empty card
+                            flashcardContainer.removeAllViews();
                             for (int i = 0; i < terms.size(); i++) {
                                 Map<String, Object> termEntry = (Map<String, Object>) terms.get(String.valueOf(i));
                                 String term = (String) termEntry.get("term");
                                 String definition = (String) termEntry.get("definition");
-
                                 addFlashcardView(term, definition);
                             }
                         }
@@ -119,14 +141,13 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 Map<String, Object> termEntry = new HashMap<>();
                 termEntry.put("term", term);
                 termEntry.put("definition", definition);
-
                 termsMap.put(String.valueOf(numberOfItems), termEntry);
                 numberOfItems++;
             }
         }
 
-        if (numberOfItems == 0) {
-            Toast.makeText(this, "Add at least one flashcard", Toast.LENGTH_SHORT).show();
+        if (numberOfItems < 2) {
+            Toast.makeText(this, "A set must have at least 2 flashcards", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -137,7 +158,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         flashcardSet.put("number_of_items", numberOfItems);
         flashcardSet.put("owner_username", username);
         flashcardSet.put("owner_uid", uid);
-        flashcardSet.put("private", "public"); // or "private"
         flashcardSet.put("progress", 0);
         flashcardSet.put("terms", termsMap);
 
@@ -174,14 +194,13 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 Map<String, Object> termEntry = new HashMap<>();
                 termEntry.put("term", term);
                 termEntry.put("definition", definition);
-
                 termsMap.put(String.valueOf(numberOfItems), termEntry);
                 numberOfItems++;
             }
         }
 
-        if (numberOfItems == 0) {
-            Toast.makeText(this, "Add at least one flashcard", Toast.LENGTH_SHORT).show();
+        if (numberOfItems < 2) {
+            Toast.makeText(this, "A set must have at least 2 flashcards", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -201,23 +220,61 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
     private void addFlashcardView() {
         View flashcardView = getLayoutInflater().inflate(R.layout.item_flashcard_input, null);
-        flashcardContainer.addView(flashcardView);
-
         ImageButton deleteButton = flashcardView.findViewById(R.id.delete_btn);
-        deleteButton.setOnClickListener(v -> flashcardContainer.removeView(flashcardView));
+
+        deleteButton.setOnClickListener(v -> {
+            if (flashcardContainer.getChildCount() > 2) {
+                flashcardContainer.removeView(flashcardView);
+                Toast.makeText(CreateFlashcardActivity.this, "Flashcard removed", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(CreateFlashcardActivity.this, "A set must have at least 2 flashcards", Toast.LENGTH_SHORT).show();
+            }
+            updateDeleteButtons();
+        });
+
+        flashcardContainer.addView(flashcardView);
+        updateDeleteButtons();
     }
 
     private void addFlashcardView(String term, String definition) {
         View flashcardView = getLayoutInflater().inflate(R.layout.item_flashcard_input, null);
         EditText termEditText = flashcardView.findViewById(R.id.flashcard_term);
         EditText definitionEditText = flashcardView.findViewById(R.id.flashcard_definition);
+        ImageButton deleteButton = flashcardView.findViewById(R.id.delete_btn);
 
         termEditText.setText(term);
         definitionEditText.setText(definition);
 
-        ImageButton deleteButton = flashcardView.findViewById(R.id.delete_btn);
-        deleteButton.setOnClickListener(v -> flashcardContainer.removeView(flashcardView));
+        deleteButton.setOnClickListener(v -> {
+            if (flashcardContainer.getChildCount() > 2) {
+                flashcardContainer.removeView(flashcardView);
+                Toast.makeText(CreateFlashcardActivity.this, "Flashcard removed", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(CreateFlashcardActivity.this, "A set must have at least 2 flashcards", Toast.LENGTH_SHORT).show();
+            }
+            updateDeleteButtons();
+        });
 
         flashcardContainer.addView(flashcardView);
+        updateDeleteButtons();
+    }
+
+
+    private void updateDeleteButtons() {
+        int count = flashcardContainer.getChildCount();
+        for (int i = 0; i < count; i++) {
+            View cardView = flashcardContainer.getChildAt(i);
+            ImageButton deleteButton = cardView.findViewById(R.id.delete_btn);
+            deleteButton.setEnabled(count > 2);
+        }
+    }
+
+    private void showExitConfirmation() {
+        new AlertDialog.Builder(this)
+                .setTitle("Leave Flashcard?")
+                .setMessage("Are you sure you want to leave making this flashcard?")
+                .setPositiveButton("No", null)
+                .setNegativeButton("Yes", (dialog, which) -> finish())
+                .show();
     }
 }

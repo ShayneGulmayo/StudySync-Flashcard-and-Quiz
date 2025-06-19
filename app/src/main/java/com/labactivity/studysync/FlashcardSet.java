@@ -7,6 +7,8 @@ public class FlashcardSet {
     private String ownerUsername;
     private int progress;
     private String photoUrl; // ✅ New field for profile photo URL
+    private String type;
+
 
     public FlashcardSet() {
         // Empty constructor for Firestore
@@ -68,5 +70,13 @@ public class FlashcardSet {
 
     public void setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getType() {
+        return type;
     }
 }

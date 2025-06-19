@@ -51,6 +51,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
+        android:ellipsize="end"
+        android:maxLines="1"
         android:text="@string/title"
         android:textColor="@color/black"
         android:textSize="20sp"
@@ -63,6 +65,8 @@
         android:id="@+id/owner_username"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="5dp"
         android:layout_marginEnd="123dp"
         android:drawablePadding="16dp"
         android:gravity="center"
@@ -79,12 +83,12 @@
 
     <ImageView
         android:id="@+id/owner_profile"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
         android:layout_marginStart="123dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/flashcard_title"
-        app:srcCompat="@drawable/user_profile_small" />
+        app:srcCompat="@drawable/user_profile" />
 
     <FrameLayout
         android:id="@+id/card_container"
@@ -203,5 +207,15 @@
             android:textSize="16sp"
             android:textStyle="bold" />
     </LinearLayout>
+
+    <ImageView
+        android:id="@+id/privacy_icon"
+        android:layout_width="15dp"
+        android:layout_height="15dp"
+        android:layout_marginTop="22dp"
+        android:layout_marginEnd="30dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/navigationView"
+        app:srcCompat="@drawable/public_icon" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new HomeFragment())
+                    .replace(R.id.fragment_container, new SetFragment())
                     .commit();
             bottomNavigationView.setSelectedItemId(R.id.nav_home);
         }
@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
             if (id == R.id.nav_profile) {
                 selectedFragment = new UserProfileFragment();
             } else if (id == R.id.nav_home) {
-                selectedFragment = new HomeFragment();
+                selectedFragment = new SetFragment();
             } else if (id == R.id.nav_chat) {
                 selectedFragment = new ChatFragment();
             }
