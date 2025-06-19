@@ -6,7 +6,6 @@
     android:padding="12dp"
     android:background="?android:selectableItemBackground">
 
-    <!-- Group Photo -->
     <ImageView
         android:id="@+id/image_group_photo"
         android:layout_width="56dp"

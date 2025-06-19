@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -12,7 +14,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.StudySync"
         tools:targetApi="31">
-
+        <activity
+            android:name=".CreateChatRoomActivity"
+            android:exported="false" />
         <activity
             android:name=".ReviewQuestionsActivity"
             android:exported="false" />
@@ -82,7 +86,8 @@
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
@@ -93,7 +98,5 @@
                 android:resource="@xml/file_paths" />
         </provider>
     </application>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-
 
 </manifest>
