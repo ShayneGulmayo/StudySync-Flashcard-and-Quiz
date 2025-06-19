@@ -25,6 +25,7 @@ public class CreateQuizActivity extends AppCompatActivity {
     private LinearLayout quizContainer;
     private FloatingActionButton addQuizButton;
     private ImageView backButton, checkButton;
+    private EditText quizTitleInput;
 
     private int questionCount = 0;
     private final int MAX_QUESTIONS = 50;
@@ -38,6 +39,7 @@ public class CreateQuizActivity extends AppCompatActivity {
         addQuizButton = findViewById(R.id.floating_add_btn);
         backButton = findViewById(R.id.back_button);
         checkButton = findViewById(R.id.save_button);
+        quizTitleInput = findViewById(R.id.quiz_name);
 
         addQuizView();
 
@@ -58,6 +60,13 @@ public class CreateQuizActivity extends AppCompatActivity {
         });
 
         checkButton.setOnClickListener(v -> {
+            if (quizTitleInput.getText().toString().trim().isEmpty()) {
+                quizTitleInput.setError("Quiz title is required");
+                quizTitleInput.requestFocus(); // optional: moves cursor to the field
+                return;
+            }
+
+
             if (validateAllQuestions()) {
                 Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
                 finish();
@@ -125,8 +134,15 @@ public class CreateQuizActivity extends AppCompatActivity {
                 }
                 View answerView = LayoutInflater.from(this).inflate(R.layout.item_add_quiz_enumerations, null);
                 ImageButton deleteAnswer = answerView.findViewById(R.id.delete_option);
-                deleteAnswer.setOnClickListener(btn -> optionsContainer.removeView(answerView));
+
+                deleteAnswer.setOnClickListener(btn -> {
+                    optionsContainer.removeView(answerView);
+                    renumberEnumerationInputs(optionsContainer); // call to update numbers
+                });
+
                 optionsContainer.addView(answerView);
+                renumberEnumerationInputs(optionsContainer); // update numbers after add
+
             }
         });
 
@@ -168,16 +184,12 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         deleteOption.setOnClickListener(v -> {
             container.removeView(optionView);
-            checkMinimumOptions(container);
+            if (container.getChildCount() < 2) {
+                Toast.makeText(this, "A question must have at least 2 options", Toast.LENGTH_SHORT).show();
+            }
         });
 
         container.addView(optionView);
-    }
-
-    private void checkMinimumOptions(LinearLayout container) {
-        if (container.getChildCount() < 2) {
-            Toast.makeText(this, "A question must have at least 2 options", Toast.LENGTH_SHORT).show();
-        }
     }
 
     private boolean validateAllQuestions() {
@@ -192,17 +204,32 @@ public class CreateQuizActivity extends AppCompatActivity {
             View quizItem = quizContainer.getChildAt(i);
             Spinner spinner = quizItem.findViewById(R.id.quiz_type_spinner);
             LinearLayout optionsContainer = quizItem.findViewById(R.id.answer_choices_container);
+            EditText questionInput = quizItem.findViewById(R.id.quiz_question_input);
             String quizType = spinner.getSelectedItem().toString().toLowerCase();
 
+            if (questionInput.getText().toString().trim().isEmpty()) {
+                Toast.makeText(this, "Each question must have text", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+
             if (quizType.equals("multiple choice")) {
+                if (optionsContainer.getChildCount() < 2) {
+                    Toast.makeText(this, "Each multiple choice question must have at least 2 options", Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+
                 boolean hasSelected = false;
 
                 for (int j = 0; j < optionsContainer.getChildCount(); j++) {
                     View option = optionsContainer.getChildAt(j);
                     RadioButton rb = option.findViewById(R.id.radioOption);
+                    EditText et = option.findViewById(R.id.edit_option_text);
+                    if (et == null || et.getText().toString().trim().isEmpty()) {
+                        Toast.makeText(this, "All multiple choice options must be filled", Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
                     if (rb != null && rb.isChecked()) {
                         hasSelected = true;
-                        break;
                     }
                 }
 
@@ -216,9 +243,11 @@ public class CreateQuizActivity extends AppCompatActivity {
                 for (int j = 0; j < optionsContainer.getChildCount(); j++) {
                     View answer = optionsContainer.getChildAt(j);
                     EditText answerInput = answer.findViewById(R.id.edit_option_text);
-                    if (answerInput != null && !answerInput.getText().toString().trim().isEmpty()) {
+                    if (answerInput == null || answerInput.getText().toString().trim().isEmpty()) {
+                        Toast.makeText(this, "All enumeration answers must be filled", Toast.LENGTH_SHORT).show();
+                        return false;
+                    } else {
                         hasInput = true;
-                        break;
                     }
                 }
 
@@ -230,5 +259,14 @@ public class CreateQuizActivity extends AppCompatActivity {
         }
 
         return true;
+    }
+    private void renumberEnumerationInputs(LinearLayout container) {
+        for (int i = 0; i < container.getChildCount(); i++) {
+            View child = container.getChildAt(i);
+            TextView numberLabel = child.findViewById(R.id.enumeration_number);
+            if (numberLabel != null) {
+                numberLabel.setText(String.valueOf(i + 1));
+            }
+        }
     }
 }
