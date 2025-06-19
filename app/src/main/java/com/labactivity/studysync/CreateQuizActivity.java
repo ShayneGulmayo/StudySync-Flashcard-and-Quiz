@@ -15,13 +15,26 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.DocumentReference;
+
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class CreateQuizActivity extends AppCompatActivity {
 
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
+    private String username;
     private LinearLayout quizContainer;
     private FloatingActionButton addQuizButton;
     private ImageView backButton, checkButton;
@@ -40,6 +53,18 @@ public class CreateQuizActivity extends AppCompatActivity {
         backButton = findViewById(R.id.back_button);
         checkButton = findViewById(R.id.save_button);
         quizTitleInput = findViewById(R.id.quiz_name);
+
+        db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
+
+        db.collection("users")
+                .document(auth.getCurrentUser().getUid())
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        username = documentSnapshot.getString("username");
+                    }
+                });
 
         addQuizView();
 
@@ -69,9 +94,70 @@ public class CreateQuizActivity extends AppCompatActivity {
 
             if (validateAllQuestions()) {
                 Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
+                saveQuizToFirebase();
                 finish();
             }
         });
+    }
+
+    private void saveQuizToFirebase() {
+        List<Map<String, Object>> questionList = new ArrayList<>();
+
+        for (int i = 0; i < quizContainer.getChildCount(); i++) {
+            View quizItem = quizContainer.getChildAt(i);
+            Spinner spinner = quizItem.findViewById(R.id.quiz_type_spinner);
+            LinearLayout optionsContainer = quizItem.findViewById(R.id.answer_choices_container);
+            EditText questionInput = quizItem.findViewById(R.id.quiz_question_input);
+            String quizType = spinner.getSelectedItem().toString().toLowerCase();
+
+            Map<String, Object> questionData = new HashMap<>();
+            questionData.put("question", questionInput.getText().toString().trim());
+
+            if (quizType.equals("multiple choice")) {
+                List<String> choices = new ArrayList<>();
+                String correctAnswer = "";
+                for (int j = 0; j < optionsContainer.getChildCount(); j++) {
+                    View option = optionsContainer.getChildAt(j);
+                    RadioButton rb = option.findViewById(R.id.radioOption);
+                    EditText et = option.findViewById(R.id.edit_option_text);
+                    String text = et.getText().toString().trim();
+                    choices.add(text);
+                    if (rb != null && rb.isChecked()) {
+                        correctAnswer = text;
+                    }
+                }
+                questionData.put("choices", choices);
+                questionData.put("correctAnswer", correctAnswer);
+            } else if (quizType.equals("enumeration")) {
+                List<String> answers = new ArrayList<>();
+                for (int j = 0; j < optionsContainer.getChildCount(); j++) {
+                    View answer = optionsContainer.getChildAt(j);
+                    EditText answerInput = answer.findViewById(R.id.edit_option_text);
+                    answers.add(answerInput.getText().toString().trim());
+                }
+                questionData.put("choices", answers);
+            }
+
+            questionList.add(questionData);
+        }
+
+        Map<String, Object> quizData = new HashMap<>();
+        quizData.put("quizName", quizTitleInput.getText().toString().trim());
+        quizData.put("ownerId", auth.getCurrentUser().getUid());
+        quizData.put("ownerUsername", username);
+        quizData.put("privacy", "public");
+        quizData.put("numberOfItems", questionCount);
+        quizData.put("progress", 0);
+        quizData.put("createdAt", Timestamp.now());
+        quizData.put("questions", questionList);
+
+        db.collection("quiz")
+                .add(quizData)
+                .addOnSuccessListener(documentReference -> {
+                    Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to save quiz", Toast.LENGTH_SHORT).show());
     }
 
     private void showExitConfirmation() {
@@ -269,4 +355,5 @@ public class CreateQuizActivity extends AppCompatActivity {
             }
         }
     }
+
 }
