@@ -61,7 +61,7 @@
         android:queryHint="@string/search_flashcard" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_flashcards"
+        android:id="@+id/recycler_quizzes"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/search_set"
