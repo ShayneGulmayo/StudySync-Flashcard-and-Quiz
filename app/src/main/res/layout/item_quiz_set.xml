@@ -1,124 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/main"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@color/white"
-    android:fitsSystemWindows="true"
-    android:orientation="vertical"
-    android:padding="8dp">
-
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cardView"
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/main"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:background="@drawable/green_stroke_bg"
-        app:cardCornerRadius="12dp">
+        android:background="@color/white"
+        android:fitsSystemWindows="true"
+        android:orientation="vertical"
+        android:padding="8dp">
 
-        <LinearLayout
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardView"
             android:layout_width="match_parent"
-            android:layout_height="160dp"
-            android:orientation="vertical"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:background="@drawable/green_stroke_bg"
-            android:padding="16dp">
+            app:cardCornerRadius="12dp">
 
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="160dp"
+                android:orientation="vertical"
+                android:background="@drawable/green_stroke_bg"
+                android:padding="16dp">
 
-                <TextView
-                    android:id="@+id/set_name_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/quiz_title"
-                    android:textColor="@color/black"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
 
-                <TextView
-                    android:id="@+id/set_item_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginTop="7dp"
-                    android:text="@string/items"
-                    android:textColor="@color/text_gray"
-                    android:textSize="16sp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/set_name_text" />
+                    <TextView
+                        android:id="@+id/set_name_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/quiz_title"
+                        android:textColor="@color/black"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
 
-                <ImageView
-                    android:id="@+id/imageView"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginTop="35dp"
-                    android:contentDescription="Quiz Owner Picture"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/set_item_text"
-                    app:srcCompat="@drawable/user_profile_small" />
+                    <TextView
+                        android:id="@+id/set_item_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginTop="7dp"
+                        android:text="@string/items"
+                        android:textColor="@color/text_gray"
+                        android:textSize="16sp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/set_name_text" />
 
-                <TextView
-                    android:id="@+id/quiz_owner"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginTop="35dp"
-                    android:text="@string/owner_username"
-                    android:textColor="@color/text_gray"
-                    android:textSize="16sp"
-                    app:layout_constraintTop_toBottomOf="@id/set_item_text"
-                    app:layout_constraintStart_toEndOf="@id/imageView"
-                    app:layout_constraintBottom_toBottomOf="parent" />
+                    <ImageView
+                        android:id="@+id/imageView"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginTop="35dp"
+                        android:contentDescription="Quiz Owner Picture"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/set_item_text"
+                        app:srcCompat="@drawable/user_profile_small" />
 
-                <ProgressBar
-                    android:id="@+id/background_progressbar"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:indeterminate="false"
-                    android:max="100"
-                    android:progress="100"
-                    android:progressDrawable="@drawable/full_progress"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    android:layout_marginEnd="10dp" />
+                    <TextView
+                        android:id="@+id/quiz_owner"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="35dp"
+                        android:text="@string/owner_username"
+                        android:textColor="@color/text_gray"
+                        android:textSize="16sp"
+                        app:layout_constraintTop_toBottomOf="@id/set_item_text"
+                        app:layout_constraintStart_toEndOf="@id/imageView"
+                        app:layout_constraintBottom_toBottomOf="parent" />
 
-                <ProgressBar
-                    android:id="@+id/stats_progressbar"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:indeterminate="false"
-                    android:max="100"
-                    android:progress="75"
-                    android:progressDrawable="@drawable/progress"
-                    app:layout_constraintTop_toTopOf="@id/background_progressbar"
-                    app:layout_constraintBottom_toBottomOf="@id/background_progressbar"
-                    app:layout_constraintEnd_toEndOf="@id/background_progressbar" />
+                    <ProgressBar
+                        android:id="@+id/background_progressbar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:indeterminate="false"
+                        android:max="100"
+                        android:progress="100"
+                        android:progressDrawable="@drawable/full_progress"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        android:layout_marginEnd="10dp" />
 
-                <TextView
-                    android:id="@+id/progress_percentage2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0%"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    app:layout_constraintBottom_toBottomOf="@id/background_progressbar"
-                    app:layout_constraintEnd_toEndOf="@id/background_progressbar"
-                    app:layout_constraintStart_toStartOf="@id/background_progressbar"
-                    app:layout_constraintTop_toTopOf="@id/background_progressbar" />
+                    <ProgressBar
+                        android:id="@+id/stats_progressbar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:indeterminate="false"
+                        android:max="100"
+                        android:progress="75"
+                        android:progressDrawable="@drawable/progress"
+                        app:layout_constraintTop_toTopOf="@id/background_progressbar"
+                        app:layout_constraintBottom_toBottomOf="@id/background_progressbar"
+                        app:layout_constraintEnd_toEndOf="@id/background_progressbar" />
 
-            </androidx.constraintlayout.widget.ConstraintLayout>
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-</LinearLayout>
+                    <TextView
+                        android:id="@+id/progress_percentage2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0%"
+                        android:textColor="@android:color/black"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBottom_toBottomOf="@id/background_progressbar"
+                        app:layout_constraintEnd_toEndOf="@id/background_progressbar"
+                        app:layout_constraintStart_toStartOf="@id/background_progressbar"
+                        app:layout_constraintTop_toTopOf="@id/background_progressbar" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
