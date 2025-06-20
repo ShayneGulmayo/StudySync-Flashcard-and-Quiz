@@ -15,6 +15,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.UserAdapter;
 import com.labactivity.studysync.User;
 
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,6 +34,7 @@ public class CreateChatRoomActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private EditText chatRoomNameEdttxt;
     private SearchView searchView;
+    private ImageView backBtn;
 
     private RecyclerView usersRecyclerView;
     private RecyclerView selectedUsersRecyclerView;
@@ -55,13 +57,14 @@ public class CreateChatRoomActivity extends AppCompatActivity {
         usersRecyclerView = findViewById(R.id.users_recyclerview);
         selectedUsersRecyclerView = findViewById(R.id.selected_users_recyclerview);
         TextView saveTxt = findViewById(R.id.save_txt);
+        backBtn = findViewById(R.id.back_button);
+        backBtn.setOnClickListener(v -> finish());
         saveTxt.setOnClickListener(v -> saveChatRoom());
 
 
         usersRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         selectedUsersRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
 
-        // Set up adapters
         allUsersAdapter = new UserAdapter(allUsers, selectedUsers, this::onUserSelected);
         selectedUsersAdapter = new UserAdapter(selectedUsers, selectedUsers, (user, selected) -> {}); // No interaction for selected list
 
@@ -73,6 +76,9 @@ public class CreateChatRoomActivity extends AppCompatActivity {
     }
 
     private void loadUsersFromFirestore() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        String currentUserId = currentUser != null ? currentUser.getUid() : "";
+
         db.collection("users")
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
@@ -81,12 +87,15 @@ public class CreateChatRoomActivity extends AppCompatActivity {
                         User user = doc.toObject(User.class);
                         if (user != null) {
                             user.setUid(doc.getId());
-                            allUsers.add(user);
+                            if (!user.getUid().equals(currentUserId)) {
+                                allUsers.add(user);
+                            }
                         }
                     }
                     allUsersAdapter.notifyDataSetChanged();
                 });
     }
+
 
     private void setupSearchView() {
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
