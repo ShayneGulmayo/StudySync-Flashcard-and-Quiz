@@ -28,7 +28,6 @@ public class QuizzesActivity extends AppCompatActivity {
         addQuizButton = findViewById(R.id.add_button);
         backButton = findViewById(R.id.back_button);
 
-        // ✅ SETUP FIRESTORE QUIZ LIST DISPLAY
         RecyclerView recyclerView = findViewById(R.id.recycler_quizzes);
         List<DocumentSnapshot> quizList = new ArrayList<>();
         QuizAdapter adapter = new QuizAdapter(quizList, this);
@@ -42,7 +41,6 @@ public class QuizzesActivity extends AppCompatActivity {
                     adapter.notifyDataSetChanged();
                 });
 
-        // ➕ Go to Create Quiz Activity
         addQuizButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -51,7 +49,6 @@ public class QuizzesActivity extends AppCompatActivity {
             }
         });
 
-        // 🔙 Go back to Home
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

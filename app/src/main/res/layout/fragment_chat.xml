@@ -39,7 +39,7 @@
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="8dp"
         android:background="@drawable/green_stroke_bg"
-        android:queryHint="@string/search_flashcard" />
+        android:queryHint="Search Chat Room" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_flashcards"

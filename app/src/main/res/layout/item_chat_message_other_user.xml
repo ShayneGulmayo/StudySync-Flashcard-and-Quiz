@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/messageContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="1dp">
+
+    <ImageView
+        android:id="@+id/senderImage"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginEnd="8dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/user_profile"
+        android:layout_gravity="bottom"
+        android:background="@drawable/circle_background"
+        android:contentDescription="Sender Photo" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginRight="50dp">
+
+        <TextView
+            android:id="@+id/senderName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Full Name"
+            android:textSize="14sp"
+            android:textColor="@color/black"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="bottom">
+
+            <TextView
+                android:id="@+id/messageText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_message_other_user"
+                android:padding="12dp"
+                android:text="Message"
+                android:textColor="@android:color/black"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/timestampText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="12:00 PM"
+                android:textColor="@color/text_gray"
+                android:textSize="12sp"
+                android:layout_gravity="bottom" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

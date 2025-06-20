@@ -1,0 +1,11 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/menu_live_quiz"
+        android:title="Start a Live Quiz"
+        android:icon="@drawable/live"/>
+    <item android:id="@+id/menu_reminder"
+        android:title="Set a Group Reminder"
+        android:icon="@drawable/notifications"/>
+    <item android:id="@+id/menu_settings"
+        android:title="Chat Room Settings"
+        android:icon="@drawable/room_settings"/>
+</menu>
