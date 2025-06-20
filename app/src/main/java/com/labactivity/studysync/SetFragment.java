@@ -11,13 +11,11 @@ import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.firebase.auth.FirebaseAuth;
@@ -34,7 +32,7 @@ public class SetFragment extends Fragment {
     private ArrayList<FlashcardSet> allSets;
     private ArrayList<FlashcardSet> displayedSets;
     private FirebaseFirestore db;
-    private ImageView addButton;
+    private ImageView addButton, privacyIcon;
     private SearchView searchView;
     private MaterialButtonToggleGroup toggleGroup;
     private TextView noSetsText;
@@ -43,8 +41,7 @@ public class SetFragment extends Fragment {
 
     private int totalCollectionsToLoad = 2;
     private int collectionsLoaded = 0;
-
-    private String currentUserPhotoUrl;  // hold the user's photo URL
+    private String currentUserPhotoUrl;
 
     private final ActivityResultLauncher<Intent> createFlashcardLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -65,7 +62,6 @@ public class SetFragment extends Fragment {
         searchView = view.findViewById(R.id.search_set);
         toggleGroup = view.findViewById(R.id.toggle_group);
         noSetsText = view.findViewById(R.id.no_sets_text);
-
         btnAll = view.findViewById(R.id.btn_all);
         btnFlashcards = view.findViewById(R.id.btn_flashcards);
         btnQuizzes = view.findViewById(R.id.btn_quizzes);
@@ -90,10 +86,13 @@ public class SetFragment extends Fragment {
                 }
             }
         });
-
-        loadAllSets();
-
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadAllSets();
     }
 
     @SuppressLint("MissingInflatedId")
@@ -107,13 +106,11 @@ public class SetFragment extends Fragment {
         dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         dialog.show();
 
-        // Flashcard add button
         view.findViewById(R.id.add_flashcard).setOnClickListener(v -> {
             dialog.dismiss();
             showAddBottomSheetFlashcard();
         });
 
-        // Quiz add button
         view.findViewById(R.id.add_quiz).setOnClickListener(v -> {
             dialog.dismiss();
             showAddBottomSheetQuiz();
@@ -129,7 +126,6 @@ public class SetFragment extends Fragment {
         displayedSets.clear();
         collectionsLoaded = 0;
 
-        // Fetch current user's photo URL first
         db.collection("users").document(currentUid)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -146,14 +142,7 @@ public class SetFragment extends Fragment {
                     loadFlashcardsAndQuizzes(currentUid);
                 });
     }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        loadAllSets();
-    }
     private void loadFlashcardsAndQuizzes(String currentUid) {
-        // Load flashcards
         db.collection("flashcards")
                 .whereEqualTo("owner_uid", currentUid)
                 .get()
@@ -162,6 +151,13 @@ public class SetFragment extends Fragment {
                         FlashcardSet set = parseSet(doc);
                         set.setType("flashcard");
                         set.setPhotoUrl(currentUserPhotoUrl);
+
+                        // Get reminder from document
+                        String reminder = doc.getString("reminder");
+                        if (reminder != null) {
+                            set.setReminder(reminder);
+                        }
+
                         allSets.add(set);
                     }
                     collectionsLoaded++;
@@ -172,7 +168,6 @@ public class SetFragment extends Fragment {
                     checkAndApplyInitialFilter();
                 });
 
-        // Load quizzes
         db.collection("quiz")
                 .whereEqualTo("owner_uid", currentUid)
                 .get()
@@ -198,8 +193,13 @@ public class SetFragment extends Fragment {
         long numberOfItems = doc.getLong("number_of_items") != null ? doc.getLong("number_of_items") : 0;
         long progress = doc.getLong("progress") != null ? doc.getLong("progress") : 0;
         String ownerUsername = doc.getString("owner_username");
-        return new FlashcardSet(id, title, (int) numberOfItems, ownerUsername, (int) progress, null);
+        String privacy = doc.getString("privacy");
+
+        FlashcardSet set = new FlashcardSet(id, title, (int) numberOfItems, ownerUsername, (int) progress, null);
+        set.setPrivacy(privacy);
+        return set;
     }
+
 
     private void checkAndApplyInitialFilter() {
         if (collectionsLoaded >= totalCollectionsToLoad) {

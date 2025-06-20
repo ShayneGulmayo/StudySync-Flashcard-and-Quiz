@@ -6,13 +6,12 @@ public class FlashcardSet {
     private int numberOfItems;
     private String ownerUsername;
     private int progress;
-    private String photoUrl; // ✅ New field for profile photo URL
+    private String photoUrl;
     private String type;
+    private String privacy;
+    private String reminder;
 
-
-    public FlashcardSet() {
-        // Empty constructor for Firestore
-    }
+    public FlashcardSet() {}
 
     public FlashcardSet(String id, String title, int numberOfItems, String ownerUsername, int progress, String photoUrl) {
         this.id = id;
@@ -23,7 +22,6 @@ public class FlashcardSet {
         this.photoUrl = photoUrl;
     }
 
-    // Getters and Setters
     public String getId() {
         return id;
     }
@@ -43,7 +41,6 @@ public class FlashcardSet {
     public int getNumberOfItems() {
         return numberOfItems;
     }
-
     public void setNumberOfItems(int numberOfItems) {
         this.numberOfItems = numberOfItems;
     }
@@ -51,15 +48,11 @@ public class FlashcardSet {
     public String getOwnerUsername() {
         return ownerUsername;
     }
-
-    public void setOwnerUsername(String ownerUsername) {
-        this.ownerUsername = ownerUsername;
-    }
+    public void setOwnerUsername(String ownerUsername) { this.ownerUsername = ownerUsername; }
 
     public int getProgress() {
         return progress;
     }
-
     public void setProgress(int progress) {
         this.progress = progress;
     }
@@ -67,16 +60,16 @@ public class FlashcardSet {
     public String getPhotoUrl() {
         return photoUrl;
     }
-
     public void setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
     }
 
-    public void setType(String type) {
-        this.type = type;
-    }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
-    public String getType() {
-        return type;
-    }
+    public String getPrivacy() { return privacy; }
+    public void setPrivacy(String privacy) { this.privacy = privacy; }
+
+    public String getReminder() { return reminder; }
+    public void setReminder(String reminder) { this.reminder = reminder; }
 }

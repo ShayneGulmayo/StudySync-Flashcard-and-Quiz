@@ -17,8 +17,12 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.RequestOptions;
 
+import java.text.BreakIterator;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapter.ViewHolder> implements Filterable {
 
@@ -28,13 +32,13 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
 
     private Context context;
     private ArrayList<FlashcardSet> flashcardSets;
-    private ArrayList<FlashcardSet> flashcardSetsFull; // backup for filtering
+    private ArrayList<FlashcardSet> flashcardSetsFull;
     private OnFlashcardSetClickListener listener;
 
     public FlashcardSetAdapter(Context context, ArrayList<FlashcardSet> flashcardSets, OnFlashcardSetClickListener listener) {
         this.context = context;
         this.flashcardSets = flashcardSets;
-        this.flashcardSetsFull = new ArrayList<>(flashcardSets); // full backup list for search
+        this.flashcardSetsFull = new ArrayList<>(flashcardSets);
         this.listener = listener;
     }
 
@@ -49,7 +53,6 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         FlashcardSet set = flashcardSets.get(position);
 
-        // Limit title to 20 characters
         String title = set.getTitle();
         if (title.length() > 20) {
             title = title.substring(0, 17) + "...";
@@ -59,12 +62,10 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
         holder.setItemText.setText(set.getNumberOfItems() + " items");
         holder.flashcardOwner.setText(set.getOwnerUsername());
 
-        // Progress bar
         int progressValue = set.getProgress();
         holder.statsProgressBar.setProgress(progressValue);
         holder.progressPercentageText.setText(progressValue + "%");
 
-        // Load user profile photo
         if (set.getPhotoUrl() != null) {
             Glide.with(context)
                     .load(set.getPhotoUrl())
@@ -78,10 +79,24 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             holder.userProfileImage.setImageResource(R.drawable.user_profile);
         }
 
-        // Click listener
+        if ("Private".equals(set.getPrivacy())) {
+            holder.privacyIcon.setImageResource(R.drawable.lock);
+        } else {
+            holder.privacyIcon.setImageResource(R.drawable.public_icon);
+        }
+
+        // Reminder time logic
+        if (set.getReminder() != null && !set.getReminder().isEmpty()) {
+            holder.setReminderTextView.setVisibility(View.VISIBLE);  // <--- show it
+            holder.setReminderTextView.setText("Reminder: " + set.getReminder());
+        } else {
+            holder.setReminderTextView.setVisibility(View.GONE);  // <--- hide if no reminder
+        }
+
+
+
         holder.itemView.setOnClickListener(v -> listener.onFlashcardSetClick(set));
     }
-
 
     @Override
     public int getItemCount() {
@@ -89,6 +104,8 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView setReminderTextView;
+        ImageView privacyIcon;
         TextView setNameText, setItemText, flashcardOwner, progressPercentageText;
         ProgressBar backgroundProgressBar, statsProgressBar;
         ImageView userProfileImage;
@@ -102,6 +119,8 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             backgroundProgressBar = itemView.findViewById(R.id.background_progressbar);
             statsProgressBar = itemView.findViewById(R.id.stats_progressbar);
             userProfileImage = itemView.findViewById(R.id.user_profile);
+            privacyIcon = itemView.findViewById(R.id.privacy_icon);
+            setReminderTextView = itemView.findViewById(R.id.set_reminder);
         }
     }
 
@@ -141,13 +160,4 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             notifyDataSetChanged();
         }
     };
-
-    // Optionally call this if you reload or refresh your list externally
-    public void updateData(ArrayList<FlashcardSet> newList) {
-        flashcardSets.clear();
-        flashcardSets.addAll(newList);
-        flashcardSetsFull.clear();
-        flashcardSetsFull.addAll(newList);
-        notifyDataSetChanged();
-    }
 }

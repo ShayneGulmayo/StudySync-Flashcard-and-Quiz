@@ -38,7 +38,7 @@ public class ChatFragment extends Fragment {
 
         // Initialize UI elements
         addButton = view.findViewById(R.id.add_button);
-        searchView = view.findViewById(R.id.searchView);
+        searchView = view.findViewById(R.id.search_set);
         chatRecyclerView = view.findViewById(R.id.recycler_flashcards);
 
         // Setup RecyclerView

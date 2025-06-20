@@ -1,12 +1,19 @@
 package com.labactivity.studysync;
 
+import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.DatePickerDialog;
+import android.app.PendingIntent;
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
+import android.widget.DatePicker;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -16,7 +23,10 @@ import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Locale;
 import java.util.Map;
 
 public class FlashcardViewerActivity extends AppCompatActivity {
@@ -27,7 +37,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     private ArrayList<Flashcard> dontKnowFlashcards;
     private boolean isReviewingOnlyDontKnow = false;
 
-    private TextView frontCard, backCard, flashcardTitle, ownerUsername, tapText, dontKnowTxt, knowTxt, items;
+    private TextView frontCard, backCard, flashcardTitle, ownerUsername, items;
     private ImageView backButton, moreButton, knowBtn, dontKnowBtn, privacyIcon, ownerPhoto;
     private int knowCount;
     private int dontKnowCount;
@@ -50,13 +60,10 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         backCard = findViewById(R.id.back_card);
         flashcardTitle = findViewById(R.id.flashcard_title);
         ownerUsername = findViewById(R.id.owner_username);
-        tapText = findViewById(R.id.tap_text);
         backButton = findViewById(R.id.back_button);
         moreButton = findViewById(R.id.more_button);
         knowBtn = findViewById(R.id.know_btn);
         dontKnowBtn = findViewById(R.id.dont_know_btn);
-        dontKnowTxt = findViewById(R.id.dont_know_txt);
-        knowTxt = findViewById(R.id.know_txt);
         items = findViewById(R.id.txtView_items);
         privacyIcon = findViewById(R.id.privacy_icon);
         ownerPhoto = findViewById(R.id.owner_profile);
@@ -76,10 +83,13 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             dontKnowFlashcards.add(flashcards.get(currentIndex));
             animateCardSwipe(false);
         });
-
-        loadFlashcards();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadFlashcards();
+    }
     private void showMoreBottomSheet() {
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.more_bottom_sheet_menu, null);
@@ -95,11 +105,11 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             bottomSheetDialog.dismiss();
         });
 
-
         view.findViewById(R.id.reminder).setOnClickListener(v -> {
-            Toast.makeText(this, "Reminder clicked", Toast.LENGTH_SHORT).show();
+            showReminderDialog();
             bottomSheetDialog.dismiss();
         });
+
 
         view.findViewById(R.id.sendToChat).setOnClickListener(v -> {
             Toast.makeText(this, "Send to Chat clicked", Toast.LENGTH_SHORT).show();
@@ -119,6 +129,11 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         });
 
         bottomSheetDialog.show();
+    }
+
+    private String formatDateTime(Calendar calendar) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy | hh:mm a", Locale.getDefault());
+        return dateFormat.format(calendar.getTime());
     }
 
     private void togglePrivacy() {
@@ -177,8 +192,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                     currentPrivacy = snapshot.getString("privacy") != null ? snapshot.getString("privacy") : "Public";
                     updatePrivacyIcon();
 
-
-                    // 👉 get owner_uid
                     ownerUid = snapshot.getString("owner_uid");
                     if (ownerUid != null) {
                         loadOwnerPhoto(ownerUid);
@@ -243,8 +256,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                 });
     }
 
-
-
     private void updatePrivacyIcon() {
         if ("Private".equals(currentPrivacy)) {
             privacyIcon.setImageResource(R.drawable.lock);  // your private icon
@@ -252,7 +263,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             privacyIcon.setImageResource(R.drawable.public_icon);
         }
     }
-
 
     private void showCard(int index) {
         if (index < flashcards.size()) {
@@ -272,21 +282,17 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         View visible = showingFront ? frontCard : backCard;
         View hidden = showingFront ? backCard : frontCard;
 
-        // First half of flip: rotate visible card to 90°
         visible.animate()
                 .rotationY(90f)
                 .setDuration(200)
                 .setInterpolator(new AccelerateInterpolator())
                 .withEndAction(() -> {
-                    // Hide visible card and reset its rotation
                     visible.setVisibility(View.GONE);
                     visible.setRotationY(0f);
 
-                    // Show hidden card rotated at -90°
                     hidden.setVisibility(View.VISIBLE);
                     hidden.setRotationY(-90f);
 
-                    // Second half of flip: rotate hidden card from -90° to 0°
                     hidden.animate()
                             .rotationY(0f)
                             .setDuration(200)
@@ -301,7 +307,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
 
     private void animateCardSwipe(boolean isRightSwipe) {
         if (currentIndex == flashcards.size() - 1) {
-            // If it's the last card, skip animation and go directly
             openFlashcardProgressActivity();
             return;
         }
@@ -350,12 +355,10 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                     .setDuration(300)
                     .setInterpolator(new DecelerateInterpolator())
                     .start();
-
         } else {
             openFlashcardProgressActivity();
         }
     }
-
 
     private void openFlashcardProgressActivity() {
         Intent intent = new Intent(this, FlashcardProgressActivity.class);
@@ -373,4 +376,62 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
+    private void showReminderDialog() {
+        Calendar calendar = Calendar.getInstance();
+
+        DatePickerDialog datePickerDialog = new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+            calendar.set(Calendar.YEAR, year);
+            calendar.set(Calendar.MONTH, month);
+            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+
+            TimePickerDialog timePickerDialog = new TimePickerDialog(this, (timeView, hourOfDay, minute) -> {
+                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                calendar.set(Calendar.MINUTE, minute);
+                calendar.set(Calendar.SECOND, 0);
+
+                // Set alarm after picking date and time
+                setReminder(calendar);
+
+            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
+
+            timePickerDialog.show();
+
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
+
+        datePickerDialog.show();
+    }
+
+    @SuppressLint("ScheduleExactAlarm")
+    private void setReminder(Calendar calendar) {
+        Intent intent = new Intent(this, ReminderReceiver.class);
+        intent.putExtra("setTitle", flashcardTitle.getText().toString());
+        intent.putExtra("setId", setId);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+        }
+
+        // Format the date-time as required
+        String formattedDateTime = formatDateTime(calendar);
+
+        // Save to Firestore under this flashcard set
+        db.collection("flashcards").document(setId)
+                .update("reminder", formattedDateTime)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Reminder set for " + formattedDateTime, Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to set reminder.", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+
+
+
+
+
 }

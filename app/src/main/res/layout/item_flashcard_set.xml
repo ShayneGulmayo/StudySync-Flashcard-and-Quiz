@@ -56,12 +56,26 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/set_name_text" />
 
+                <TextView
+                    android:id="@+id/set_reminder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="7dp"
+                    android:text="Reminder: June 21, 2025 12:00 PM"
+                    android:textColor="@color/text_gray"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/set_item_text" />
+
                 <ImageView
                     android:id="@+id/user_profile"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:layout_marginStart="10dp"
                     android:layout_marginTop="35dp"
+                    android:layout_marginBottom="8dp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/set_item_text"
@@ -73,12 +87,13 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_marginTop="35dp"
+                    android:layout_marginBottom="8dp"
                     android:text="@string/owner_username"
                     android:textColor="@color/text_gray"
                     android:textSize="16sp"
-                    app:layout_constraintTop_toBottomOf="@id/set_item_text"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toEndOf="@id/user_profile"
-                    app:layout_constraintBottom_toBottomOf="parent" />
+                    app:layout_constraintTop_toBottomOf="@id/set_item_text" />
 
                 <ProgressBar
                     android:id="@+id/background_progressbar"
@@ -119,6 +134,16 @@
                     app:layout_constraintEnd_toEndOf="@id/background_progressbar"
                     app:layout_constraintStart_toStartOf="@id/background_progressbar"
                     app:layout_constraintTop_toTopOf="@id/background_progressbar" />
+
+                <ImageView
+                    android:id="@+id/privacy_icon"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="8dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:srcCompat="@drawable/public_icon" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </LinearLayout>
