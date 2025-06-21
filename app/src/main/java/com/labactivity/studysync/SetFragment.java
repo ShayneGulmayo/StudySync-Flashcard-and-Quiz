@@ -225,9 +225,17 @@ public class SetFragment extends Fragment {
                 displayedSets.add(set);
             }
         }
+
+        // 🔍 DEBUG: Log what’s being displayed
+        android.util.Log.d("SetFragment", "Filtered sets count: " + displayedSets.size());
+        for (FlashcardSet set : displayedSets) {
+            android.util.Log.d("SetFragment", "Type: " + set.getType() + ", Title: " + set.getTitle());
+        }
+
         adapter.notifyDataSetChanged();
         noSetsText.setVisibility(displayedSets.isEmpty() ? View.VISIBLE : View.GONE);
     }
+
 
     private void showAddBottomSheetFlashcard() {
         View view = getLayoutInflater().inflate(R.layout.add_bottom_sheet_menu, null);

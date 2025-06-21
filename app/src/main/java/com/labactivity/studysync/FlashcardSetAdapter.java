@@ -1,6 +1,7 @@
 package com.labactivity.studysync;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +12,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -24,6 +26,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+
 public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapter.ViewHolder> implements Filterable {
 
     public interface OnFlashcardSetClickListener {
@@ -34,6 +37,14 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
     private ArrayList<FlashcardSet> flashcardSets;
     private ArrayList<FlashcardSet> flashcardSetsFull;
     private OnFlashcardSetClickListener listener;
+    private static final int TYPE_FLASHCARD = 0;
+    private static final int TYPE_QUIZ = 1;
+
+    @Override
+    public int getItemViewType(int position) {
+        FlashcardSet set = flashcardSets.get(position);
+        return set.getType().equalsIgnoreCase("quiz") ? TYPE_QUIZ : TYPE_FLASHCARD;
+    }
 
     public FlashcardSetAdapter(Context context, ArrayList<FlashcardSet> flashcardSets, OnFlashcardSetClickListener listener) {
         this.context = context;
@@ -45,9 +56,15 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.item_flashcard_set, parent, false);
-        return new ViewHolder(view);
+        View view;
+        if (viewType == TYPE_QUIZ) {
+            view = LayoutInflater.from(context).inflate(R.layout.item_quiz_set, parent, false);
+        } else {
+            view = LayoutInflater.from(context).inflate(R.layout.item_flashcard_set, parent, false);
+        }
+        return new ViewHolder(view, viewType);
     }
+
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
@@ -58,10 +75,8 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             title = title.substring(0, 17) + "...";
         }
         holder.setNameText.setText(title);
-
         holder.setItemText.setText(set.getNumberOfItems() + " items");
         holder.flashcardOwner.setText(set.getOwnerUsername());
-
         int progressValue = set.getProgress();
         holder.statsProgressBar.setProgress(progressValue);
         holder.progressPercentageText.setText(progressValue + "%");
@@ -79,24 +94,35 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             holder.userProfileImage.setImageResource(R.drawable.user_profile);
         }
 
-        if ("Private".equals(set.getPrivacy())) {
-            holder.privacyIcon.setImageResource(R.drawable.lock);
-        } else {
-            holder.privacyIcon.setImageResource(R.drawable.public_icon);
+        if (holder.viewType == TYPE_FLASHCARD) {
+            if ("Private".equals(set.getPrivacy())) {
+                holder.privacyIcon.setImageResource(R.drawable.lock);
+            } else {
+                holder.privacyIcon.setImageResource(R.drawable.public_icon);
+            }
+
+            if (set.getReminder() != null && !set.getReminder().isEmpty()) {
+                holder.setReminderTextView.setVisibility(View.VISIBLE);
+                holder.setReminderTextView.setText("Reminder: " + set.getReminder());
+            } else {
+                holder.setReminderTextView.setVisibility(View.GONE);
+            }
         }
 
-        // Reminder time logic
-        if (set.getReminder() != null && !set.getReminder().isEmpty()) {
-            holder.setReminderTextView.setVisibility(View.VISIBLE);  // <--- show it
-            holder.setReminderTextView.setText("Reminder: " + set.getReminder());
-        } else {
-            holder.setReminderTextView.setVisibility(View.GONE);  // <--- hide if no reminder
-        }
 
-
-
-        holder.itemView.setOnClickListener(v -> listener.onFlashcardSetClick(set));
+        // ✅ Open correct activity
+        holder.itemView.setOnClickListener(v -> {
+            if (set.getType().equals("quiz")) {
+                Intent intent = new Intent(context, QuizProgressActivity.class);
+                intent.putExtra("quizId", set.getId());
+                intent.putExtra("quizName", set.getTitle());
+                context.startActivity(intent);
+            } else {
+                listener.onFlashcardSetClick(set); // flashcard
+            }
+        });
     }
+
 
     @Override
     public int getItemCount() {
@@ -104,25 +130,34 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView setReminderTextView;
-        ImageView privacyIcon;
-        TextView setNameText, setItemText, flashcardOwner, progressPercentageText;
-        ProgressBar backgroundProgressBar, statsProgressBar;
-        ImageView userProfileImage;
+        TextView setNameText, setItemText, flashcardOwner, progressPercentageText, setReminderTextView;
+        ProgressBar statsProgressBar;
+        ImageView userProfileImage, privacyIcon;
+        CardView cardView;
+        int viewType;
 
-        public ViewHolder(@NonNull View itemView) {
+        public ViewHolder(@NonNull View itemView, int viewType) {
             super(itemView);
+            this.viewType = viewType;
+
             setNameText = itemView.findViewById(R.id.set_name_text);
             setItemText = itemView.findViewById(R.id.set_item_text);
-            flashcardOwner = itemView.findViewById(R.id.flashcard_owner);
             progressPercentageText = itemView.findViewById(R.id.progress_percentage2);
-            backgroundProgressBar = itemView.findViewById(R.id.background_progressbar);
             statsProgressBar = itemView.findViewById(R.id.stats_progressbar);
-            userProfileImage = itemView.findViewById(R.id.user_profile);
-            privacyIcon = itemView.findViewById(R.id.privacy_icon);
-            setReminderTextView = itemView.findViewById(R.id.set_reminder);
+
+            if (viewType == TYPE_QUIZ) {
+                flashcardOwner = itemView.findViewById(R.id.quiz_owner);
+                cardView = itemView.findViewById(R.id.cardView);
+                userProfileImage = itemView.findViewById(R.id.quiz_user_profile); // ✅ ADD THIS LINE HERE
+            } else {
+                flashcardOwner = itemView.findViewById(R.id.flashcard_owner);
+                userProfileImage = itemView.findViewById(R.id.user_profile);
+                privacyIcon = itemView.findViewById(R.id.privacy_icon);
+                setReminderTextView = itemView.findViewById(R.id.set_reminder);
+            }
         }
     }
+
 
     @Override
     public Filter getFilter() {

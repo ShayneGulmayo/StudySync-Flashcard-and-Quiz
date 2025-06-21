@@ -14,7 +14,13 @@ import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.DialogInterface;
+import android.widget.*;
+import androidx.appcompat.app.AlertDialog;
 
+
+
+import com.google.firebase.firestore.*;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -22,9 +28,9 @@ import com.google.firebase.firestore.DocumentReference;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import com.google.firebase.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,9 +45,10 @@ public class CreateQuizActivity extends AppCompatActivity {
     private FloatingActionButton addQuizButton;
     private ImageView backButton, checkButton;
     private EditText quizTitleInput;
-
     private int questionCount = 0;
     private final int MAX_QUESTIONS = 50;
+    private String quizId = null;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,8 +61,11 @@ public class CreateQuizActivity extends AppCompatActivity {
         checkButton = findViewById(R.id.save_button);
         quizTitleInput = findViewById(R.id.quiz_name);
 
+
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
+
+        quizId = getIntent().getStringExtra("quizId");
 
         db.collection("users")
                 .document(auth.getCurrentUser().getUid())
@@ -66,7 +76,11 @@ public class CreateQuizActivity extends AppCompatActivity {
                     }
                 });
 
-        addQuizView();
+        if (quizId != null) {
+            loadQuizData(quizId); // 🔁 Load existing quiz data
+        } else {
+            addQuizView(); // ➕ Add blank question for new quiz
+        }
 
         addQuizButton.setOnClickListener(v -> {
             if (questionCount >= MAX_QUESTIONS) {
@@ -142,22 +156,35 @@ public class CreateQuizActivity extends AppCompatActivity {
         }
 
         Map<String, Object> quizData = new HashMap<>();
-        quizData.put("quizName", quizTitleInput.getText().toString().trim());
-        quizData.put("ownerId", auth.getCurrentUser().getUid());
-        quizData.put("ownerUsername", username);
+        quizData.put("title", quizTitleInput.getText().toString().trim());
+        quizData.put("owner_uid", auth.getCurrentUser().getUid());
+        quizData.put("owner_username", username);
         quizData.put("privacy", "public");
-        quizData.put("numberOfItems", questionCount);
+        quizData.put("number_of_items", questionCount);
         quizData.put("progress", 0);
-        quizData.put("createdAt", Timestamp.now());
+        quizData.put("created_at", Timestamp.now());
         quizData.put("questions", questionList);
 
-        db.collection("quiz")
-                .add(quizData)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to save quiz", Toast.LENGTH_SHORT).show());
+        if (quizId != null) {
+            // 🔁 Update existing quiz
+            db.collection("quiz").document(quizId)
+                    .update(quizData)
+                    .addOnSuccessListener(documentReference -> {
+                        Toast.makeText(this, "Quiz updated successfully!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to update quiz", Toast.LENGTH_SHORT).show());
+        } else {
+            // ➕ Create new quiz
+            db.collection("quiz")
+                    .add(quizData)
+                    .addOnSuccessListener(documentReference -> {
+                        Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to save quiz", Toast.LENGTH_SHORT).show());
+        }
+
     }
 
     private void showExitConfirmation() {
@@ -202,35 +229,52 @@ public class CreateQuizActivity extends AppCompatActivity {
             addOptionView(optionsContainer);
         }
 
-        addOptionText.setOnClickListener(v -> {
+        setupAddOptionListener(addOptionText, quizTypeSpinner, optionsContainer);
             String type = quizTypeSpinner.getSelectedItem().toString().toLowerCase();
             int currentCount = optionsContainer.getChildCount();
 
             if (type.equals("multiple choice")) {
                 if (currentCount >= 4) {
-                    Toast.makeText(this, "Maximum of 4 options allowed", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(CreateQuizActivity.this, "Maximum of 4 options allowed", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                addOptionView(optionsContainer);
+                View optionView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_options, null);
+                RadioButton rb = optionView.findViewById(R.id.radioOption);
+                EditText et = optionView.findViewById(R.id.edit_option_text);
+                ImageButton deleteOption = optionView.findViewById(R.id.delete_option);
+
+                rb.setOnClickListener(btn -> {
+                    for (int i = 0; i < optionsContainer.getChildCount(); i++) {
+                        View child = optionsContainer.getChildAt(i);
+                        RadioButton other = child.findViewById(R.id.radioOption);
+                        if (other != rb) other.setChecked(false);
+                    }
+                });
+
+                deleteOption.setOnClickListener(btn -> optionsContainer.removeView(optionView));
+                optionsContainer.addView(optionView);
 
             } else if (type.equals("enumeration")) {
                 if (currentCount >= 15) {
-                    Toast.makeText(this, "Maximum of 15 answers allowed", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(CreateQuizActivity.this, "Maximum of 15 answers allowed", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                View answerView = LayoutInflater.from(this).inflate(R.layout.item_add_quiz_enumerations, null);
+
+                View answerView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_enumerations, null);
+                EditText et = answerView.findViewById(R.id.edit_option_text);
+                TextView numberLabel = answerView.findViewById(R.id.enumeration_number);
                 ImageButton deleteAnswer = answerView.findViewById(R.id.delete_option);
 
+                numberLabel.setText(String.valueOf(currentCount + 1));
                 deleteAnswer.setOnClickListener(btn -> {
                     optionsContainer.removeView(answerView);
-                    renumberEnumerationInputs(optionsContainer); // call to update numbers
+                    renumberEnumerationInputs(optionsContainer);
                 });
 
                 optionsContainer.addView(answerView);
-                renumberEnumerationInputs(optionsContainer); // update numbers after add
 
-            }
-        });
+        };
+
 
         quizTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -243,12 +287,18 @@ public class CreateQuizActivity extends AppCompatActivity {
                     for (int i = 0; i < 2; i++) {
                         addOptionView(optionsContainer);
                     }
+                } else {
+                    // optionally add one blank enum if you want
+                    View answerView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_enumerations, null);
+                    optionsContainer.addView(answerView);
+                    renumberEnumerationInputs(optionsContainer);
                 }
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {}
         });
+
 
         quizContainer.addView(quizItem);
     }
@@ -355,5 +405,174 @@ public class CreateQuizActivity extends AppCompatActivity {
             }
         }
     }
+    private void loadQuizData(String quizId) {
+        db.collection("quiz").document(quizId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        quizTitleInput.setText(documentSnapshot.getString("title"));
+
+                        List<Map<String, Object>> questions = (List<Map<String, Object>>) documentSnapshot.get("questions");
+                        if (questions != null) {
+                            for (Map<String, Object> question : questions) {
+                                addQuizViewFromData(question);
+                            }
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to load quiz data", Toast.LENGTH_SHORT).show());
+    }
+    private void addQuizViewFromData(Map<String, Object> questionData) {
+        View quizItem = LayoutInflater.from(this).inflate(R.layout.item_add_quiz, null);
+        questionCount++;
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.setMargins(0, 0, 0, 24);
+        quizItem.setLayoutParams(params);
+
+        Spinner quizTypeSpinner = quizItem.findViewById(R.id.quiz_type_spinner);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this,
+                R.array.quiz_types,
+                android.R.layout.simple_spinner_item
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        quizTypeSpinner.setAdapter(adapter);
+
+        EditText questionInput = quizItem.findViewById(R.id.quiz_question_input);
+        LinearLayout optionsContainer = quizItem.findViewById(R.id.answer_choices_container);
+        TextView addOptionText = quizItem.findViewById(R.id.add_option_text);
+        setupAddOptionListener(addOptionText, quizTypeSpinner, optionsContainer);
+
+
+        String questionText = (String) questionData.get("question");
+        questionInput.setText(questionText);
+
+        List<String> choices = (List<String>) questionData.get("choices");
+        String correctAnswer = (String) questionData.get("correctAnswer");
+
+        boolean isMultipleChoice = correctAnswer != null;
+
+        quizTypeSpinner.post(() -> {
+            AdapterView.OnItemSelectedListener listener = quizTypeSpinner.getOnItemSelectedListener();
+            if (listener != null) {
+                listener.onItemSelected(quizTypeSpinner, quizTypeSpinner.getSelectedView(), quizTypeSpinner.getSelectedItemPosition(), 0);
+            }
+        });
+
+        optionsContainer.removeAllViews();
+
+        if (choices != null) {
+            for (String choice : choices) {
+                if (isMultipleChoice) {
+                    View optionView = LayoutInflater.from(this).inflate(R.layout.item_add_quiz_options, null);
+                    RadioButton rb = optionView.findViewById(R.id.radioOption);
+                    EditText et = optionView.findViewById(R.id.edit_option_text);
+                    ImageButton deleteOption = optionView.findViewById(R.id.delete_option);
+
+                    et.setText(choice);
+                    rb.setChecked(choice.equals(correctAnswer));
+
+                    rb.setOnClickListener(v -> {
+                        for (int i = 0; i < optionsContainer.getChildCount(); i++) {
+                            View child = optionsContainer.getChildAt(i);
+                            RadioButton other = child.findViewById(R.id.radioOption);
+                            if (other != rb) other.setChecked(false);
+                        }
+                    });
+
+                    deleteOption.setOnClickListener(v -> {
+                        optionsContainer.removeView(optionView);
+                    });
+
+                    optionsContainer.addView(optionView);
+
+                } else {
+                    View answerView = LayoutInflater.from(this).inflate(R.layout.item_add_quiz_enumerations, null);
+                    EditText et = answerView.findViewById(R.id.edit_option_text);
+                    TextView numberLabel = answerView.findViewById(R.id.enumeration_number);
+                    ImageButton deleteAnswer = answerView.findViewById(R.id.delete_option);
+
+                    et.setText(choice);
+                    numberLabel.setText(String.valueOf(optionsContainer.getChildCount() + 1));
+                    deleteAnswer.setOnClickListener(v -> {
+                        optionsContainer.removeView(answerView);
+                        renumberEnumerationInputs(optionsContainer);
+                    });
+
+                    optionsContainer.addView(answerView);
+                }
+            }
+        }
+
+        ImageButton deleteBtn = quizItem.findViewById(R.id.delete_question_button);
+        deleteBtn.setOnClickListener(v -> {
+            quizContainer.removeView(quizItem);
+            questionCount--;
+        });
+
+        quizTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                // Ignore change during loading
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        quizContainer.addView(quizItem);
+    }
+    private void setupAddOptionListener(TextView addOptionText, Spinner quizTypeSpinner, LinearLayout optionsContainer) {
+        addOptionText.setOnClickListener(v -> {
+            String type = quizTypeSpinner.getSelectedItem().toString().toLowerCase();
+            int currentCount = optionsContainer.getChildCount();
+
+            if (type.equals("multiple choice")) {
+                if (currentCount >= 4) {
+                    Toast.makeText(CreateQuizActivity.this, "Maximum of 4 options allowed", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                View optionView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_options, null);
+                RadioButton rb = optionView.findViewById(R.id.radioOption);
+                EditText et = optionView.findViewById(R.id.edit_option_text);
+                ImageButton deleteOption = optionView.findViewById(R.id.delete_option);
+
+                rb.setOnClickListener(btn -> {
+                    for (int i = 0; i < optionsContainer.getChildCount(); i++) {
+                        View child = optionsContainer.getChildAt(i);
+                        RadioButton other = child.findViewById(R.id.radioOption);
+                        if (other != rb) other.setChecked(false);
+                    }
+                });
+
+                deleteOption.setOnClickListener(btn -> optionsContainer.removeView(optionView));
+                optionsContainer.addView(optionView);
+
+            } else if (type.equals("enumeration")) {
+                if (currentCount >= 15) {
+                    Toast.makeText(CreateQuizActivity.this, "Maximum of 15 answers allowed", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                View answerView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_enumerations, null);
+                EditText et = answerView.findViewById(R.id.edit_option_text);
+                TextView numberLabel = answerView.findViewById(R.id.enumeration_number);
+                ImageButton deleteAnswer = answerView.findViewById(R.id.delete_option);
+
+                numberLabel.setText(String.valueOf(currentCount + 1));
+                deleteAnswer.setOnClickListener(btn -> {
+                    optionsContainer.removeView(answerView);
+                    renumberEnumerationInputs(optionsContainer);
+                });
+
+                optionsContainer.addView(answerView);
+            }
+        });
+    }
+
 
 }
