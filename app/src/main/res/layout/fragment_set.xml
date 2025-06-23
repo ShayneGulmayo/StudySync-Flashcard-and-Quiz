@@ -26,7 +26,7 @@
             android:id="@+id/add_btn"
             android:layout_width="42dp"
             android:layout_height="42dp"
-            android:src="@drawable/plus_square"
+            android:src="@drawable/add"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>

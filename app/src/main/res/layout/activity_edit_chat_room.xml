@@ -19,8 +19,8 @@
 
         <ImageView
             android:id="@+id/back_button"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_gravity="left|center_vertical"
             android:layout_margin="16dp"
             android:contentDescription="Back"
@@ -43,8 +43,8 @@
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:layout_gravity="center"
-            android:layout_marginTop="16dp"
-            app:srcCompat="@drawable/user_profile" />
+            android:scaleType="centerCrop"
+            app:srcCompat="@drawable/user_profile"/>
 
         <TextView
             android:id="@+id/chatroom_name"

@@ -4,16 +4,11 @@ import android.os.Bundle;
 import android.graphics.Color;
 import android.content.res.ColorStateList;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.labactivity.studysync.ChatFragment;
-import com.labactivity.studysync.HomeFragment;
-import com.labactivity.studysync.R;
-import com.labactivity.studysync.UserProfileFragment;
 
 public class MainActivity extends AppCompatActivity {
 

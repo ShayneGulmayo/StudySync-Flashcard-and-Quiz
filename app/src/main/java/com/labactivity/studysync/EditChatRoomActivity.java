@@ -96,6 +96,8 @@ public class EditChatRoomActivity extends AppCompatActivity {
                             Glide.with(this)
                                     .load(currentRoom.getPhotoUrl())
                                     .placeholder(R.drawable.user_profile)
+                                    .error(R.drawable.user_profile)
+                                    .circleCrop()
                                     .into(chatroomPhoto);
                         }
                     }

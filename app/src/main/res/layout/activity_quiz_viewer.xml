@@ -23,16 +23,16 @@
 
         <ImageView
             android:id="@+id/back_button"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_gravity="left|center_vertical"
             android:layout_margin="16dp"
             android:src="@drawable/arrow_back" />
 
         <ImageView
             android:id="@+id/more_button"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_gravity="right|center_vertical"
             android:layout_margin="16dp"
             app:srcCompat="@drawable/more_vert" />
@@ -44,7 +44,7 @@
             android:layout_gravity="center"
             android:text="@string/items"
             android:textColor="@color/black"
-            android:textSize="20sp"
+            android:textSize="17sp"
             android:textStyle="bold" />
     </com.google.android.material.navigation.NavigationView>
 
