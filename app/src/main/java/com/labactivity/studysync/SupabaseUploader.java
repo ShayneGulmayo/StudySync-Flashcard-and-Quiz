@@ -1,4 +1,5 @@
 package com.labactivity.studysync;
+
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -13,49 +14,88 @@ import java.io.IOException;
 public class SupabaseUploader {
 
     private static final String SUPABASE_URL = "https://agnosyltikewhdzmdcwp.supabase.co";
-    private static final String BUCKET_NAME = "user-files";
-    private static final String SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnbm9zeWx0aWtld2hkem1kY3dwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjE0OTE3MSwiZXhwIjoyMDYxNzI1MTcxfQ.qkGXFasln2NZxBO7K9y97KLxhJ6-7HHr4FNVAGc4W08";
-    public static void uploadFile(File file, String fileName, UploadCallback callback) {
-        OkHttpClient client = new OkHttpClient();
+    private static final String SUPABASE_API_KEY = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnbm9zeWx0aWtld2hkem1kY3dwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjE0OTE3MSwiZXhwIjoyMDYxNzI1MTcxfQ.qkGXFasln2NZxBO7K9y97KLxhJ6-7HHr4FNVAGc4W08";
 
-        // 1. Validate file type
+    private static final OkHttpClient client = new OkHttpClient();
+
+    public interface UploadCallback {
+        void onUploadComplete(boolean success, String message, String publicUrl);
+    }
+
+    /**
+     * Upload a file to Supabase Storage (public bucket).
+     * @param file      The file to upload
+     * @param bucket    Bucket name (e.g., "user-files" or "chat-room-photos")
+     * @param path      Full path within the bucket (e.g., "chat-room-profile/uuid.jpg")
+     * @param callback  Result callback
+     */
+    public static void uploadFile(File file, String bucket, String path, UploadCallback callback) {
         String mimeType = getMimeType(file);
         if (mimeType == null) {
-            callback.onUploadComplete(false, "Unsupported file type");
+            callback.onUploadComplete(false, "Unsupported file type", null);
             return;
         }
 
-        // 2. Validate file size (max 5MB)
-        long maxFileSize = 5 * 1024 * 1024; // 5MB
+        long maxFileSize = 20L * 1024 * 1024; // 20MB
         if (file.length() > maxFileSize) {
-            callback.onUploadComplete(false, "File too large. Maximum allowed is 5MB.");
+            callback.onUploadComplete(false, "File too large. Max allowed is 20MB", null);
             return;
         }
 
-        // 3. Prepare and send request
         MediaType mediaType = MediaType.parse(mimeType);
         RequestBody body = RequestBody.create(file, mediaType);
 
+        String uploadUrl = SUPABASE_URL + "/storage/v1/object/" + bucket + "/" + path;
+
         Request request = new Request.Builder()
-                .url(SUPABASE_URL + "/storage/v1/object/" + BUCKET_NAME + "/" + fileName)
-                .addHeader("Authorization", "Bearer " + SUPABASE_API_KEY)
+                .url(uploadUrl)
+                .addHeader("Authorization", SUPABASE_API_KEY)
                 .addHeader("Content-Type", mimeType)
                 .put(body)
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onUploadComplete(false, "Upload failed: " + e.getMessage());
+            @Override public void onFailure(Call call, IOException e) {
+                callback.onUploadComplete(false, "Upload failed: " + e.getMessage(), null);
             }
 
-            @Override
-            public void onResponse(Call call, Response response) {
-                callback.onUploadComplete(response.isSuccessful(), response.message());
+            @Override public void onResponse(Call call, Response response) {
+                if (!response.isSuccessful()) {
+                    callback.onUploadComplete(false, "Upload error: " + response.message(), null);
+                    return;
+                }
+
+                String publicUrl = SUPABASE_URL + "/storage/v1/object/public/" + bucket + "/" + path;
+                callback.onUploadComplete(true, "Upload successful", publicUrl);
             }
         });
     }
 
+    /**
+     * Delete a file from Supabase Storage.
+     * @param bucket    Bucket name
+     * @param path      Full path within the bucket
+     * @param callback  Result callback
+     */
+    public static void deleteFile(String bucket, String path, UploadCallback callback) {
+        String deleteUrl = SUPABASE_URL + "/storage/v1/object/" + bucket + "/" + path;
+
+        Request request = new Request.Builder()
+                .url(deleteUrl)
+                .addHeader("Authorization", SUPABASE_API_KEY)
+                .delete()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) {
+                callback.onUploadComplete(false, "Delete failed: " + e.getMessage(), null);
+            }
+
+            @Override public void onResponse(Call call, Response response) {
+                callback.onUploadComplete(response.isSuccessful(), response.message(), null);
+            }
+        });
+    }
 
     private static String getMimeType(File file) {
         String name = file.getName();
@@ -68,35 +108,9 @@ public class SupabaseUploader {
             case "jpeg": return "image/jpeg";
             case "png": return "image/png";
             case "webp": return "image/webp";
+            case "gif": return "image/gif";
+            case "pdf": return "application/pdf";
             default: return null;
         }
     }
-
-
-
-    public interface UploadCallback {
-        void onUploadComplete(boolean success, String message);
-    }
-
-    public static void deleteFile(String fileName, UploadCallback callback) {
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url(SUPABASE_URL + "/storage/v1/object/" + BUCKET_NAME + "/" + fileName)
-                .delete()
-                .addHeader("Authorization", "Bearer " + SUPABASE_API_KEY)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onUploadComplete(false, "Delete failed: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) {
-                callback.onUploadComplete(response.isSuccessful(), response.message());
-            }
-        });
-    }
-
 }

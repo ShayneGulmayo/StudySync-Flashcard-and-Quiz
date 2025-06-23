@@ -217,29 +217,25 @@ public class UserSetUpProfileActivity extends AppCompatActivity {
                             if (extension == null) extension = "jpg"; // fallback
 
                             String filename = "user-profile-" + uid + "." + extension;
+                            String bucket = "user-files";
+                            String path = filename;
 
-
-                            SupabaseUploader.uploadFile(file, filename, new SupabaseUploader.UploadCallback() {
-                                @Override
-                                public void onUploadComplete(boolean success, String message) {
-                                    runOnUiThread(() -> {
-                                        if (success) {
-                                            String publicUrl = "https://agnosyltikewhdzmdcwp.supabase.co/storage/v1/object/public/user-files/" + filename;
-
-                                            db.collection("users").document(uid)
-                                                    .update("photoUrl", publicUrl)
-                                                    .addOnSuccessListener(aVoid -> {
-                                                        Toast.makeText(UserSetUpProfileActivity.this, "Profile saved with image", Toast.LENGTH_SHORT).show();
-                                                        startActivity(new Intent(UserSetUpProfileActivity.this, MainActivity.class));
-                                                        finish();
-                                                    });
-                                        } else {
-                                            Toast.makeText(UserSetUpProfileActivity.this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
-                                            startActivity(new Intent(UserSetUpProfileActivity.this, MainActivity.class));
-                                            finish();
-                                        }
-                                    });
-                                }
+                            SupabaseUploader.uploadFile(file, bucket, path, (success, message, publicUrl) -> {
+                                runOnUiThread(() -> {
+                                    if (success) {
+                                        db.collection("users").document(uid)
+                                                .update("photoUrl", publicUrl)
+                                                .addOnSuccessListener(aVoid -> {
+                                                    Toast.makeText(UserSetUpProfileActivity.this, "Profile saved with image", Toast.LENGTH_SHORT).show();
+                                                    startActivity(new Intent(UserSetUpProfileActivity.this, MainActivity.class));
+                                                    finish();
+                                                });
+                                    } else {
+                                        Toast.makeText(UserSetUpProfileActivity.this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
+                                        startActivity(new Intent(UserSetUpProfileActivity.this, MainActivity.class));
+                                        finish();
+                                    }
+                                });
                             });
                         } catch (Exception e) {
                             Toast.makeText(this, "Error preparing image: " + e.getMessage(), Toast.LENGTH_SHORT).show();

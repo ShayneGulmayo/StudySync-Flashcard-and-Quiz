@@ -55,7 +55,9 @@
             android:text="@string/chatroom_name"
             android:textColor="@color/black"
             android:textSize="20sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:ellipsize="end"
+            android:maxLines="1"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/see_members_btn"

@@ -7,7 +7,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import android.content.Intent;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -138,9 +138,12 @@ public class ChatRoomActivity extends AppCompatActivity {
                 // Handle reminder
                 return true;
             } else if (id == R.id.menu_settings) {
-                // Go to settings
+                Intent intent = new Intent(ChatRoomActivity.this, EditChatRoomActivity.class);
+                intent.putExtra("roomId", roomId);
+                startActivity(intent);
                 return true;
             }
+
             return false;
         });
         popup.show();

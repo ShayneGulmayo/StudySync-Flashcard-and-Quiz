@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.*;
+import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -39,12 +40,15 @@ public class UserProfileFragment extends Fragment {
 
     private String previousFileName;
 
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final String BUCKET_NAME = "user-files";
+    private static final String FOLDER = "profile-photos";
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-
         View view = inflater.inflate(R.layout.fragment_user_profile, container, false);
 
         mAuth = FirebaseAuth.getInstance();
@@ -53,7 +57,7 @@ public class UserProfileFragment extends Fragment {
 
         userFullName = view.findViewById(R.id.userFullName);
         usernameTxt = view.findViewById(R.id.usernameTxt);
-        profileImage = view.findViewById(R.id.profileImage); // Make sure ID is correct
+        profileImage = view.findViewById(R.id.profileImage);
         settingsBtn = view.findViewById(R.id.settingsBtn);
         logoutBtn = view.findViewById(R.id.logoutBtn);
 
@@ -111,21 +115,12 @@ public class UserProfileFragment extends Fragment {
                         userFullName.setText(fullName.trim().isEmpty() ? "Full Name" : fullName.trim());
                         usernameTxt.setText(username != null ? "@" + username : "@username");
 
-                        if (photoUrl != null && !photoUrl.isEmpty()) {
-                            Glide.with(this)
-                                    .load(photoUrl)
-                                    .placeholder(R.drawable.profile_image_background)  // shown while loading
-                                    .error(R.drawable.profile_image_background)        // shown if loading fails
-                                    .circleCrop()
-                                    .into(profileImage);
-                        } else {
-                            // fallback to default if no photoUrl
-                            Glide.with(this)
-                                    .load(R.drawable.profile_image_background)
-                                    .circleCrop()
-                                    .into(profileImage);
-                        }
-
+                        Glide.with(this)
+                                .load(photoUrl != null ? photoUrl : R.drawable.profile_image_background)
+                                .placeholder(R.drawable.profile_image_background)
+                                .error(R.drawable.profile_image_background)
+                                .circleCrop()
+                                .into(profileImage);
                     }
                 })
                 .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to fetch user data", Toast.LENGTH_SHORT).show());
@@ -139,32 +134,48 @@ public class UserProfileFragment extends Fragment {
             Uri resultUri = UCrop.getOutput(data);
             if (resultUri != null && currentUser != null) {
                 File imageFile = new File(resultUri.getPath());
-                String newFileName = "profile_" + currentUser.getUid() + "_" + System.currentTimeMillis() + ".jpg";
 
-                // Delete previous file in Supabase if exists
-                if (previousFileName != null && !previousFileName.isEmpty()) {
-                    SupabaseUploader.deleteFile(previousFileName, (deleted, msg) ->
-                            System.out.println("Previous profile image deleted: " + msg));
+                if (imageFile.length() > MAX_FILE_SIZE) {
+                    Toast.makeText(getContext(), "File too large. Max is 5MB.", Toast.LENGTH_SHORT).show();
+                    return;
                 }
 
-                SupabaseUploader.uploadFile(imageFile, newFileName, (success, message) -> {
-                    if (success) {
-                        String uploadedUrl = "https://agnosyltikewhdzmdcwp.supabase.co/storage/v1/object/public/user-files/" + newFileName;
+                String mimeType = getMimeType(imageFile);
+                if (mimeType == null) {
+                    Toast.makeText(getContext(), "Unsupported file type", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
+                String fileName = "profile_" + currentUser.getUid() + "_" + System.currentTimeMillis() + ".jpg";
+                String fullPath = FOLDER + "/" + fileName;
+
+                if (previousFileName != null && !previousFileName.isEmpty()) {
+                    SupabaseUploader.deleteFile(BUCKET_NAME, FOLDER + "/" + previousFileName, (success, msg, ignored) -> {
+                        if (success) {
+                            System.out.println("Previous image deleted.");
+                        } else {
+                            System.out.println("Failed to delete previous image: " + msg);
+                        }
+                    });
+                }
+
+                // Upload new image
+                SupabaseUploader.uploadFile(imageFile, BUCKET_NAME, fullPath, (success, message, publicUrl) -> {
+                    if (success && publicUrl != null) {
                         Map<String, Object> updates = new HashMap<>();
-                        updates.put("photoUrl", uploadedUrl);
-                        updates.put("photoFileName", newFileName);
+                        updates.put("photoUrl", publicUrl);
+                        updates.put("photoFileName", fileName);
 
                         db.collection("users").document(currentUser.getUid())
                                 .update(updates)
                                 .addOnSuccessListener(unused -> requireActivity().runOnUiThread(() -> {
-                                    Glide.with(this).load(uploadedUrl)
+                                    Glide.with(this).load(publicUrl)
                                             .placeholder(R.drawable.user_profile)
                                             .error(R.drawable.user_profile)
                                             .circleCrop()
                                             .into(profileImage);
                                     Toast.makeText(getContext(), "Profile photo updated", Toast.LENGTH_SHORT).show();
-                                    previousFileName = newFileName; // Update for future deletion
+                                    previousFileName = fileName;
                                 }));
                     } else {
                         requireActivity().runOnUiThread(() ->
@@ -176,5 +187,13 @@ public class UserProfileFragment extends Fragment {
             Throwable cropError = UCrop.getError(data);
             Toast.makeText(getContext(), "Crop error: " + (cropError != null ? cropError.getMessage() : "Unknown error"), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private String getMimeType(File file) {
+        String extension = MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(file).toString());
+        if (extension != null) {
+            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase());
+        }
+        return null;
     }
 }
