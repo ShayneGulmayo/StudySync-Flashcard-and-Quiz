@@ -8,4 +8,8 @@
     <color name="warning">#522504</color>
     <color name="progress_green">#66F1AE</color>
     <color name="progress_yellow">#F1EA66</color>
+    <style name="BottomNavNoIndicator" parent="">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
 </resources>
