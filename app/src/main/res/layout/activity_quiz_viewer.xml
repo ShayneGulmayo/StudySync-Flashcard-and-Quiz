@@ -87,6 +87,16 @@
         app:layout_constraintTop_toBottomOf="@+id/quiz_title"
         app:srcCompat="@drawable/user_profile" />
 
+    <ImageView
+        android:id="@+id/privacy_icon"
+        android:layout_width="15dp"
+        android:layout_height="15dp"
+        android:layout_marginTop="22dp"
+        android:layout_marginEnd="30dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/navigationView"
+        app:srcCompat="@drawable/public_icon" />
+
     <FrameLayout
         android:id="@+id/card_container"
         android:layout_width="match_parent"
@@ -141,18 +151,42 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
 
-    <LinearLayout
-        android:id="@+id/linear_layout_options"
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/options_scroll_view"
         android:layout_width="352dp"
-        android:layout_height="335dp"
+        android:layout_height="270dp"
         android:layout_marginTop="12dp"
-        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.491"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/choose_answer_label"
-        app:layout_constraintVertical_bias="0.138"></LinearLayout>
+        app:layout_constraintVertical_bias="0.045">
+
+        <LinearLayout
+            android:id="@+id/linear_layout_options"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="24dp" />
+    </androidx.core.widget.NestedScrollView>
+
+    <Button
+        android:id="@+id/btn_check_answer"
+        android:layout_width="352dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:padding="12dp"
+        android:text="@string/Check"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.491"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/options_scroll_view"
+        app:layout_constraintVertical_bias="0.333" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

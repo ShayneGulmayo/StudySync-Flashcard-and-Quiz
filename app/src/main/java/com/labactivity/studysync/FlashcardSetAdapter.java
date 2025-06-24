@@ -86,13 +86,13 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             holder.userProfileImage.setImageResource(R.drawable.user_profile);
         }
 
-        if (holder.viewType == TYPE_FLASHCARD) {
-            if ("Private".equals(set.getPrivacy())) {
-                holder.privacyIcon.setImageResource(R.drawable.lock);
-            } else {
-                holder.privacyIcon.setImageResource(R.drawable.public_icon);
-            }
+        if ("Private".equalsIgnoreCase(set.getPrivacy())) {
+            holder.privacyIcon.setImageResource(R.drawable.lock);
+        } else {
+            holder.privacyIcon.setImageResource(R.drawable.public_icon);
+        }
 
+        if (holder.viewType == TYPE_FLASHCARD) {
             if (set.getReminder() != null && !set.getReminder().isEmpty()) {
                 holder.setReminderTextView.setVisibility(View.VISIBLE);
                 holder.setReminderTextView.setText("Reminder: " + set.getReminder());
@@ -100,6 +100,7 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
                 holder.setReminderTextView.setVisibility(View.GONE);
             }
         }
+
 
         holder.itemView.setOnClickListener(v -> {
             if (set.getType().equals("quiz")) {
@@ -134,6 +135,8 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             setItemText = itemView.findViewById(R.id.set_item_text);
             progressPercentageText = itemView.findViewById(R.id.progress_percentage2);
             statsProgressBar = itemView.findViewById(R.id.stats_progressbar);
+            privacyIcon = itemView.findViewById(R.id.privacy_icon);
+
 
             if (viewType == TYPE_QUIZ) {
                 flashcardOwner = itemView.findViewById(R.id.quiz_owner);

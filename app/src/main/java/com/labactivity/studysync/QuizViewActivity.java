@@ -18,9 +18,13 @@ import androidx.core.content.ContextCompat;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.card.MaterialCardView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,20 +33,127 @@ public class QuizViewActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private ImageView back_button;
     private ImageView more_button;
-
+    private ImageView privacyIcon;
     private TextView quizTitleView, quizOwnerView, quizQuestionTextView;
+    private TextView chooseAnswerLabel;
+    private String selectedAnswer = null;
+    private String correctAnswer = null; // store for checking later
     private LinearLayout linearLayoutOptions;
     private List<Map<String, Object>> questions;
     private int currentQuestionIndex = 0;
     private String quizId;
     private boolean hasAnswered = false;
     private ImageView ownerProfile;
+    private int score = 0;
+    private List<Map<String, Object>> userAnswersList = new ArrayList<>();
+
+
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_quiz_viewer);
+
+
+        Button btnCheck = findViewById(R.id.btn_check_answer);
+        btnCheck.setOnClickListener(v -> {
+            if (hasAnswered) return;
+
+            Map<String, Object> currentQuestion = questions.get(currentQuestionIndex);
+            String type = currentQuestion.containsKey("type")
+                    ? currentQuestion.get("type").toString().toLowerCase()
+                    : detectFallbackType(currentQuestion);
+
+            if (type.equals("multiple choice")) {
+                if (selectedAnswer == null) {
+                    Toast.makeText(this, "Please select an answer.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                hasAnswered = true;
+                boolean isCorrect = selectedAnswer.equals(correctAnswer);
+
+                for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
+                    View child = linearLayoutOptions.getChildAt(i);
+                    TextView tv = child.findViewById(R.id.tvOptionText);
+                    MaterialCardView card = child.findViewById(R.id.cardOption);
+
+                    String option = tv.getText().toString();
+
+                    if (option.equals(correctAnswer)) {
+                        card.setCardBackgroundColor(ContextCompat.getColor(this, R.color.vibrant_green));
+                    } else if (option.equals(selectedAnswer)) {
+                        card.setCardBackgroundColor(ContextCompat.getColor(this, R.color.light_red));
+                    } else {
+                        card.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.white));
+                    }
+                }
+
+                // Save result
+                Map<String, Object> answer = new HashMap<>();
+                answer.put("question", currentQuestion.get("question"));
+                answer.put("type", "multiple choice");
+                answer.put("selected", selectedAnswer);
+                answer.put("correct", correctAnswer);
+                answer.put("isCorrect", isCorrect);
+                userAnswersList.add(answer);
+                if (isCorrect) score++;
+
+                linearLayoutOptions.postDelayed(() -> {
+                    currentQuestionIndex++;
+                    displayNextValidQuestion();
+                    selectedAnswer = null;
+                }, 3000);
+
+            } else if (type.equals("enumeration")) {
+                List<String> userAnswers = new ArrayList<>();
+                for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
+                    View child = linearLayoutOptions.getChildAt(i);
+                    EditText input = child.findViewById(R.id.enum_answer_input);
+                    if (input != null) {
+                        userAnswers.add(input.getText().toString().trim().toLowerCase());
+                    }
+                }
+
+                List<String> correctAnswers = null;
+                try {
+                    correctAnswers = (List<String>) currentQuestion.get("choices");
+                } catch (ClassCastException e) {
+                    correctAnswers = new ArrayList<>();
+                }
+
+                List<String> correctLower = new ArrayList<>();
+                if (correctAnswers != null) {
+                    for (String ans : correctAnswers) {
+                        correctLower.add(ans.trim().toLowerCase());
+                    }
+                }
+
+                Collections.sort(userAnswers);
+                Collections.sort(correctLower);
+                boolean isCorrect = userAnswers.equals(correctLower);
+                if (isCorrect) score++;
+
+                Map<String, Object> answer = new HashMap<>();
+                answer.put("question", currentQuestion.get("question"));
+                answer.put("type", "enumeration");
+                answer.put("selected", userAnswers);
+                answer.put("correct", correctLower);
+                answer.put("isCorrect", isCorrect);
+                userAnswersList.add(answer);
+
+                hasAnswered = true;
+                linearLayoutOptions.postDelayed(() -> {
+                    currentQuestionIndex++;
+                    displayNextValidQuestion();
+                }, 1000);
+            }
+        });
+
+
+
 
         db = FirebaseFirestore.getInstance();
         back_button = findViewById(R.id.back_button);
@@ -52,7 +163,10 @@ public class QuizViewActivity extends AppCompatActivity {
         linearLayoutOptions = findViewById(R.id.linear_layout_options);
         ownerProfile = findViewById(R.id.owner_profile);
         more_button = findViewById(R.id.more_button);
+        privacyIcon = findViewById(R.id.privacy_icon);
         more_button.setOnClickListener(v -> showMoreBottomSheet());
+        chooseAnswerLabel = findViewById(R.id.choose_answer_label);
+
 
 
 
@@ -120,6 +234,13 @@ public class QuizViewActivity extends AppCompatActivity {
                         .update("privacy", newPrivacy)
                         .addOnSuccessListener(aVoid -> {
                             Toast.makeText(this, "Quiz set to " + newPrivacy, Toast.LENGTH_SHORT).show();
+
+                            if ("private".equalsIgnoreCase(newPrivacy)) {
+                                privacyIcon.setImageResource(R.drawable.lock);
+                            } else {
+                                privacyIcon.setImageResource(R.drawable.public_icon);
+                            }
+
                         })
                         .addOnFailureListener(e -> {
                             Toast.makeText(this, "Failed to update privacy", Toast.LENGTH_SHORT).show();
@@ -180,6 +301,14 @@ public class QuizViewActivity extends AppCompatActivity {
                         quizTitleView.setText(documentSnapshot.getString("title"));
                         quizOwnerView.setText(documentSnapshot.getString("owner_username"));
 
+                        String currentPrivacy = documentSnapshot.getString("privacy");
+
+                        if ("private".equalsIgnoreCase(currentPrivacy)) {
+                            privacyIcon.setImageResource(R.drawable.lock);
+                        } else {
+                            privacyIcon.setImageResource(R.drawable.public_icon);
+                        }
+
                         Object raw = documentSnapshot.get("questions");
                         questions = new ArrayList<>();
 
@@ -230,10 +359,20 @@ public class QuizViewActivity extends AppCompatActivity {
             }
         }
 
-        // No more questions
-        showNoQuestionsMessage("✅ You've completed the quiz!");
-    }
+        // 🔴 This block runs when all questions are done!
+        // 💾 You should save attempt, show result, or redirect
 
+        Toast.makeText(this, "🎉 Quiz Completed!", Toast.LENGTH_LONG).show();
+
+        saveQuizAttempt(userAnswersList, score);
+
+        // Optionally collect final results here (score, answers)
+        // For now, just go back to progress screen:
+        Intent intent = new Intent(this, QuizProgressActivity.class);
+        intent.putExtra("quizId", quizId);
+        startActivity(intent);
+        finish();
+    }
 
     private String detectFallbackType(Map<String, Object> question) {
         // This is for backward compatibility: guess type if `type` is missing
@@ -248,19 +387,27 @@ public class QuizViewActivity extends AppCompatActivity {
 
 
     private void displayMultipleChoice(Map<String, Object> questionData) {
-        String questionText = questionData.get("question") != null ? questionData.get("question").toString() : "No question text";
-        List<String> choices = null;
+        chooseAnswerLabel.setText("Choose your answer");
+        selectedAnswer = null;
+        hasAnswered = false;
 
+        String questionText = questionData.get("question") != null
+                ? questionData.get("question").toString()
+                : "No question text";
+
+        quizQuestionTextView.setText(questionText);
+        linearLayoutOptions.removeAllViews();
+
+        correctAnswer = questionData.get("correctAnswer") != null
+                ? questionData.get("correctAnswer").toString()
+                : null;
+
+        List<String> choices = null;
         try {
             choices = (List<String>) questionData.get("choices");
         } catch (ClassCastException e) {
             Toast.makeText(this, "Invalid choices format.", Toast.LENGTH_SHORT).show();
         }
-
-        String correctAnswer = questionData.get("correctAnswer") != null ? questionData.get("correctAnswer").toString() : null;
-
-        quizQuestionTextView.setText(questionText);
-        linearLayoutOptions.removeAllViews();
 
         if (choices != null && correctAnswer != null) {
             for (String optionText : choices) {
@@ -273,38 +420,40 @@ public class QuizViewActivity extends AppCompatActivity {
         }
     }
 
+
     private void displayEnumeration(Map<String, Object> questionData) {
-        String questionText = questionData.get("question") != null ? questionData.get("question").toString() : "No question text";
+        if (chooseAnswerLabel != null) {
+            chooseAnswerLabel.setText("Type your answer"); // ✅ Changes label
+        }
+
+        String questionText = questionData.get("question") != null
+                ? questionData.get("question").toString()
+                : "No question text";
+
         quizQuestionTextView.setText(questionText);
-        linearLayoutOptions.removeAllViews();
+        linearLayoutOptions.removeAllViews(); // ✅ Clears previous options
 
         List<String> answers = null;
         try {
-            answers = (List<String>) questionData.get("answers"); // Expecting "answers": [ "one", "two", ... ]
+            answers = (List<String>) questionData.get("choices"); // ✅ Comes from Firestore
         } catch (ClassCastException e) {
             Toast.makeText(this, "Invalid answers format.", Toast.LENGTH_SHORT).show();
         }
 
         if (answers != null) {
             for (int i = 0; i < answers.size(); i++) {
-                View blankView = LayoutInflater.from(this).inflate(R.layout.item_quiz_enumeration_blanks, linearLayoutOptions, false);
-                EditText input = blankView.findViewById(R.id.enum_answer_input);
-                input.setHint("Answer " + (i + 1));
-                linearLayoutOptions.addView(blankView);
+                View blankView = LayoutInflater.from(this)
+                        .inflate(R.layout.item_quiz_enumeration_blanks, linearLayoutOptions, false); // ✅ Inflates your card
+
+                EditText input = blankView.findViewById(R.id.enum_answer_input); // ✅ Finds EditText
+                input.setHint("Answer " + (i + 1)); // ✅ Sets hint
+                linearLayoutOptions.addView(blankView); // ✅ Adds to layout
             }
         } else {
             Toast.makeText(this, "Missing enumeration answers", Toast.LENGTH_SHORT).show();
         }
-
-        // Optional: Add "Next" button for enumeration
-        Button nextBtn = new Button(this);
-        nextBtn.setText("Next");
-        nextBtn.setOnClickListener(v -> {
-            currentQuestionIndex++;
-            displayNextValidQuestion();
-        });
-        linearLayoutOptions.addView(nextBtn);
     }
+
 
 
     private void addOptionView(String optionText, String correctAnswer) {
@@ -321,27 +470,22 @@ public class QuizViewActivity extends AppCompatActivity {
 
         cardOption.setOnClickListener(v -> {
             if (hasAnswered) return;
-            hasAnswered = true;
 
+            // Reset all option colors
             resetOptionColors();
 
-            if (optionText.equals(correctAnswer)) {
-                cardOption.setCardBackgroundColor(ContextCompat.getColor(this, R.color.progress_green));
-                Toast.makeText(this, "Correct!", Toast.LENGTH_SHORT).show();
-            } else {
-                cardOption.setCardBackgroundColor(ContextCompat.getColor(this, R.color.warning));
-                highlightCorrectAnswer(correctAnswer);
-                Toast.makeText(this, "Incorrect", Toast.LENGTH_SHORT).show();
-            }
+            // Highlight selected card
+            cardOption.setCardBackgroundColor(ContextCompat.getColor(this, R.color.pale_green)); // choose your highlight color
 
-            cardOption.postDelayed(() -> {
-                currentQuestionIndex++;
-                displayNextValidQuestion();
-            }, 1000);
+            // Store selected answer
+            selectedAnswer = optionText;
         });
 
+
+        // Add the option view to the layout (this must be outside the click listener)
         linearLayoutOptions.addView(optionView);
     }
+
 
     private void highlightCorrectAnswer(String correctAnswer) {
         for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
@@ -349,7 +493,7 @@ public class QuizViewActivity extends AppCompatActivity {
             TextView tv = child.findViewById(R.id.tvOptionText);
             MaterialCardView card = child.findViewById(R.id.cardOption);
             if (tv.getText().toString().equals(correctAnswer)) {
-                card.setCardBackgroundColor(ContextCompat.getColor(this, R.color.progress_green));
+                card.setCardBackgroundColor(ContextCompat.getColor(this, R.color.vibrant_green));
             }
         }
     }
@@ -372,4 +516,39 @@ public class QuizViewActivity extends AppCompatActivity {
         endMessage.setTextColor(ContextCompat.getColor(this, R.color.text_gray));
         linearLayoutOptions.addView(endMessage);
     }
+
+    private void saveQuizAttempt(List<Map<String, Object>> answeredQuestions, int score) {
+        String userId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : "anonymous";
+
+        // Structure: quiz_attempts/{quizId}/users/{userId}
+        Map<String, Object> resultData = new HashMap<>();
+        resultData.put("quizId", quizId);
+        resultData.put("userId", userId);
+        resultData.put("score", score);
+        resultData.put("total", questions.size());
+        resultData.put("answeredQuestions", answeredQuestions); // each question includes selected, correct, question, type
+        resultData.put("timestamp", FieldValue.serverTimestamp());
+
+        db.collection("quiz_attempts")
+                .document(quizId)
+                .collection("users")
+                .document(userId)
+                .set(resultData) // This overwrites previous result (latest attempt only)
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Quiz result saved.", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to save result.", Toast.LENGTH_SHORT).show());
+    }
+
+// YOU MUST CALL THIS WHEN QUIZ IS DONE
+// Example usage after final question:
+// saveQuizAttempt(userAnswersList, userScore);
+// Each item in userAnswersList:
+// Map<String, Object> answer = new HashMap<>();
+// answer.put("question", questionText);
+// answer.put("selected", selectedAnswer);
+// answer.put("correct", correctAnswer);
+// answer.put("isCorrect", selectedAnswer.equals(correctAnswer));
+// answer.put("type", questionType);
+
 }
