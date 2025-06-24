@@ -82,6 +82,7 @@ public class QuizProgressActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(QuizProgressActivity.this, QuizViewActivity.class);
                 intent.putExtra("quizId", quizId);
+                intent.putExtra("photoUrl", getIntent().getStringExtra("photoUrl"));
                 startActivity(intent);
                 finish();
             }

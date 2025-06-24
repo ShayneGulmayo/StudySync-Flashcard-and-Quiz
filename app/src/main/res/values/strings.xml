@@ -53,7 +53,7 @@
     <string name="keep_reviewing_terms">Keep Reviewing Terms</string>
     <string name="restart_flashcard">Restart Flashcards</string>
     <string name="keep_reviewing_questions">Keep Reviewing Questions</string>
-    <string name="retake_quiz">Retake Quiz</string>
+    <string name="retake_quiz">Take Quiz</string>
     <string name="default_web_client_id">663259425490-4fnnc8ulc32vee3sp7p5u99ocnaoj3ei.apps.googleusercontent.com</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>

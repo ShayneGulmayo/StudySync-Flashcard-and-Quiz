@@ -126,6 +126,8 @@ public class CreateQuizActivity extends AppCompatActivity {
 
             Map<String, Object> questionData = new HashMap<>();
             questionData.put("question", questionInput.getText().toString().trim());
+            questionData.put("type", quizType);
+
 
             if (quizType.equals("multiple choice")) {
                 List<String> choices = new ArrayList<>();

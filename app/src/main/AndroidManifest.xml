@@ -20,7 +20,7 @@
             android:name=".ReviewQuestionsActivity"
             android:exported="false" />
         <activity
-            android:name=".QuizzesActivity"
+            android:name=".QuizViewActivity"
             android:exported="false" />
         <activity
             android:name=".QuizProgressActivity"

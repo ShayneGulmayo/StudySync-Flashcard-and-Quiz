@@ -106,9 +106,12 @@
             android:layout_gravity="center"
             android:background="@drawable/card_background"
             android:elevation="6dp"
-            android:padding="32dp"
+            android:lineSpacingExtra="4dp"
+            android:padding="8dp"
             android:textColor="@color/black"
-            android:textSize="24sp" />
+            android:textSize="18sp"
+            android:gravity="center"
+            />
 
 
     </FrameLayout>

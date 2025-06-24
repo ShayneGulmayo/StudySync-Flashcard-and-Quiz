@@ -1,24 +1,24 @@
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/cardOption"
+    android:id="@+id/cardInput"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
     app:cardCornerRadius="16dp"
     app:cardElevation="4dp"
-    android:clickable="true"
-    android:foreground="?attr/selectableItemBackground"
-    android:backgroundTint="@android:color/white">
+    android:backgroundTint="@android:color/white"
+    android:clickable="false">
 
-    <TextView
-        android:id="@+id/tvOptionText"
+    <EditText
+        android:id="@+id/enum_answer_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
+        android:hint="Type your answer here"
         android:padding="16dp"
-        android:text="Option A"
+        android:background="@android:color/transparent"
         android:textColor="#000000"
-        android:textSize="17sp" />
-
+        android:textSize="16sp"
+        android:inputType="textCapSentences|textMultiLine"
+        android:maxLines="3" />
 </com.google.android.material.card.MaterialCardView>

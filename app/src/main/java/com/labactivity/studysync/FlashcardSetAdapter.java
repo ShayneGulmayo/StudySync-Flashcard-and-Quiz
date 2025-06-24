@@ -116,9 +116,10 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
                 Intent intent = new Intent(context, QuizProgressActivity.class);
                 intent.putExtra("quizId", set.getId());
                 intent.putExtra("quizName", set.getTitle());
+                intent.putExtra("photoUrl", set.getPhotoUrl());
                 context.startActivity(intent);
             } else {
-                listener.onFlashcardSetClick(set); // flashcard
+                listener.onFlashcardSetClick(set);
             }
         });
     }
