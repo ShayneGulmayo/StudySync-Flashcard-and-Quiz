@@ -33,7 +33,7 @@
             android:layout_centerVertical="true"
             android:src="@drawable/add" />
     </RelativeLayout>
-    <SearchView
+    <androidx.appcompat.widget.SearchView
         android:id="@+id/search_set"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

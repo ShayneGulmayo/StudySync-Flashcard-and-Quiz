@@ -5,8 +5,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.SearchView;
+import androidx.appcompat.widget.SearchView;
+
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -44,6 +46,10 @@ public class ChatFragment extends Fragment {
 
         addButton = view.findViewById(R.id.add_button);
         searchView = view.findViewById(R.id.search_set);
+        EditText searchEditText = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
+        searchEditText.setBackground(null);
+        View searchPlate = searchView.findViewById(androidx.appcompat.R.id.search_plate);
+        searchPlate.setBackground(null);
         chatRecyclerView = view.findViewById(R.id.recycler_flashcards);
 
         chatRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -114,16 +120,16 @@ public class ChatFragment extends Fragment {
                                     .collection("messages")
                                     .orderBy("timestamp", Query.Direction.DESCENDING)
                                     .limit(1)
-                                    .addSnapshotListener((msgSnap, msgErr) -> {
-                                        if (msgErr != null || msgSnap == null || msgSnap.isEmpty()) return;
-
-                                        DocumentSnapshot lastMsg = msgSnap.getDocuments().get(0);
-                                        room.setLastMessage(lastMsg.getString("text"));
-                                        room.setLastMessageSender(lastMsg.getString("senderName"));
-                                        room.setLastMessageSenderId(lastMsg.getString("senderId"));
-                                        Timestamp ts = lastMsg.getTimestamp("timestamp");
-                                        if (ts != null) room.setLastMessageTimestamp(ts.toDate());
-
+                                    .get()
+                                    .addOnSuccessListener(msgSnap -> {
+                                        if (!msgSnap.isEmpty()) {
+                                            DocumentSnapshot lastMsg = msgSnap.getDocuments().get(0);
+                                            room.setLastMessage(lastMsg.getString("text"));
+                                            room.setLastMessageSender(lastMsg.getString("senderName"));
+                                            room.setLastMessageSenderId(lastMsg.getString("senderId"));
+                                            Timestamp ts = lastMsg.getTimestamp("timestamp");
+                                            if (ts != null) room.setLastMessageTimestamp(ts.toDate());
+                                        }
                                         updateChatRoom(room);
                                     });
                         }
@@ -135,7 +141,9 @@ public class ChatFragment extends Fragment {
         Date lastOpened = lastOpenedMap.get(updatedRoom.getId());
         Date lastMsgTime = updatedRoom.getLastMessageTimestamp();
 
-        boolean isUnread = lastMsgTime != null && (lastOpened == null || lastMsgTime.after(lastOpened));
+        boolean isUnread = lastMsgTime != null
+                && (lastOpened == null || lastMsgTime.after(lastOpened))
+                && !updatedRoom.getLastMessageSenderId().equals(currentUser.getUid());
         updatedRoom.setUnread(isUnread);
 
         boolean found = false;

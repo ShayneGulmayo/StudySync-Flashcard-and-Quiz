@@ -42,9 +42,12 @@
                 android:textColor="@color/text_gray" />
         </LinearLayout>
 
-        <RadioButton
-            android:id="@+id/select_radio"
+        <TextView
+            android:id="@+id/txtRole"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:text="Role"
+            android:textColor="@color/primary"
+            android:layout_marginRight="10dp"/>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

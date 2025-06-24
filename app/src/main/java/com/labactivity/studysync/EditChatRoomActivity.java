@@ -72,6 +72,12 @@ public class EditChatRoomActivity extends AppCompatActivity {
         chatroomPhoto.setOnClickListener(v -> openImagePicker());
         findViewById(R.id.delete_chatroom_btn).setOnClickListener(v -> attemptDeleteChatRoom());
         findViewById(R.id.leave_chatroom_btn).setOnClickListener(v -> attemptLeaveChatRoom());
+        findViewById(R.id.see_members_btn).setOnClickListener(v -> {
+            Intent intent = new Intent(EditChatRoomActivity.this, SeeMembersActivity.class);
+            intent.putExtra("chatRoomId", roomId);
+            startActivity(intent);
+        });
+
     }
 
     private void openImagePicker() {
@@ -147,7 +153,12 @@ public class EditChatRoomActivity extends AppCompatActivity {
         db.collection("chat_rooms").document(roomId)
                 .update("photoUrl", newUrl, "photoPath", path)
                 .addOnSuccessListener(unused -> {
-                    Glide.with(this).load(newUrl).into(chatroomPhoto);
+                    Glide.with(this)
+                            .load(newUrl)
+                            .placeholder(R.drawable.user_profile)
+                            .error(R.drawable.user_profile)
+                            .circleCrop()
+                            .into(chatroomPhoto);
                     previousFilePath = path;
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Update failed", Toast.LENGTH_SHORT).show());
