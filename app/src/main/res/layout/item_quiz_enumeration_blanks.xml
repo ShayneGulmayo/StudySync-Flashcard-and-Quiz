@@ -10,6 +10,7 @@
     android:backgroundTint="@android:color/white"
     android:clickable="false">
 
+
     <EditText
         android:id="@+id/enum_answer_input"
         android:layout_width="match_parent"
