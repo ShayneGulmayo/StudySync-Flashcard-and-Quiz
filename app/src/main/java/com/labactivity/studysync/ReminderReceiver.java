@@ -10,10 +10,7 @@ import android.app.NotificationManager;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
-
 import androidx.core.app.NotificationCompat;
-
-import com.google.firebase.firestore.FirebaseFirestore;
 
 public class ReminderReceiver extends BroadcastReceiver {
     @Override
@@ -41,14 +38,11 @@ public class ReminderReceiver extends BroadcastReceiver {
         Intent openFlashcardIntent = new Intent(context, FlashcardViewerActivity.class);
         openFlashcardIntent.putExtra("setId", setId);
 
-// Build proper back stack
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
         stackBuilder.addNextIntentWithParentStack(openFlashcardIntent);
 
-// Get pending intent
         PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-// Build notification
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(R.drawable.notifications)
                 .setContentTitle("📚 Study Reminder")
@@ -59,12 +53,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
 
-// Show notification
         if (notificationManager != null) {
             notificationManager.notify(1, builder.build());
         }
-
     }
-
-
 }

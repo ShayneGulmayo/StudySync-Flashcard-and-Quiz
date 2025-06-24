@@ -153,7 +153,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                 });
     }
 
-
     private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("Delete Flashcard Set")
@@ -304,7 +303,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                 .start();
     }
 
-
     private void animateCardSwipe(boolean isRightSwipe) {
         if (currentIndex == flashcards.size() - 1) {
             openFlashcardProgressActivity();
@@ -336,12 +334,9 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                 .start();
     }
 
-
-
     private void nextCard(boolean previousWasRightSwipe) {
         currentIndex++;
         if (currentIndex < flashcards.size()) {
-            // show the next card content
             showCard(currentIndex);
 
             View newCardView = showingFront ? frontCard : backCard;
@@ -380,7 +375,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     private void showReminderDialog() {
         Calendar calendar = Calendar.getInstance();
 
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+        @SuppressLint("ResourceType") DatePickerDialog datePickerDialog = new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
             calendar.set(Calendar.YEAR, year);
             calendar.set(Calendar.MONTH, month);
             calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
@@ -390,7 +385,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                 calendar.set(Calendar.MINUTE, minute);
                 calendar.set(Calendar.SECOND, 0);
 
-                // Set alarm after picking date and time
                 setReminder(calendar);
 
             }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
@@ -415,10 +409,8 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
         }
 
-        // Format the date-time as required
         String formattedDateTime = formatDateTime(calendar);
 
-        // Save to Firestore under this flashcard set
         db.collection("flashcards").document(setId)
                 .update("reminder", formattedDateTime)
                 .addOnSuccessListener(aVoid -> {

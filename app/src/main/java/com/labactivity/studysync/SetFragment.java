@@ -33,11 +33,8 @@ public class SetFragment extends Fragment {
     private ArrayList<FlashcardSet> displayedSets;
     private FirebaseFirestore db;
     private ImageView addButton, privacyIcon;
-    private SearchView searchView;
     private MaterialButtonToggleGroup toggleGroup;
     private TextView noSetsText;
-
-    private MaterialButton btnAll, btnFlashcards, btnQuizzes;
 
     private int totalCollectionsToLoad = 2;
     private int collectionsLoaded = 0;
@@ -59,13 +56,8 @@ public class SetFragment extends Fragment {
         recyclerView = view.findViewById(R.id.recycler_items);
         progressBar = view.findViewById(R.id.progress_bar);
         addButton = view.findViewById(R.id.add_btn);
-        searchView = view.findViewById(R.id.search_set);
         toggleGroup = view.findViewById(R.id.toggle_group);
         noSetsText = view.findViewById(R.id.no_sets_text);
-        btnAll = view.findViewById(R.id.btn_all);
-        btnFlashcards = view.findViewById(R.id.btn_flashcards);
-        btnQuizzes = view.findViewById(R.id.btn_quizzes);
-
         db = FirebaseFirestore.getInstance();
         allSets = new ArrayList<>();
         displayedSets = new ArrayList<>();
@@ -117,7 +109,6 @@ public class SetFragment extends Fragment {
 
         });
     }
-
 
     private void loadAllSets() {
         String currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();

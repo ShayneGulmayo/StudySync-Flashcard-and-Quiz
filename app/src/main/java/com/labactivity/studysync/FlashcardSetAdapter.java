@@ -10,21 +10,14 @@ import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.RequestOptions;
-
-import java.text.BreakIterator;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 
 public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapter.ViewHolder> implements Filterable {
@@ -64,7 +57,6 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
         }
         return new ViewHolder(view, viewType);
     }
-
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
@@ -109,8 +101,6 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             }
         }
 
-
-        // ✅ Open correct activity
         holder.itemView.setOnClickListener(v -> {
             if (set.getType().equals("quiz")) {
                 Intent intent = new Intent(context, QuizProgressActivity.class);
@@ -123,7 +113,6 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             }
         });
     }
-
 
     @Override
     public int getItemCount() {
@@ -149,7 +138,7 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             if (viewType == TYPE_QUIZ) {
                 flashcardOwner = itemView.findViewById(R.id.quiz_owner);
                 cardView = itemView.findViewById(R.id.cardView);
-                userProfileImage = itemView.findViewById(R.id.quiz_user_profile); // ✅ ADD THIS LINE HERE
+                userProfileImage = itemView.findViewById(R.id.quiz_user_profile);
             } else {
                 flashcardOwner = itemView.findViewById(R.id.flashcard_owner);
                 userProfileImage = itemView.findViewById(R.id.user_profile);
@@ -158,7 +147,6 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             }
         }
     }
-
 
     @Override
     public Filter getFilter() {
