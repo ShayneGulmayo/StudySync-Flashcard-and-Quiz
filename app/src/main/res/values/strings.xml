@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">StudySync</string>
     <string name="flashcard_set">Flashcard Sets</string>
-    <string name="search_flashcard">Search Flashcard Sets</string>
+    <string name="search_sets">Search Sets</string>
     <string name="flashcard_name">Flashcard Set Name</string>
     <string name="items">Items</string>
     <string name="dont_know_text">Don\'t Know</string>

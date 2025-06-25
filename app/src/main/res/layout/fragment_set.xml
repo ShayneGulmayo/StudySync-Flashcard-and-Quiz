@@ -16,11 +16,11 @@
             android:layout_width="0dp"
             android:layout_height="42dp"
             android:background="@drawable/green_stroke_bg"
-            android:queryHint="@string/search_flashcard"
+            android:hint="@string/search_sets"
+            app:layout_constraintEnd_toStartOf="@+id/add_btn"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/add_btn"
-            app:layout_constraintWidth_percent="0.85"/>
+            app:layout_constraintWidth_percent="0.85" />
 
         <ImageView
             android:id="@+id/add_btn"
