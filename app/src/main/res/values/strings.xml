@@ -71,6 +71,7 @@
     <string name="delete_option">Delete option</string>
     <string name="privacy_public">Public</string>
     <string name="privacy_private">Private</string>
+    <string name="shared_sets">Shared Sets</string>
     <string-array name="quiz_types">
         <item>Multiple Choice</item>
         <item>Enumeration</item>
