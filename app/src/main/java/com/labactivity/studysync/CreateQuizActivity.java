@@ -2,6 +2,7 @@ package com.labactivity.studysync;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
@@ -17,8 +18,8 @@ import android.widget.Toast;
 import android.content.DialogInterface;
 import android.widget.*;
 import androidx.appcompat.app.AlertDialog;
-
-
+import java.util.HashSet;
+import java.util.Set;
 
 import com.google.firebase.firestore.*;
 import com.google.firebase.Timestamp;
@@ -52,6 +53,9 @@ public class CreateQuizActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        quizId = getIntent().getStringExtra("quizId");
+        Log.d("CreateQuizActivity", "onCreate called, quizId: " + quizId);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_quiz);
 
@@ -60,6 +64,8 @@ public class CreateQuizActivity extends AppCompatActivity {
         backButton = findViewById(R.id.back_button);
         checkButton = findViewById(R.id.save_button);
         quizTitleInput = findViewById(R.id.quiz_name);
+
+
 
 
         db = FirebaseFirestore.getInstance();
@@ -152,6 +158,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                     answers.add(answerInput.getText().toString().trim());
                 }
                 questionData.put("choices", answers);
+                questionData.put("correctAnswer", answers);  // ✅ ADD THIS
             }
 
             questionList.add(questionData);
@@ -168,6 +175,7 @@ public class CreateQuizActivity extends AppCompatActivity {
         quizData.put("questions", questionList);
 
         if (quizId != null) {
+            quizData.put("quizId", quizId);
             // 🔁 Update existing quiz
             db.collection("quiz").document(quizId)
                     .update(quizData)
@@ -178,13 +186,21 @@ public class CreateQuizActivity extends AppCompatActivity {
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to update quiz", Toast.LENGTH_SHORT).show());
         } else {
             // ➕ Create new quiz
-            db.collection("quiz")
-                    .add(quizData)
-                    .addOnSuccessListener(documentReference -> {
+            // ➕ Create new quiz
+            String generatedQuizId = db.collection("quiz").document().getId();  // 🔑 generate ID first
+            quizData.put("quizId", generatedQuizId);
+
+            db.collection("quiz").document(generatedQuizId)
+                    .set(quizData)
+                    .addOnSuccessListener(unused -> {
                         Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
-                        finish();
+                        finish(); // ✅ only called after everything is saved
                     })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to save quiz", Toast.LENGTH_SHORT).show());
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to save quiz", Toast.LENGTH_SHORT).show();
+                    });
+
+
         }
 
     }
@@ -218,92 +234,31 @@ public class CreateQuizActivity extends AppCompatActivity {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         quizTypeSpinner.setAdapter(adapter);
 
+        TextView addOptionText = quizItem.findViewById(R.id.add_option_text);
+        LinearLayout optionsContainer = quizItem.findViewById(R.id.answer_choices_container);
+        EditText questionInput = quizItem.findViewById(R.id.quiz_question_input);
+
+        setupAddOptionListener(addOptionText, quizTypeSpinner, optionsContainer);
+
         ImageButton deleteBtn = quizItem.findViewById(R.id.delete_question_button);
         deleteBtn.setOnClickListener(v -> {
             quizContainer.removeView(quizItem);
             questionCount--;
         });
 
-        TextView addOptionText = quizItem.findViewById(R.id.add_option_text);
-        LinearLayout optionsContainer = quizItem.findViewById(R.id.answer_choices_container);
+        quizTypeSpinner.setOnItemSelectedListener(getQuizTypeChangeListener(addOptionText, optionsContainer));
 
-        for (int i = 0; i < 2; i++) {
-            addOptionView(optionsContainer);
-        }
-
-        setupAddOptionListener(addOptionText, quizTypeSpinner, optionsContainer);
-            String type = quizTypeSpinner.getSelectedItem().toString().toLowerCase();
-            int currentCount = optionsContainer.getChildCount();
-
-            if (type.equals("multiple choice")) {
-                if (currentCount >= 4) {
-                    Toast.makeText(CreateQuizActivity.this, "Maximum of 4 options allowed", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                View optionView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_options, null);
-                RadioButton rb = optionView.findViewById(R.id.radioOption);
-                EditText et = optionView.findViewById(R.id.edit_option_text);
-                ImageButton deleteOption = optionView.findViewById(R.id.delete_option);
-
-                rb.setOnClickListener(btn -> {
-                    for (int i = 0; i < optionsContainer.getChildCount(); i++) {
-                        View child = optionsContainer.getChildAt(i);
-                        RadioButton other = child.findViewById(R.id.radioOption);
-                        if (other != rb) other.setChecked(false);
-                    }
-                });
-
-                deleteOption.setOnClickListener(btn -> optionsContainer.removeView(optionView));
-                optionsContainer.addView(optionView);
-
-            } else if (type.equals("enumeration")) {
-                if (currentCount >= 15) {
-                    Toast.makeText(CreateQuizActivity.this, "Maximum of 15 answers allowed", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                View answerView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_enumerations, null);
-                EditText et = answerView.findViewById(R.id.edit_option_text);
-                TextView numberLabel = answerView.findViewById(R.id.enumeration_number);
-                ImageButton deleteAnswer = answerView.findViewById(R.id.delete_option);
-
-                numberLabel.setText(String.valueOf(currentCount + 1));
-                deleteAnswer.setOnClickListener(btn -> {
-                    optionsContainer.removeView(answerView);
-                    renumberEnumerationInputs(optionsContainer);
-                });
-
-                optionsContainer.addView(answerView);
-
-        };
-
-
-        quizTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int pos, long id) {
-                String type = adapterView.getItemAtPosition(pos).toString().toLowerCase();
-                addOptionText.setText(type.equals("enumeration") ? "Add answer" : "Add option");
-                optionsContainer.removeAllViews();
-
-                if (type.equals("multiple choice")) {
-                    for (int i = 0; i < 2; i++) {
-                        addOptionView(optionsContainer);
-                    }
-                } else {
-                    // optionally add one blank enum if you want
-                    View answerView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_enumerations, null);
-                    optionsContainer.addView(answerView);
-                    renumberEnumerationInputs(optionsContainer);
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {}
+        // Manually trigger default to multiple choice (or default index 0)
+        quizTypeSpinner.post(() -> {
+            int defaultPosition = 0; // index for "multiple choice"
+            quizTypeSpinner.setSelection(defaultPosition);
+            getQuizTypeChangeListener(addOptionText, optionsContainer)
+                    .onItemSelected(quizTypeSpinner, null, defaultPosition, 0);
         });
-
 
         quizContainer.addView(quizItem);
     }
+
 
     private void addOptionView(LinearLayout container) {
         View optionView = LayoutInflater.from(this).inflate(R.layout.item_add_quiz_options, null);
@@ -376,17 +331,27 @@ public class CreateQuizActivity extends AppCompatActivity {
                     return false;
                 }
             } else if (quizType.equals("enumeration")) {
+                Set<String> uniqueAnswers = new HashSet<>();
                 boolean hasInput = false;
 
                 for (int j = 0; j < optionsContainer.getChildCount(); j++) {
                     View answer = optionsContainer.getChildAt(j);
                     EditText answerInput = answer.findViewById(R.id.edit_option_text);
-                    if (answerInput == null || answerInput.getText().toString().trim().isEmpty()) {
+                    if (answerInput == null) continue;
+
+                    String input = answerInput.getText().toString().trim();
+
+                    if (input.isEmpty()) {
                         Toast.makeText(this, "All enumeration answers must be filled", Toast.LENGTH_SHORT).show();
                         return false;
-                    } else {
-                        hasInput = true;
                     }
+
+                    if (!uniqueAnswers.add(input.toLowerCase())) {
+                        Toast.makeText(this, "Duplicate enumeration answers are not allowed", Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
+
+                    hasInput = true;
                 }
 
                 if (!hasInput) {
@@ -394,6 +359,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                     return false;
                 }
             }
+
         }
 
         return true;
@@ -435,6 +401,11 @@ public class CreateQuizActivity extends AppCompatActivity {
         quizItem.setLayoutParams(params);
 
         Spinner quizTypeSpinner = quizItem.findViewById(R.id.quiz_type_spinner);
+        EditText questionInput = quizItem.findViewById(R.id.quiz_question_input);
+        LinearLayout optionsContainer = quizItem.findViewById(R.id.answer_choices_container);
+        TextView addOptionText = quizItem.findViewById(R.id.add_option_text);
+
+        // Setup Spinner Adapter
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
                 this,
                 R.array.quiz_types,
@@ -443,90 +414,146 @@ public class CreateQuizActivity extends AppCompatActivity {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         quizTypeSpinner.setAdapter(adapter);
 
-        EditText questionInput = quizItem.findViewById(R.id.quiz_question_input);
-        LinearLayout optionsContainer = quizItem.findViewById(R.id.answer_choices_container);
-        TextView addOptionText = quizItem.findViewById(R.id.add_option_text);
-        setupAddOptionListener(addOptionText, quizTypeSpinner, optionsContainer);
-
-
+        // Get question values
         String questionText = (String) questionData.get("question");
         questionInput.setText(questionText);
 
-        List<String> choices = (List<String>) questionData.get("choices");
-        String correctAnswer = (String) questionData.get("correctAnswer");
+        List<String> choices = new ArrayList<>();
+        Object rawChoices = questionData.get("choices");
 
-        boolean isMultipleChoice = correctAnswer != null;
-
-        quizTypeSpinner.post(() -> {
-            AdapterView.OnItemSelectedListener listener = quizTypeSpinner.getOnItemSelectedListener();
-            if (listener != null) {
-                listener.onItemSelected(quizTypeSpinner, quizTypeSpinner.getSelectedView(), quizTypeSpinner.getSelectedItemPosition(), 0);
-            }
-        });
-
-        optionsContainer.removeAllViews();
-
-        if (choices != null) {
-            for (String choice : choices) {
-                if (isMultipleChoice) {
-                    View optionView = LayoutInflater.from(this).inflate(R.layout.item_add_quiz_options, null);
-                    RadioButton rb = optionView.findViewById(R.id.radioOption);
-                    EditText et = optionView.findViewById(R.id.edit_option_text);
-                    ImageButton deleteOption = optionView.findViewById(R.id.delete_option);
-
-                    et.setText(choice);
-                    rb.setChecked(choice.equals(correctAnswer));
-
-                    rb.setOnClickListener(v -> {
-                        for (int i = 0; i < optionsContainer.getChildCount(); i++) {
-                            View child = optionsContainer.getChildAt(i);
-                            RadioButton other = child.findViewById(R.id.radioOption);
-                            if (other != rb) other.setChecked(false);
-                        }
-                    });
-
-                    deleteOption.setOnClickListener(v -> {
-                        optionsContainer.removeView(optionView);
-                    });
-
-                    optionsContainer.addView(optionView);
-
-                } else {
-                    View answerView = LayoutInflater.from(this).inflate(R.layout.item_add_quiz_enumerations, null);
-                    EditText et = answerView.findViewById(R.id.edit_option_text);
-                    TextView numberLabel = answerView.findViewById(R.id.enumeration_number);
-                    ImageButton deleteAnswer = answerView.findViewById(R.id.delete_option);
-
-                    et.setText(choice);
-                    numberLabel.setText(String.valueOf(optionsContainer.getChildCount() + 1));
-                    deleteAnswer.setOnClickListener(v -> {
-                        optionsContainer.removeView(answerView);
-                        renumberEnumerationInputs(optionsContainer);
-                    });
-
-                    optionsContainer.addView(answerView);
+        if (rawChoices instanceof List<?>) {
+            for (Object obj : (List<?>) rawChoices) {
+                if (obj instanceof String) {
+                    choices.add((String) obj);
                 }
             }
         }
 
+        Object typeObj = questionData.get("type");
+        String type = (typeObj != null) ? typeObj.toString().toLowerCase() : "multiple choice";
+        if (type == null) type = "multiple choice"; // fallback
+        type = type.toLowerCase();
+
+        Object correctAnswerObj = questionData.get("correctAnswer");
+
+        final String correctAnswerString;
+        final List<String> correctAnswerList;
+
+        if (correctAnswerObj instanceof String) {
+            correctAnswerString = (String) correctAnswerObj;
+            correctAnswerList = null;
+        } else if (correctAnswerObj instanceof List) {
+            correctAnswerList = (List<String>) correctAnswerObj;
+            correctAnswerString = null;
+        } else {
+            correctAnswerString = null;
+            correctAnswerList = null;
+        }
+
+
+        boolean isMultipleChoice = type.equals("multiple choice");
+
+        // Initial typeChangeListener reference holder
+        final AdapterView.OnItemSelectedListener[] typeChangeListenerHolder = new AdapterView.OnItemSelectedListener[1];
+
+        // Add option setup
+        setupAddOptionListener(addOptionText, quizTypeSpinner, optionsContainer);
+
+        // Define listener BEFORE setting spinner position
+        AdapterView.OnItemSelectedListener typeChangeListener = new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int pos, long id) {
+                String selectedType = adapterView.getItemAtPosition(pos).toString().toLowerCase();
+                addOptionText.setText(selectedType.equals("enumeration") ? "Add answer" : "Add option");
+
+                optionsContainer.removeAllViews();
+
+                if (selectedType.equals("multiple choice")) {
+                    for (String choice : choices) {
+                        View optionView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_options, null);
+                        RadioButton rb = optionView.findViewById(R.id.radioOption);
+                        EditText et = optionView.findViewById(R.id.edit_option_text);
+                        ImageButton deleteOption = optionView.findViewById(R.id.delete_option);
+
+                        et.setText(choice);
+                        rb.setChecked(choice.equals(correctAnswerString));
+
+
+
+                        rb.setOnClickListener(v -> {
+                            for (int i = 0; i < optionsContainer.getChildCount(); i++) {
+                                View child = optionsContainer.getChildAt(i);
+                                RadioButton other = child.findViewById(R.id.radioOption);
+                                if (other != rb) other.setChecked(false);
+                            }
+                        });
+
+                        deleteOption.setOnClickListener(v -> {
+                            optionsContainer.removeView(optionView);
+                        });
+
+                        optionsContainer.addView(optionView);
+                    }
+
+                } else { // ENUMERATION
+                    for (String choice : choices) {
+                        View answerView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_enumerations, null);
+                        EditText et = answerView.findViewById(R.id.edit_option_text);
+                        TextView numberLabel = answerView.findViewById(R.id.enumeration_number);
+                        ImageButton deleteAnswer = answerView.findViewById(R.id.delete_option);
+
+                        et.setText(choice);
+                        numberLabel.setText(String.valueOf(optionsContainer.getChildCount() + 1));
+                        deleteAnswer.setOnClickListener(v -> {
+                            optionsContainer.removeView(answerView);
+                            renumberEnumerationInputs(optionsContainer);
+                        });
+
+                        optionsContainer.addView(answerView);
+                    }
+
+                    renumberEnumerationInputs(optionsContainer);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        };
+
+        typeChangeListenerHolder[0] = typeChangeListener;
+
+        quizTypeSpinner.setOnItemSelectedListener(typeChangeListener);
+
+        // Convert stored type to display type
+        String displayType;
+        switch (type) {
+            case "multiple choice":
+                displayType = "Multiple Choice";
+                break;
+            case "enumeration":
+                displayType = "Enumeration";
+                break;
+            default:
+                Toast.makeText(this, "Unknown quiz type: " + type, Toast.LENGTH_SHORT).show();
+                displayType = "Multiple Choice";
+                break;
+        }
+
+        int spinnerPosition = adapter.getPosition(displayType);
+        quizTypeSpinner.setSelection(spinnerPosition);
+
+        // Delete button logic
         ImageButton deleteBtn = quizItem.findViewById(R.id.delete_question_button);
         deleteBtn.setOnClickListener(v -> {
             quizContainer.removeView(quizItem);
             questionCount--;
         });
 
-        quizTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                // Ignore change during loading
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
-        });
-
+        // Finally add to parent
         quizContainer.addView(quizItem);
     }
+
+
     private void setupAddOptionListener(TextView addOptionText, Spinner quizTypeSpinner, LinearLayout optionsContainer) {
         addOptionText.setOnClickListener(v -> {
             String type = quizTypeSpinner.getSelectedItem().toString().toLowerCase();
@@ -575,6 +602,38 @@ public class CreateQuizActivity extends AppCompatActivity {
             }
         });
     }
+    private AdapterView.OnItemSelectedListener getQuizTypeChangeListener(
+            TextView addOptionText,
+            LinearLayout optionsContainer
+    ) {
+        return new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int pos, long id) {
+                Object item = adapterView.getItemAtPosition(pos);
+                if (item == null) return;
+
+                String type = item.toString().toLowerCase();
+                addOptionText.setText(type.equals("enumeration") ? "Add answer" : "Add option");
+                optionsContainer.removeAllViews();
+
+                if (type.equals("multiple choice")) {
+                    for (int i = 0; i < 2; i++) {
+                        addOptionView(optionsContainer);
+                    }
+                } else {
+                    View answerView = LayoutInflater.from(CreateQuizActivity.this)
+                            .inflate(R.layout.item_add_quiz_enumerations, null);
+                    optionsContainer.addView(answerView);
+                    renumberEnumerationInputs(optionsContainer);
+                }
+            }
+
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {}
+        };
+    }
+
 
 
 }

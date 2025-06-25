@@ -15,6 +15,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -192,26 +193,47 @@ public class QuizProgressActivity extends AppCompatActivity {
 
     private void displayQuizProgress(DocumentSnapshot doc) {
         String title = doc.getString("title");
-        Long progress = doc.getLong("progress");
-        Long total = doc.getLong("numberOfItems");
-
         if (title != null && !title.trim().isEmpty()) {
             quizTitleText.setText(title);
         } else {
             quizTitleText.setText("Untitled Quiz");
         }
 
-        int percentage = progress != null ? progress.intValue() : 0;
-        int totalItems = total != null ? total.intValue() : 0;
-        int correct = Math.round((percentage / 100f) * totalItems);
-        int incorrect = totalItems - correct;
+        // 🔄 Fetch dynamic attempt result
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        correctText.setText(correct + " Items");
-        incorrectText.setText(incorrect + " Items");
+        db.collection("quiz_attempts")
+                .document(quizId)
+                .collection("users")
+                .document(userId)
+                .get()
+                .addOnSuccessListener(attemptDoc -> {
+                    if (attemptDoc.exists()) {
+                        Long score = attemptDoc.getLong("score");
+                        Long total = attemptDoc.getLong("total");
 
-        progressCircle.setProgress(percentage);
-        progressPercentageText.setText(percentage + "%"); // ✅ THIS FIXES THE ZERO %
+                        if (score != null && total != null && total > 0) {
+                            int correct = score.intValue();
+                            int totalItems = total.intValue();
+                            int incorrect = totalItems - correct;
+                            int percentage = Math.round((correct / (float) totalItems) * 100);
+
+                            correctText.setText(correct + (correct == 1 ? " Item" : " Items"));
+                            incorrectText.setText(incorrect + (incorrect == 1 ? " Item" : " Items"));
+                            progressCircle.setProgress(percentage);
+                            progressPercentageText.setText(percentage + "%");
+                        } else {
+                            Toast.makeText(this, "Invalid attempt data", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(this, "No previous attempt found", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to load attempt data", Toast.LENGTH_SHORT).show();
+                });
     }
+
 
 
 

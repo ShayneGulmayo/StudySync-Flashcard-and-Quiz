@@ -10,6 +10,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.util.HashSet;
+import java.util.Set;
+
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -117,7 +120,7 @@ public class QuizViewActivity extends AppCompatActivity {
                     }
                 }
 
-                List<String> correctAnswers = null;
+                List<String> correctAnswers;
                 try {
                     correctAnswers = (List<String>) currentQuestion.get("choices");
                 } catch (ClassCastException e) {
@@ -125,15 +128,20 @@ public class QuizViewActivity extends AppCompatActivity {
                 }
 
                 List<String> correctLower = new ArrayList<>();
-                if (correctAnswers != null) {
-                    for (String ans : correctAnswers) {
-                        correctLower.add(ans.trim().toLowerCase());
-                    }
+                for (String ans : correctAnswers) {
+                    correctLower.add(ans.trim().toLowerCase());
                 }
 
-                Collections.sort(userAnswers);
-                Collections.sort(correctLower);
-                boolean isCorrect = userAnswers.equals(correctLower);
+                Set<String> userSet = new HashSet<>(userAnswers);
+                Set<String> correctSet = new HashSet<>(correctLower);
+
+                Set<String> correctMatched = new HashSet<>(userSet);
+                correctMatched.retainAll(correctSet); // only correct
+
+                Set<String> missedAnswers = new HashSet<>(correctSet);
+                missedAnswers.removeAll(userSet); // not given by user
+
+                boolean isCorrect = correctMatched.size() == correctSet.size();
                 if (isCorrect) score++;
 
                 Map<String, Object> answer = new HashMap<>();
@@ -145,11 +153,22 @@ public class QuizViewActivity extends AppCompatActivity {
                 userAnswersList.add(answer);
 
                 hasAnswered = true;
-                linearLayoutOptions.postDelayed(() -> {
-                    currentQuestionIndex++;
-                    displayNextValidQuestion();
-                }, 1000);
+
+                // ✅ Show feedback in a popup
+                new AlertDialog.Builder(this)
+                        .setTitle(isCorrect ? "✅ Correct!" : "❌ Not Quite")
+                        .setMessage("You answered: " + userAnswers + "\n\n" +
+                                "Correct answers: " + correctLower + "\n\n" +
+                                "Matched: " + correctMatched + "\n" +
+                                "Missed: " + missedAnswers)
+                        .setPositiveButton("Next", (dialog, which) -> {
+                            currentQuestionIndex++;
+                            displayNextValidQuestion();
+                        })
+                        .setCancelable(false)
+                        .show();
             }
+
         });
 
 

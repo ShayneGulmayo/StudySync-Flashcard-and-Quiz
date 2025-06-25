@@ -12,6 +12,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.auth.FirebaseAuth;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
@@ -30,6 +32,8 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
     private ArrayList<FlashcardSet> flashcardSets;
     private ArrayList<FlashcardSet> flashcardSetsFull;
     private OnFlashcardSetClickListener listener;
+    private FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
     private static final int TYPE_FLASHCARD = 0;
     private static final int TYPE_QUIZ = 1;
 
@@ -69,10 +73,53 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
         holder.setNameText.setText(title);
         holder.setItemText.setText(set.getNumberOfItems() + " items");
         holder.flashcardOwner.setText(set.getOwnerUsername());
-        int progressValue = set.getProgress();
-        holder.statsProgressBar.setProgress(progressValue);
-        holder.progressPercentageText.setText(progressValue + "%");
 
+        // Dynamic progress for quizzes
+        if (getItemViewType(position) == TYPE_QUIZ) {
+            holder.statsProgressBar.setProgress(0);
+            holder.progressPercentageText.setText("...");
+
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+            db.collection("quiz_attempts")
+                    .document(set.getId())
+                    .collection("users")
+                    .document(userId)
+                    .get()
+                    .addOnSuccessListener(attempt -> {
+                        if (attempt.exists()) {
+                            Long scoreL = attempt.getLong("score");
+                            Long totalL = attempt.getLong("total");
+
+                            if (scoreL != null && totalL != null && totalL > 0) {
+                                int correct = scoreL.intValue();
+                                int totalItems = totalL.intValue();
+                                int percent = Math.round((correct / (float) totalItems) * 100);
+                                holder.statsProgressBar.setProgress(percent);
+                                holder.progressPercentageText.setText(percent + "%");
+                            } else {
+                                holder.statsProgressBar.setProgress(0);
+                                holder.progressPercentageText.setText("0%");
+                            }
+                        } else {
+                            holder.statsProgressBar.setProgress(0);
+                            holder.progressPercentageText.setText("0%");
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        holder.statsProgressBar.setProgress(0);
+                        holder.progressPercentageText.setText("0%");
+                    });
+
+        } else {
+            // Flashcard sets use static progress
+            int progressValue = set.getProgress();
+            holder.statsProgressBar.setProgress(progressValue);
+            holder.progressPercentageText.setText(progressValue + "%");
+        }
+
+        // Profile picture
         if (set.getPhotoUrl() != null) {
             Glide.with(context)
                     .load(set.getPhotoUrl())
@@ -86,12 +133,14 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             holder.userProfileImage.setImageResource(R.drawable.user_profile);
         }
 
+        // Privacy icon
         if ("Private".equalsIgnoreCase(set.getPrivacy())) {
             holder.privacyIcon.setImageResource(R.drawable.lock);
         } else {
             holder.privacyIcon.setImageResource(R.drawable.public_icon);
         }
 
+        // Flashcard-specific reminder
         if (holder.viewType == TYPE_FLASHCARD) {
             if (set.getReminder() != null && !set.getReminder().isEmpty()) {
                 holder.setReminderTextView.setVisibility(View.VISIBLE);
@@ -101,7 +150,7 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             }
         }
 
-
+        // Click to open
         holder.itemView.setOnClickListener(v -> {
             if (set.getType().equals("quiz")) {
                 Intent intent = new Intent(context, QuizProgressActivity.class);
@@ -114,6 +163,7 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             }
         });
     }
+
 
     @Override
     public int getItemCount() {
