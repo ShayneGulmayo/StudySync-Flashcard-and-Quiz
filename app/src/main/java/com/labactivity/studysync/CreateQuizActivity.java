@@ -478,8 +478,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                         et.setText(choice);
                         rb.setChecked(choice.equals(correctAnswerString));
 
-
-
                         rb.setOnClickListener(v -> {
                             for (int i = 0; i < optionsContainer.getChildCount(); i++) {
                                 View child = optionsContainer.getChildAt(i);
