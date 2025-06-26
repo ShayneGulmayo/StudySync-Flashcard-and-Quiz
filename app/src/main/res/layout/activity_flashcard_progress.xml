@@ -28,7 +28,7 @@
             android:src="@drawable/arrow_back" />
 
         <TextView
-            android:id="@+id/txtView_flashcard_title"
+            android:id="@+id/flashcard_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"

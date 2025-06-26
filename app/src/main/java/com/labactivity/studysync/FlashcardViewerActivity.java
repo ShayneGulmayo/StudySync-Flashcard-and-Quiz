@@ -7,19 +7,17 @@ import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
-import android.widget.DatePicker;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -43,7 +41,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     private int dontKnowCount;
     private int currentIndex = 0;
     private boolean showingFront = true;
-    private String currentPrivacy, ownerUid;
+    private String ownerUid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,85 +84,24 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         super.onResume();
         loadFlashcards();
     }
+
+    @SuppressLint("MissingInflatedId")
     private void showMoreBottomSheet() {
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.more_bottom_sheet_menu, null);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_viewer, null);
         bottomSheetDialog.setContentView(view);
 
-        view.findViewById(R.id.download).setOnClickListener(v -> {
-            Toast.makeText(this, "Download clicked", Toast.LENGTH_SHORT).show();
+        view.findViewById(R.id.shuffle).setOnClickListener(v -> {
+            Toast.makeText(this, "Shuffle clicked", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
         });
 
-        view.findViewById(R.id.privacy).setOnClickListener(v -> {
-            togglePrivacy();
+        view.findViewById(R.id.restart).setOnClickListener(v -> {
+            Toast.makeText(this, "Restart clicked", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.reminder).setOnClickListener(v -> {
-            showReminderDialog();
-            bottomSheetDialog.dismiss();
-        });
-
-
-        view.findViewById(R.id.sendToChat).setOnClickListener(v -> {
-            Toast.makeText(this, "Send to Chat clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.edit).setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-            Intent intent = new Intent(this, CreateFlashcardActivity.class);
-            intent.putExtra("setId", setId);
-            startActivity(intent);
-        });
-
-        view.findViewById(R.id.delete).setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-            showDeleteConfirmationDialog();
         });
 
         bottomSheetDialog.show();
-    }
-
-    private String formatDateTime(Calendar calendar) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy | hh:mm a", Locale.getDefault());
-        return dateFormat.format(calendar.getTime());
-    }
-
-    private void togglePrivacy() {
-        if (setId == null) return;
-
-        String newPrivacy = "Public".equals(currentPrivacy) ? "Private" : "Public";
-
-        db.collection("flashcards").document(setId)
-                .update("privacy", newPrivacy)
-                .addOnSuccessListener(aVoid -> {
-                    currentPrivacy = newPrivacy;
-                    Toast.makeText(this, "Privacy set to " + newPrivacy, Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to update privacy.", Toast.LENGTH_SHORT).show();
-                });
-    }
-
-    private void showDeleteConfirmationDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete Flashcard Set")
-                .setMessage("Are you sure you want to delete this flashcard set? This action cannot be undone.")
-                .setPositiveButton("Yes", (dialog, which) -> deleteFlashcardSet())
-                .setNegativeButton("No", null)
-                .show();
-    }
-
-    private void deleteFlashcardSet() {
-        db.collection("flashcards").document(setId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Flashcard set deleted.", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete flashcard set.", Toast.LENGTH_SHORT).show());
     }
 
     private void loadFlashcards() {
@@ -318,58 +255,4 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
-
-    private void showReminderDialog() {
-        Calendar calendar = Calendar.getInstance();
-
-        @SuppressLint("ResourceType") DatePickerDialog datePickerDialog = new DatePickerDialog(this, R.style.DialogTheme, (view, year, month, dayOfMonth) -> {
-            calendar.set(Calendar.YEAR, year);
-            calendar.set(Calendar.MONTH, month);
-            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-
-            TimePickerDialog timePickerDialog = new TimePickerDialog(this, R.style.DialogTheme, (timeView, hourOfDay, minute) -> {
-                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
-                calendar.set(Calendar.MINUTE, minute);
-                calendar.set(Calendar.SECOND, 0);
-
-                setReminder(calendar);
-
-            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
-
-            timePickerDialog.show();
-
-        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
-
-        datePickerDialog.show();
-    }
-
-    @SuppressLint("ScheduleExactAlarm")
-    private void setReminder(Calendar calendar) {
-        Intent intent = new Intent(this, ReminderReceiver.class);
-        intent.putExtra("setId", setId);
-
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        if (alarmManager != null) {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-        }
-
-        String formattedDateTime = formatDateTime(calendar);
-
-        db.collection("flashcards").document(setId)
-                .update("reminder", formattedDateTime)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Reminder set for " + formattedDateTime, Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to set reminder.", Toast.LENGTH_SHORT).show();
-                });
-    }
-
-
-
-
-
-
 }

@@ -40,10 +40,14 @@ public class SetFragment extends Fragment {
     private int collectionsLoaded = 0;
     private String currentUserPhotoUrl;
     private String currentSearchQuery = "";
+    private boolean isReturningFromCreate = false;
 
     private final ActivityResultLauncher<Intent> createFlashcardLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
-            result -> loadAllSets()
+            result -> {
+                isReturningFromCreate = true;
+                loadAllSets();
+            }
     );
 
     public SetFragment() {}
@@ -104,7 +108,11 @@ public class SetFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        loadAllSets();
+        if (!isReturningFromCreate) {
+            loadAllSets();
+        } else {
+            isReturningFromCreate = false;
+        }
     }
 
     @SuppressLint("MissingInflatedId")
@@ -244,7 +252,7 @@ public class SetFragment extends Fragment {
     }
 
     private void showAddBottomSheetFlashcard() {
-        View view = getLayoutInflater().inflate(R.layout.add_bottom_sheet_menu, null);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_add, null);
         androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(getContext())
                 .setView(view)
                 .create();
@@ -269,7 +277,7 @@ public class SetFragment extends Fragment {
     }
 
     private void showAddBottomSheetQuiz() {
-        View view = getLayoutInflater().inflate(R.layout.add_bottom_sheet_menu, null);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_add, null);
         androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(getContext())
                 .setView(view)
                 .create();
@@ -294,7 +302,7 @@ public class SetFragment extends Fragment {
     }
 
     private void onFlashcardSetClicked(FlashcardSet set) {
-        Intent intent = new Intent(getContext(), FlashcardViewerActivity.class);
+        Intent intent = new Intent(getContext(), FlashcardPreviewActivity.class);
         intent.putExtra("setId", set.getId());
         intent.putExtra("setName", set.getTitle());
         startActivity(intent);

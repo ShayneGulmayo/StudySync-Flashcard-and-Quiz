@@ -9,7 +9,11 @@ public class Flashcard {
         this.definition = definition;
     }
 
-    public String getTerm() { return term; }
+    public String getTerm() {
+        return term;
+    }
 
-    public String getDefinition() { return definition; }
+    public String getDefinition() {
+        return definition;
+    }
 }

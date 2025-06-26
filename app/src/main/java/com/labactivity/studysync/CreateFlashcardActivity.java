@@ -18,6 +18,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,37 +51,30 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         backButton.setOnClickListener(v -> showExitConfirmation());
 
         floatingAddButton.setOnClickListener(v -> addFlashcardView());
+
         saveButton.setOnClickListener(v -> {
             if (setId != null) {
-                updateFlashcardSet();
+                updateFlashcardSet(); // <-- Now uses .set()
             } else {
                 saveFlashcardSet();
             }
         });
 
-        // Add 2 flashcards by default
         addFlashcardView();
         addFlashcardView();
 
-        // Limit title to 20 characters
         setNameEditText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (s.length() > 20) {
                     setNameEditText.setText(s.subSequence(0, 20));
                     setNameEditText.setSelection(20);
                     Toast.makeText(CreateFlashcardActivity.this, "Title cannot exceed 20 characters", Toast.LENGTH_SHORT).show();
                 }
             }
-
-            @Override
-            public void afterTextChanged(Editable s) {}
+            @Override public void afterTextChanged(Editable s) {}
         });
 
-        // Fetch current user's username
         db.collection("users")
                 .document(auth.getCurrentUser().getUid())
                 .get()
@@ -160,6 +155,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         flashcardSet.put("owner_uid", uid);
         flashcardSet.put("progress", 0);
         flashcardSet.put("terms", termsMap);
+        flashcardSet.put("createdAt", getCurrentFormattedDateTime());
 
         db.collection("flashcards")
                 .add(flashcardSet)
@@ -208,9 +204,12 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         updatedData.put("title", setName);
         updatedData.put("number_of_items", numberOfItems);
         updatedData.put("terms", termsMap);
+        updatedData.put("owner_username", username);
+        updatedData.put("owner_uid", auth.getCurrentUser().getUid());
+        updatedData.put("createdAt", getCurrentFormattedDateTime());
 
         db.collection("flashcards").document(setId)
-                .update(updatedData)
+                .set(updatedData) // <-- fixed: overwrite entire doc to clear old keys
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Flashcard set updated!", Toast.LENGTH_SHORT).show();
                     finish();
@@ -259,7 +258,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         updateDeleteButtons();
     }
 
-
     private void updateDeleteButtons() {
         int count = flashcardContainer.getChildCount();
         for (int i = 0; i < count; i++) {
@@ -276,5 +274,10 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 .setPositiveButton("No", null)
                 .setNegativeButton("Yes", (dialog, which) -> finish())
                 .show();
+    }
+
+    private String getCurrentFormattedDateTime() {
+        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy | hh:mm a");
+        return sdf.format(new Date());
     }
 }

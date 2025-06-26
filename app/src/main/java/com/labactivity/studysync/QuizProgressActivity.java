@@ -106,7 +106,7 @@ public class QuizProgressActivity extends AppCompatActivity {
 
     private void showMoreBottomSheet() {
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.more_bottom_sheet_menu, null);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_preview, null);
         bottomSheetDialog.setContentView(view);
 
         TextView privacyOption = view.findViewById(R.id.privacy);

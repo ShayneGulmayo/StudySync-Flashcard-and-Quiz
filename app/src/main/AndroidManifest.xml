@@ -16,13 +16,18 @@
         android:theme="@style/Theme.StudySync"
         tools:targetApi="31">
         <activity
+            android:name=".FlashcardPreviewActivity"
+            android:exported="false" />
+        <activity
             android:name=".AddMembersActivity"
             android:exported="false" />
         <activity
             android:name=".SeeMembersActivity"
             android:exported="false" />
 
-        <receiver android:name=".ReminderReceiver" />
+        <receiver
+            android:name=".ReminderReceiver"
+            android:exported="true" />
 
         <activity
             android:name=".ReviewQuestionsActivity"
@@ -57,12 +62,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".FlashcardsActivity"
-            android:exported="false" />
+
         <activity
             android:name=".FlashcardViewerActivity"
-            android:exported="false" />
+            android:exported="true"
+            android:parentActivityName=".FlashcardPreviewActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".FlashcardPreviewActivity"/>
+        </activity>
+
         <activity
             android:name=".FlashcardProgressActivity"
             android:exported="false" />

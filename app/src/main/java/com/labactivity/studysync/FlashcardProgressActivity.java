@@ -51,7 +51,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
         retakeFlashcardBtn = findViewById(R.id.retake_quiz_btn);
         backButton = findViewById(R.id.back_button);
         moreButton = findViewById(R.id.more_button);
-        flashcardTitleTxt = findViewById(R.id.txtView_flashcard_title);
+        flashcardTitleTxt = findViewById(R.id.flashcard_title);
 
         knowCount = getIntent().getIntExtra("knowCount", 0);
         stillLearningCount = getIntent().getIntExtra("stillLearningCount", 0);
@@ -97,7 +97,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
     private void showMoreBottomSheet() {
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.more_bottom_sheet_menu, null);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_preview, null);
         bottomSheetDialog.setContentView(view);
 
         view.findViewById(R.id.download).setOnClickListener(v -> {
