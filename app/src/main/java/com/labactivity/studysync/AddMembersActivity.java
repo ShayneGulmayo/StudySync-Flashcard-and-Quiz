@@ -11,14 +11,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class AddMembersActivity extends AppCompatActivity {
 
@@ -63,11 +61,27 @@ public class AddMembersActivity extends AppCompatActivity {
 
         addButton.setOnClickListener(v -> {
             for (User user : selectedUsers) {
-                db.collection("chat_rooms").document(chatRoomId)
-                        .update("members", FieldValue.arrayUnion(user.getUid()));
+               db.collection("chat_rooms").document(chatRoomId)
+                        .update("members", FieldValue.arrayUnion(user.getUid()))
+                        .addOnSuccessListener(aVoid -> {
+                            Map<String, Object> systemMessage = new HashMap<>();
+                            systemMessage.put("senderId", "system");
+                            systemMessage.put("senderName", "System");
+                            systemMessage.put("text", user.getFullName() + " was added to the chat.");
+                            systemMessage.put("timestamp", com.google.firebase.Timestamp.now());
+                            systemMessage.put("type", "system");
+
+                            db.collection("chat_rooms")
+                                    .document(chatRoomId)
+                                    .collection("messages")
+                                    .add(systemMessage);
+                        });
             }
+
             finish();
         });
+
+
 
         searchInput.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override public boolean onQueryTextSubmit(String query) {
