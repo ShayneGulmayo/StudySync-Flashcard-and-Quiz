@@ -35,7 +35,9 @@
             android:exported="false" />
         <activity
             android:name=".CreateQuizActivity"
-            android:parentActivityName=".SetFragment" />
+            android:parentActivityName=".SetFragment"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="false" />
@@ -57,9 +59,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".FlashcardsActivity"
-            android:exported="false" />
         <activity
             android:name=".FlashcardViewerActivity"
             android:exported="false" />
