@@ -208,9 +208,9 @@ public class CreateQuizActivity extends AppCompatActivity {
     private void showExitConfirmation() {
         new AlertDialog.Builder(this)
                 .setTitle("Leave Quiz?")
-                .setMessage("Are you sure you want to leave making this quiz?")
-                .setPositiveButton("No", null)
-                .setNegativeButton("Yes", (dialog, which) -> finish())
+                .setMessage("Are you sure you want to leave changes to this quiz?")
+                .setPositiveButton("Yes", (dialog, which) -> finish())
+                .setNegativeButton("No", null)
                 .show();
     }
 

@@ -2,6 +2,7 @@ package com.labactivity.studysync;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -157,10 +158,10 @@ public class QuizViewActivity extends AppCompatActivity {
                 // ✅ Show feedback in a popup
                 new AlertDialog.Builder(this)
                         .setTitle(isCorrect ? "✅ Correct!" : "❌ Not Quite")
-                        .setMessage("You answered: " + userAnswers + "\n\n" +
-                                "Correct answers: " + correctLower + "\n\n" +
-                                "Matched: " + correctMatched + "\n" +
-                                "Missed: " + missedAnswers)
+                        .setMessage("You answered: " + TextUtils.join(", ", userAnswers) + "\n\n" +
+                                "Correct answers: " + TextUtils.join(", ", correctLower) + "\n\n" +
+                                "Matched: " + TextUtils.join(", ", correctMatched) + "\n" +
+                                "Missed: " + TextUtils.join(", ", missedAnswers))
                         .setPositiveButton("Next", (dialog, which) -> {
                             currentQuestionIndex++;
                             displayNextValidQuestion();
