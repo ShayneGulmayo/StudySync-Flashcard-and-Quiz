@@ -11,73 +11,94 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.labactivity.studysync.R;
-import com.labactivity.studysync.User;
-
 import java.util.List;
 
-public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder> {
+public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+    private static final int TYPE_SELECTABLE = 0;
+    private static final int TYPE_SELECTED = 1;
 
     private List<User> userList;
     private List<User> selectedUsers;
     private OnUserSelectedListener listener;
+    private boolean isSelectionList; // true = list w/ radio buttons, false = selected w/ X
 
     public interface OnUserSelectedListener {
-        void onUserSelected(User user, boolean selected);
+        void onUserSelected(User user, boolean selected, int position);
     }
 
-    public UserAdapter(List<User> userList, List<User> selectedUsers, OnUserSelectedListener listener) {
+    public UserAdapter(List<User> userList, List<User> selectedUsers, boolean isSelectionList, OnUserSelectedListener listener) {
         this.userList = userList;
         this.selectedUsers = selectedUsers;
         this.listener = listener;
+        this.isSelectionList = isSelectionList;
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return isSelectionList ? TYPE_SELECTABLE : TYPE_SELECTED;
     }
 
     @NonNull
     @Override
-    public UserViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_user, parent, false);
-        return new UserViewHolder(view);
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == TYPE_SELECTED) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_selected_user, parent, false);
+            return new SelectedViewHolder(view);
+        } else {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_user, parent, false);
+            return new SelectableViewHolder(view);
+        }
     }
 
     @Override
-    public void onBindViewHolder(@NonNull UserViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         User user = userList.get(position);
 
-        holder.fullName.setText(user.getFullName());
-        holder.username.setText("@" + user.getUsername());
+        if (holder.getItemViewType() == TYPE_SELECTED) {
+            SelectedViewHolder viewHolder = (SelectedViewHolder) holder;
+            viewHolder.fullName.setText(user.getFullName());
+            Glide.with(holder.itemView.getContext())
+                    .load(user.getPhotoUrl())
+                    .placeholder(R.drawable.user_profile)
+                    .circleCrop()
+                    .into(viewHolder.profileImage);
 
-        Glide.with(holder.itemView.getContext())
-                .load(user.getPhotoUrl())
-                .placeholder(R.drawable.user_profile)
-                .circleCrop()
-                .into(holder.profileImage);
-
-        boolean isSelected = selectedUsers.contains(user);
-        holder.selectRadio.setChecked(isSelected);
-
-        // Click on entire item to toggle selection
-        holder.itemView.setOnClickListener(v -> {
-            if (isSelected) {
+            viewHolder.removeButton.setOnClickListener(v -> {
                 selectedUsers.remove(user);
-                listener.onUserSelected(user, false);
-            } else {
-                selectedUsers.add(user);
-                listener.onUserSelected(user, true);
-            }
-            notifyItemChanged(position);
-        });
+                listener.onUserSelected(user, false, position);
+            });
 
-        // Also toggle via radio button directly
-        holder.selectRadio.setOnClickListener(v -> {
-            if (isSelected) {
-                selectedUsers.remove(user);
-                listener.onUserSelected(user, false);
-            } else {
-                selectedUsers.add(user);
-                listener.onUserSelected(user, true);
-            }
-            notifyItemChanged(position);
-        });
+        } else {
+            SelectableViewHolder viewHolder = (SelectableViewHolder) holder;
+            viewHolder.fullName.setText(user.getFullName());
+            viewHolder.username.setText("@" + user.getUsername());
+            Glide.with(holder.itemView.getContext())
+                    .load(user.getPhotoUrl())
+                    .placeholder(R.drawable.user_profile)
+                    .circleCrop()
+                    .into(viewHolder.profileImage);
+
+            boolean isSelected = selectedUsers.contains(user);
+            viewHolder.selectRadio.setChecked(isSelected);
+
+            View.OnClickListener toggleSelection = v -> {
+                if (isSelected) {
+                    selectedUsers.remove(user);
+                    listener.onUserSelected(user, false, position);
+                } else {
+                    selectedUsers.add(user);
+                    userList.remove(user);
+                    userList.add(0, user);
+                    notifyItemMoved(position, 0);
+                    listener.onUserSelected(user, true, 0);
+                }
+                notifyDataSetChanged();
+            };
+
+            viewHolder.itemView.setOnClickListener(toggleSelection);
+            viewHolder.selectRadio.setOnClickListener(toggleSelection);
+        }
     }
 
     @Override
@@ -85,12 +106,12 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
         return userList.size();
     }
 
-    static class UserViewHolder extends RecyclerView.ViewHolder {
+    static class SelectableViewHolder extends RecyclerView.ViewHolder {
         ImageView profileImage;
         TextView fullName, username;
         RadioButton selectRadio;
 
-        public UserViewHolder(@NonNull View itemView) {
+        public SelectableViewHolder(@NonNull View itemView) {
             super(itemView);
             profileImage = itemView.findViewById(R.id.profile_image);
             fullName = itemView.findViewById(R.id.full_name);
@@ -98,5 +119,16 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
             selectRadio = itemView.findViewById(R.id.select_radio);
         }
     }
-}
 
+    static class SelectedViewHolder extends RecyclerView.ViewHolder {
+        ImageView profileImage, removeButton;
+        TextView fullName;
+
+        public SelectedViewHolder(@NonNull View itemView) {
+            super(itemView);
+            profileImage = itemView.findViewById(R.id.profile_image);
+            removeButton = itemView.findViewById(R.id.remove_button);
+            fullName = itemView.findViewById(R.id.full_name);
+        }
+    }
+}

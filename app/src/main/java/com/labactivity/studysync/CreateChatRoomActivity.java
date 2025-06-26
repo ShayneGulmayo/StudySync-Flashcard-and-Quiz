@@ -1,31 +1,27 @@
 package com.labactivity.studysync;
 
-
+import android.graphics.Color;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.EditText;
 import androidx.appcompat.widget.SearchView;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.labactivity.studysync.UserAdapter;
-import com.labactivity.studysync.User;
+import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.firebase.Timestamp;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import java.util.HashMap;
 import java.util.Map;
-
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +31,7 @@ public class CreateChatRoomActivity extends AppCompatActivity {
     private EditText chatRoomNameEdttxt;
     private SearchView searchView;
     private ImageView backBtn;
+    private TextView saveTxt;
 
     private RecyclerView usersRecyclerView;
     private RecyclerView selectedUsersRecyclerView;
@@ -56,20 +53,17 @@ public class CreateChatRoomActivity extends AppCompatActivity {
         searchView = findViewById(R.id.search_view);
         usersRecyclerView = findViewById(R.id.users_recyclerview);
         selectedUsersRecyclerView = findViewById(R.id.selected_users_recyclerview);
-        TextView saveTxt = findViewById(R.id.save_txt);
+        saveTxt = findViewById(R.id.save_txt);
         backBtn = findViewById(R.id.back_button);
-        backBtn.setOnClickListener(v -> finish());
-        saveTxt.setOnClickListener(v -> saveChatRoom());
-
 
         usersRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         selectedUsersRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
 
-        allUsersAdapter = new UserAdapter(allUsers, selectedUsers, this::onUserSelected);
-        selectedUsersAdapter = new UserAdapter(selectedUsers, selectedUsers, (user, selected) -> {}); // No interaction for selected list
+        setSaveButtonEnabled(false);
+        updateSelectedRecyclerVisibility();
 
-        usersRecyclerView.setAdapter(allUsersAdapter);
-        selectedUsersRecyclerView.setAdapter(selectedUsersAdapter);
+        backBtn.setOnClickListener(v -> finish());
+        saveTxt.setOnClickListener(v -> saveChatRoom());
 
         loadUsersFromFirestore();
         setupSearchView();
@@ -85,26 +79,22 @@ public class CreateChatRoomActivity extends AppCompatActivity {
                     allUsers.clear();
                     for (DocumentSnapshot doc : querySnapshot) {
                         User user = doc.toObject(User.class);
-                        if (user != null) {
+                        if (user != null && !user.getUid().equals(currentUserId)) {
                             user.setUid(doc.getId());
-                            if (!user.getUid().equals(currentUserId)) {
-                                allUsers.add(user);
-                            }
+                            allUsers.add(user);
                         }
                     }
-                    allUsersAdapter.notifyDataSetChanged();
+                    refreshAdapters(allUsers);
                 });
     }
 
-
     private void setupSearchView() {
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) { return false; }
+            @Override public boolean onQueryTextSubmit(String query) { return false; }
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                filterUsers(newText);
+                filterUsers(newText.trim());
                 return true;
             }
         });
@@ -118,18 +108,45 @@ public class CreateChatRoomActivity extends AppCompatActivity {
                 filtered.add(user);
             }
         }
-        allUsersAdapter = new UserAdapter(filtered, selectedUsers, this::onUserSelected);
-        usersRecyclerView.setAdapter(allUsersAdapter);
+        refreshAdapters(filtered);
     }
 
-    private void onUserSelected(User user, boolean isSelected) {
-        if (isSelected && !selectedUsers.contains(user)) {
-            selectedUsers.add(user);
-        } else if (!isSelected && selectedUsers.contains(user)) {
-            selectedUsers.remove(user);
-        }
-        selectedUsersAdapter.notifyDataSetChanged();
+    private void refreshAdapters(List<User> usersToShow) {
+        allUsersAdapter = new UserAdapter(usersToShow, selectedUsers, true, (user, isSelected, position) -> {
+            if (isSelected) {
+                if (!selectedUsers.contains(user)) selectedUsers.add(user);
+            } else {
+                selectedUsers.remove(user);
+            }
+            selectedUsersAdapter.notifyDataSetChanged();
+            setSaveButtonEnabled(!selectedUsers.isEmpty());
+            updateSelectedRecyclerVisibility();
+            filterUsers(searchView.getQuery().toString().trim());
+        });
+
+        selectedUsersAdapter = new UserAdapter(selectedUsers, selectedUsers, false, (user, isSelected, position) -> {
+            if (!isSelected) {
+                selectedUsers.remove(user);
+                allUsersAdapter.notifyDataSetChanged();
+                selectedUsersAdapter.notifyDataSetChanged();
+                setSaveButtonEnabled(!selectedUsers.isEmpty());
+                updateSelectedRecyclerVisibility();
+            }
+        });
+
+        usersRecyclerView.setAdapter(allUsersAdapter);
+        selectedUsersRecyclerView.setAdapter(selectedUsersAdapter);
     }
+
+    private void setSaveButtonEnabled(boolean enabled) {
+        saveTxt.setEnabled(enabled);
+        saveTxt.setTextColor(enabled ? getResources().getColor(R.color.primary) : Color.GRAY);
+    }
+
+    private void updateSelectedRecyclerVisibility() {
+        selectedUsersRecyclerView.setVisibility(selectedUsers.isEmpty() ? View.GONE : View.VISIBLE);
+    }
+
     private void saveChatRoom() {
         String chatRoomName = chatRoomNameEdttxt.getText().toString().trim();
 
@@ -150,14 +167,12 @@ public class CreateChatRoomActivity extends AppCompatActivity {
             return;
         }
 
-        // Prepare member UID list
         List<String> memberIds = new ArrayList<>();
         for (User user : selectedUsers) {
             memberIds.add(user.getUid());
         }
-        memberIds.add(currentUser.getUid()); // Include owner as member too
+        memberIds.add(currentUser.getUid());
 
-        // Generate document ID first
         String chatRoomId = db.collection("chat_rooms").document().getId();
 
         Map<String, Object> chatRoomData = new HashMap<>();
@@ -178,5 +193,4 @@ public class CreateChatRoomActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to create chat room: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
-
 }

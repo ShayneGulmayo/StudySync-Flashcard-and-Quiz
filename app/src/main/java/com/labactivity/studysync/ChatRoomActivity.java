@@ -79,7 +79,6 @@ public class ChatRoomActivity extends AppCompatActivity {
                     if (doc.exists()) {
                         memberUids = (List<String>) doc.get("members");
 
-                        // ✅ Set chat room name
                         String roomName = doc.getString("chatRoomName");
                         if (roomName != null && !roomName.trim().isEmpty()) {
                             chatRoomNameText.setText(roomName);
@@ -122,7 +121,7 @@ public class ChatRoomActivity extends AppCompatActivity {
                     messagesRef.add(message);
                     messageEditText.setText("");
 
-                    recyclerView.scrollToPosition(adapter.getItemCount() - 1); // ✅ Scroll to new message
+                    recyclerView.scrollToPosition(adapter.getItemCount() - 1);
                 });
     }
 

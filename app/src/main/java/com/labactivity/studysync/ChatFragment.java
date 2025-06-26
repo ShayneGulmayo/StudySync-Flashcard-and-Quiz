@@ -7,11 +7,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
-import androidx.appcompat.widget.SearchView;
-
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -26,8 +26,12 @@ import java.util.*;
 public class ChatFragment extends Fragment {
 
     private ImageView addButton;
+
+    private boolean hasLoadedOnce = false;
+
     private SearchView searchView;
     private RecyclerView chatRecyclerView;
+    private ProgressBar progressBar;
 
     private FirebaseFirestore db;
     private FirebaseUser currentUser;
@@ -46,26 +50,25 @@ public class ChatFragment extends Fragment {
 
         addButton = view.findViewById(R.id.add_button);
         searchView = view.findViewById(R.id.search_set);
-        EditText searchEditText = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
-        searchEditText.setBackground(null);
-        View searchPlate = searchView.findViewById(androidx.appcompat.R.id.search_plate);
-        searchPlate.setBackground(null);
+        progressBar = view.findViewById(R.id.progress_bar);
         chatRecyclerView = view.findViewById(R.id.recycler_flashcards);
 
+        EditText searchEditText = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
+        View searchPlate = searchView.findViewById(androidx.appcompat.R.id.search_plate);
+        searchEditText.setBackground(null);
+        searchPlate.setBackground(null);
+
         chatRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        adapter = new ChatRoomAdapter(requireContext(), chatRoomList, getCurrentUserId());
+        chatRecyclerView.setAdapter(adapter);
 
         db = FirebaseFirestore.getInstance();
         currentUser = FirebaseAuth.getInstance().getCurrentUser();
-
-        adapter = new ChatRoomAdapter(requireContext(), chatRoomList, currentUser.getUid());
-        chatRecyclerView.setAdapter(adapter);
 
         addButton.setOnClickListener(v -> {
             Intent intent = new Intent(requireContext(), CreateChatRoomActivity.class);
             startActivity(intent);
         });
-
-        fetchUserChatTimestamps(this::loadChatRooms);
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override public boolean onQueryTextSubmit(String query) {
@@ -85,20 +88,27 @@ public class ChatFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        fetchUserChatTimestamps(this::loadChatRooms);
-    }
 
+        if (!hasLoadedOnce) {
+            progressBar.setVisibility(View.VISIBLE);
+            fetchUserChatTimestamps(() -> {
+                loadChatRooms();
+                hasLoadedOnce = true;
+            });
+        } else {
+            fetchUserChatTimestamps(this::loadChatRooms);
+        }
+    }
     private void fetchUserChatTimestamps(Runnable onReady) {
         db.collection("user_chat_status")
-                .document(currentUser.getUid())
+                .document(getCurrentUserId())
                 .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        for (String roomId : documentSnapshot.getData().keySet()) {
-                            Timestamp ts = documentSnapshot.getTimestamp(roomId);
-                            if (ts != null) {
-                                lastOpenedMap.put(roomId, ts.toDate());
-                            }
+                .addOnSuccessListener(snapshot -> {
+                    lastOpenedMap.clear();
+                    if (snapshot.exists()) {
+                        for (String roomId : snapshot.getData().keySet()) {
+                            Timestamp ts = snapshot.getTimestamp(roomId);
+                            if (ts != null) lastOpenedMap.put(roomId, ts.toDate());
                         }
                     }
                     onReady.run();
@@ -107,34 +117,62 @@ public class ChatFragment extends Fragment {
 
     private void loadChatRooms() {
         db.collection("chat_rooms")
-                .whereArrayContains("members", currentUser.getUid())
-                .addSnapshotListener((snapshots, error) -> {
-                    if (error != null || snapshots == null) return;
+                .whereArrayContains("members", getCurrentUserId())
+                .get()
+                .addOnSuccessListener(snapshots -> {
                     chatRoomList.clear();
-                    for (DocumentSnapshot doc : snapshots.getDocuments()) {
-                        ChatRoom room = doc.toObject(ChatRoom.class);
-                        if (room != null) {
-                            room.setId(doc.getId());
-
-                            doc.getReference()
-                                    .collection("messages")
-                                    .orderBy("timestamp", Query.Direction.DESCENDING)
-                                    .limit(1)
-                                    .get()
-                                    .addOnSuccessListener(msgSnap -> {
-                                        if (!msgSnap.isEmpty()) {
-                                            DocumentSnapshot lastMsg = msgSnap.getDocuments().get(0);
-                                            room.setLastMessage(lastMsg.getString("text"));
-                                            room.setLastMessageSender(lastMsg.getString("senderName"));
-                                            room.setLastMessageSenderId(lastMsg.getString("senderId"));
-                                            Timestamp ts = lastMsg.getTimestamp("timestamp");
-                                            if (ts != null) room.setLastMessageTimestamp(ts.toDate());
-                                        }
-                                        updateChatRoom(room);
-                                    });
-                        }
+                    if (snapshots == null || snapshots.isEmpty()) {
+                        progressBar.setVisibility(View.GONE);
+                        adapter.updateData(chatRoomList);
+                        return;
                     }
-                });
+
+                    List<DocumentSnapshot> docs = snapshots.getDocuments();
+                    int totalRooms = docs.size();
+                    int[] roomsProcessed = {0};
+
+                    for (DocumentSnapshot doc : docs) {
+                        ChatRoom room = doc.toObject(ChatRoom.class);
+                        if (room == null) {
+                            roomsProcessed[0]++;
+                            checkIfAllRoomsProcessed(roomsProcessed[0], totalRooms);
+                            continue;
+                        }
+
+                        room.setId(doc.getId());
+
+                        doc.getReference()
+                                .collection("messages")
+                                .orderBy("timestamp", Query.Direction.DESCENDING)
+                                .limit(1)
+                                .get()
+                                .addOnSuccessListener(msgSnap -> {
+                                    if (!msgSnap.isEmpty()) {
+                                        DocumentSnapshot msg = msgSnap.getDocuments().get(0);
+                                        room.setLastMessage(msg.getString("text"));
+                                        room.setLastMessageSender(msg.getString("senderName"));
+                                        room.setLastMessageSenderId(msg.getString("senderId"));
+                                        Timestamp ts = msg.getTimestamp("timestamp");
+                                        if (ts != null) room.setLastMessageTimestamp(ts.toDate());
+                                    }
+                                    updateChatRoom(room);
+                                    roomsProcessed[0]++;
+                                    checkIfAllRoomsProcessed(roomsProcessed[0], totalRooms);
+                                })
+                                .addOnFailureListener(e -> {
+                                    roomsProcessed[0]++;
+                                    checkIfAllRoomsProcessed(roomsProcessed[0], totalRooms);
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> progressBar.setVisibility(View.GONE));
+    }
+
+    private void checkIfAllRoomsProcessed(int processed, int total) {
+        if (processed >= total) {
+            sortAndDisplay();
+            progressBar.setVisibility(View.GONE);
+        }
     }
 
     private void updateChatRoom(ChatRoom updatedRoom) {
@@ -143,7 +181,7 @@ public class ChatFragment extends Fragment {
 
         boolean isUnread = lastMsgTime != null
                 && (lastOpened == null || lastMsgTime.after(lastOpened))
-                && !updatedRoom.getLastMessageSenderId().equals(currentUser.getUid());
+                && !updatedRoom.getLastMessageSenderId().equals(getCurrentUserId());
         updatedRoom.setUnread(isUnread);
 
         boolean found = false;
@@ -156,12 +194,10 @@ public class ChatFragment extends Fragment {
         }
 
         if (!found) chatRoomList.add(updatedRoom);
-
-        sortAndDisplay();
     }
 
     private void sortAndDisplay() {
-        Collections.sort(chatRoomList, (a, b) -> {
+        chatRoomList.sort((a, b) -> {
             Date aTime = a.getLastMessageTimestamp() != null ? a.getLastMessageTimestamp() : new Date(0);
             Date bTime = b.getLastMessageTimestamp() != null ? b.getLastMessageTimestamp() : new Date(0);
             return bTime.compareTo(aTime);
@@ -169,5 +205,9 @@ public class ChatFragment extends Fragment {
 
         adapter.setUserLastOpenedMap(lastOpenedMap);
         adapter.updateData(chatRoomList);
+    }
+
+    private String getCurrentUserId() {
+        return FirebaseAuth.getInstance().getCurrentUser().getUid();
     }
 }
