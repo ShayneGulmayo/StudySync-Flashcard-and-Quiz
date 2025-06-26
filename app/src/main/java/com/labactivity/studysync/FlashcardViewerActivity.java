@@ -37,8 +37,8 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     private ArrayList<Flashcard> dontKnowFlashcards;
     private boolean isReviewingOnlyDontKnow = false;
 
-    private TextView frontCard, backCard, flashcardTitle, ownerUsername, items;
-    private ImageView backButton, moreButton, knowBtn, dontKnowBtn, privacyIcon, ownerPhoto;
+    private TextView frontCard, backCard, items;
+    private ImageView backButton, moreButton, knowBtn, dontKnowBtn;
     private int knowCount;
     private int dontKnowCount;
     private int currentIndex = 0;
@@ -58,15 +58,11 @@ public class FlashcardViewerActivity extends AppCompatActivity {
 
         frontCard = findViewById(R.id.front_card);
         backCard = findViewById(R.id.back_card);
-        flashcardTitle = findViewById(R.id.flashcard_title);
-        ownerUsername = findViewById(R.id.owner_username);
         backButton = findViewById(R.id.back_button);
         moreButton = findViewById(R.id.more_button);
         knowBtn = findViewById(R.id.know_btn);
         dontKnowBtn = findViewById(R.id.dont_know_btn);
         items = findViewById(R.id.txtView_items);
-        privacyIcon = findViewById(R.id.privacy_icon);
-        ownerPhoto = findViewById(R.id.owner_profile);
 
         backButton.setOnClickListener(v -> finish());
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
@@ -145,7 +141,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                 .update("privacy", newPrivacy)
                 .addOnSuccessListener(aVoid -> {
                     currentPrivacy = newPrivacy;
-                    updatePrivacyIcon();
                     Toast.makeText(this, "Privacy set to " + newPrivacy, Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
@@ -181,21 +176,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                         return;
                     }
 
-                    String title = snapshot.getString("title") != null ? snapshot.getString("title") : "Untitled Set";
-                    if (title.length() > 20) {
-                        title = title.substring(0, 17) + "...";
-                    }
-                    flashcardTitle.setText(title);
-
-                    ownerUsername.setText(snapshot.getString("owner_username") != null ? snapshot.getString("owner_username") : "Unknown Owner");
-                    currentPrivacy = snapshot.getString("privacy") != null ? snapshot.getString("privacy") : "Public";
-                    updatePrivacyIcon();
-
-                    ownerUid = snapshot.getString("owner_uid");
-                    if (ownerUid != null) {
-                        loadOwnerPhoto(ownerUid);
-                    }
-
                     Map<String, Object> data = snapshot.getData();
                     if (data != null && data.containsKey("terms")) {
                         Map<String, Object> terms = (Map<String, Object>) data.get("terms");
@@ -228,39 +208,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                     }
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to load flashcards.", Toast.LENGTH_SHORT).show());
-    }
-
-    private void loadOwnerPhoto(String uid) {
-        db.collection("users").document(uid)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        String photoUrl = documentSnapshot.getString("photoUrl");
-                        if (photoUrl != null && !photoUrl.isEmpty()) {
-                            Glide.with(this)
-                                    .load(photoUrl)
-                                    .placeholder(R.drawable.user_profile)
-                                    .error(R.drawable.user_profile)
-                                    .circleCrop()
-                                    .into(ownerPhoto);
-                        } else {
-                            ownerPhoto.setImageResource(R.drawable.user_profile);
-                        }
-                    } else {
-                        ownerPhoto.setImageResource(R.drawable.user_profile);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    ownerPhoto.setImageResource(R.drawable.user_profile);
-                });
-    }
-
-    private void updatePrivacyIcon() {
-        if ("Private".equals(currentPrivacy)) {
-            privacyIcon.setImageResource(R.drawable.lock);  // your private icon
-        } else {
-            privacyIcon.setImageResource(R.drawable.public_icon);
-        }
     }
 
     private void showCard(int index) {
@@ -399,7 +346,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     @SuppressLint("ScheduleExactAlarm")
     private void setReminder(Calendar calendar) {
         Intent intent = new Intent(this, ReminderReceiver.class);
-        intent.putExtra("setTitle", flashcardTitle.getText().toString());
         intent.putExtra("setId", setId);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
