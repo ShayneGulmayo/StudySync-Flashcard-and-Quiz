@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/answer_choices"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#F2F2F2"
+    android:background="#F2F2F2F2"
     android:gravity="center_vertical"
     android:orientation="horizontal">
 
@@ -15,18 +16,28 @@
         android:focusable="false"
         android:focusableInTouchMode="false" />
 
-    <EditText
-        android:id="@+id/edit_option_text"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/option_text_input_layout"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="2.5dp"
         android:layout_marginBottom="2.5dp"
         android:layout_weight="1"
-        android:background="@drawable/custom_edittxt"
         android:hint="Enter option"
-        android:padding="10dp"
-        android:textColor="@color/black"
-        android:textSize="16sp" />
+        app:boxBackgroundMode="outline"
+        app:boxStrokeColor="@color/primary">
+
+        <EditText
+            android:id="@+id/edit_option_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"
+            android:padding="10dp"
+            android:textColor="@color/black"
+            android:textSize="16sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
 
     <ImageButton
         android:id="@+id/delete_option"

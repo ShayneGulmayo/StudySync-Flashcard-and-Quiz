@@ -46,7 +46,6 @@
             app:srcCompat="@drawable/more_vert" />
     </RelativeLayout>
 
-    <!-- Everything else below remains untouched -->
 
     <TextView
         android:id="@+id/progress_txt"

@@ -1,92 +1,127 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#FFFFFF"
-    android:orientation="vertical">
+    android:layout_height="match_parent"
+    android:fillViewport="true">
 
     <LinearLayout
-        android:id="@+id/new_vertical_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
-        android:layout_marginBottom="3dp"
-        android:background="#F2F2F2"
-        android:orientation="vertical"
-        android:padding="9dp">
+        android:animateLayoutChanges="true"
+        android:orientation="vertical">>
 
-        <Spinner
-            android:id="@+id/quiz_type_spinner"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:layout_marginBottom="12dp"
-            android:background="@drawable/custom_edittxt"
-            android:clipToPadding="false"
-            android:padding="12dp" />
 
         <LinearLayout
+            android:id="@+id/new_vertical_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="3dp"
+            android:background="@drawable/card_background"
+            android:orientation="vertical"
+            android:padding="15dp">
 
-            <EditText
-                android:id="@+id/quiz_question_input"
-                android:layout_width="0dp"
+            <FrameLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/custom_edittxt"
-                android:hint="Enter question"
-                android:minHeight="48dp"
-                android:padding="12dp"
-                android:textColor="@color/black"
-                android:textSize="16sp" />
+                android:layout_marginBottom="12dp">
 
-            <ImageButton
-                android:id="@+id/delete_question_button"
-                android:layout_width="40dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:backgroundTint="#00FF0E0E"
-                android:contentDescription="Delete Question"
-                android:src="@drawable/delete" />
+                <Spinner
+                    android:id="@+id/quiz_type_spinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:background="@drawable/quiz_spinner_bg"
+                    android:clipToPadding="false"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="40dp"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp" />
+
+                <ImageView
+                    android:id="@+id/drop_down_icon"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="20dp"
+                    android:clickable="false"
+                    android:contentDescription="Dropdown icon"
+                    android:focusable="false"
+                    android:src="@drawable/drop_down_icon" />
+            </FrameLayout>
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/quiz_question_layout"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Enter question"
+                    app:boxBackgroundMode="outline">
+
+                    <EditText
+                        android:id="@+id/quiz_question_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:padding="12dp"
+                        android:textColor="@color/black"
+                        android:textSize="16sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+
+                <ImageButton
+                    android:id="@+id/delete_question_button"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="Delete Question"
+                    android:src="@drawable/delete" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/answer_choices_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="false"
+                    android:enabled="false"
+                    android:focusable="false" />
+
+                <TextView
+                    android:id="@+id/add_option_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingTop="8dp"
+                    android:paddingRight="100dp"
+                    android:paddingBottom="12dp"
+                    android:text="Add option"
+                    android:textColor="@color/black"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+
+
         </LinearLayout>
-
-        <!-- ✅ Container for all option views -->
-        <LinearLayout
-            android:id="@+id/answer_choices_container"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-        <!-- ➕ Add option trigger -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <RadioButton
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:clickable="false"
-                android:enabled="false"
-                android:focusable="false" />
-
-            <TextView
-                android:id="@+id/add_option_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:clickable="true"
-                android:focusable="true"
-                android:paddingTop="10dp"
-                android:paddingRight="100dp"
-                android:paddingBottom="10dp"
-                android:text="Add option"
-                android:textColor="@color/black"
-                android:textSize="16sp" />
-        </LinearLayout>
-
     </LinearLayout>
-
-</LinearLayout>
+</androidx.core.widget.NestedScrollView>
