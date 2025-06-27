@@ -216,7 +216,7 @@ public class UserSetUpProfileActivity extends AppCompatActivity {
                             String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
                             if (extension == null) extension = "jpg"; // fallback
 
-                            String filename = "user-profile-" + uid + "." + extension;
+                            String filename = "profile_" + uid + "_" + System.currentTimeMillis() + extension;
                             String bucket = "user-files";
                             String path = filename;
 
