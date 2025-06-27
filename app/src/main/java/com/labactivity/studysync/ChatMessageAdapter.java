@@ -18,6 +18,8 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
     private static final int VIEW_TYPE_CURRENT_USER = 1;
     private static final int VIEW_TYPE_OTHER_USER = 2;
+    private static final int VIEW_TYPE_SYSTEM_MESSAGE = 3;
+
     private String currentUserId;
 
     public ChatMessageAdapter(@NonNull FirestoreRecyclerOptions<ChatMessage> options, String currentUserId) {
@@ -28,40 +30,48 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     @Override
     public int getItemViewType(int position) {
         ChatMessage message = getItem(position);
+        if ("system".equals(message.getType())) {
+            return VIEW_TYPE_SYSTEM_MESSAGE;
+        }
         return message.getSenderId().equals(currentUserId) ? VIEW_TYPE_CURRENT_USER : VIEW_TYPE_OTHER_USER;
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+
         if (viewType == VIEW_TYPE_CURRENT_USER) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_chat_message_current_user, parent, false);
+            View view = inflater.inflate(R.layout.item_chat_message_current_user, parent, false);
             return new CurrentUserViewHolder(view);
-        } else {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_chat_message_other_user, parent, false);
+        } else if (viewType == VIEW_TYPE_OTHER_USER) {
+            View view = inflater.inflate(R.layout.item_chat_message_other_user, parent, false);
             return new OtherUserViewHolder(view);
+        } else { // system message
+            View view = inflater.inflate(R.layout.item_system_message, parent, false);
+            return new SystemMessageViewHolder(view);
         }
     }
 
     @Override
     protected void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, @NonNull ChatMessage message) {
-        boolean isSameSender = false;
-        if (position > 0) {
-            ChatMessage prev = getItem(position - 1);
-            isSameSender = prev.getSenderId().equals(message.getSenderId());
-        }
-
         if (holder instanceof CurrentUserViewHolder) {
             ((CurrentUserViewHolder) holder).bind(message);
         } else if (holder instanceof OtherUserViewHolder) {
+            boolean isSameSender = false;
+            if (position > 0) {
+                ChatMessage prev = getItem(position - 1);
+                isSameSender = prev.getSenderId().equals(message.getSenderId());
+            }
             ((OtherUserViewHolder) holder).bind(message, isSameSender);
+        } else if (holder instanceof SystemMessageViewHolder) {
+            ((SystemMessageViewHolder) holder).bind(message);
         }
     }
 
     // ViewHolder for current user
     static class CurrentUserViewHolder extends RecyclerView.ViewHolder {
         TextView messageText, timestampText;
-
         boolean timestampVisible = false;
 
         public CurrentUserViewHolder(@NonNull View itemView) {
@@ -86,7 +96,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     static class OtherUserViewHolder extends RecyclerView.ViewHolder {
         TextView messageText, senderName, timestampText;
         ImageView senderImage;
-
         boolean timestampVisible = false;
 
         public OtherUserViewHolder(@NonNull View itemView) {
@@ -120,6 +129,19 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 timestampVisible = !timestampVisible;
                 timestampText.setVisibility(timestampVisible ? View.VISIBLE : View.GONE);
             });
+        }
+    }
+
+    static class SystemMessageViewHolder extends RecyclerView.ViewHolder {
+        TextView systemMessageText;
+
+        public SystemMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            systemMessageText = itemView.findViewById(R.id.systemMessageText);
+        }
+
+        public void bind(ChatMessage message) {
+            systemMessageText.setText(message.getText());
         }
     }
 }

@@ -17,8 +17,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.WriteBatch;
 import com.yalantis.ucrop.UCrop;
 
 import java.io.File;
@@ -180,15 +182,65 @@ public class EditChatRoomActivity extends AppCompatActivity {
                 .setTitle("Delete Chat Room")
                 .setMessage("Are you sure you want to permanently delete this chat room?")
                 .setPositiveButton("Delete", (dialog, which) -> {
-                    db.collection("chat_rooms").document(roomId).delete()
-                            .addOnSuccessListener(unused -> {
-                                Toast.makeText(this, "Chat room deleted.", Toast.LENGTH_SHORT).show();
-                                finish();
-                            });
+                    ProgressDialog progressDialog = new ProgressDialog(this);
+                    progressDialog.setMessage("Deleting chat room...");
+                    progressDialog.setCancelable(false);
+                    progressDialog.show();
+
+                    deleteChatRoom(progressDialog);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+
+    private void deleteChatRoom(ProgressDialog progressDialog) {
+        db.collection("chat_rooms").document(roomId).collection("messages")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        WriteBatch batch = db.batch();
+                        for (DocumentSnapshot doc : querySnapshot) {
+                            batch.delete(doc.getReference());
+                        }
+
+                        batch.commit()
+                                .addOnSuccessListener(unused -> proceedToDeleteRoomDoc(progressDialog))
+                                .addOnFailureListener(e -> {
+                                    progressDialog.dismiss();
+                                    Toast.makeText(this, "Failed to delete messages.", Toast.LENGTH_SHORT).show();
+                                });
+                    } else {
+                        proceedToDeleteRoomDoc(progressDialog);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(this, "Failed to fetch messages.", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void proceedToDeleteRoomDoc(ProgressDialog progressDialog) {
+        if (previousFilePath != null && !previousFilePath.isEmpty()) {
+            SupabaseUploader.deleteFile("chat-room-photos", previousFilePath, (deleted, msg, ignored) -> {
+                if (!deleted) {
+                    runOnUiThread(() -> Toast.makeText(this, "Warning: Failed to delete group photo", Toast.LENGTH_SHORT).show());
+                }
+            });
+        }
+
+        db.collection("chat_rooms").document(roomId)
+                .delete()
+                .addOnSuccessListener(unused -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(this, "Chat room permanently deleted.", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(this, "Failed to delete chat room document.", Toast.LENGTH_SHORT).show();
+                });
+    }
+
 
     private void attemptLeaveChatRoom() {
         if (currentRoom == null || currentUser == null) return;
