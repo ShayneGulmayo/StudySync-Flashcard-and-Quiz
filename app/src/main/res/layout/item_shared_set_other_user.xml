@@ -37,38 +37,60 @@
             android:maxLines="1"/>
 
         <LinearLayout
+            android:id="@+id/sharedCardLayout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="bottom">
-
-            <ImageView
-                android:id="@+id/imageView"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
-                android:scaleType="centerCrop"
-                android:visibility="gone"
-                android:layout_marginTop="4dp" />
+            android:background="@drawable/bg_message_other_user"
+            android:padding="12dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp">
 
             <TextView
-                android:id="@+id/messageText"
+                android:id="@+id/sharedTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_message_other_user"
-                android:padding="12dp"
-                android:text="Message"
+                android:text="Study Guide: Chemistry"
                 android:textColor="@android:color/black"
-                android:textSize="16sp" />
+                android:textSize="16sp"
+                android:textStyle="bold"/>
 
             <TextView
-                android:id="@+id/timestampText"
+                android:id="@+id/sharedType"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="12:00 PM"
+                android:text="Flashcard Set"
                 android:textColor="@color/text_gray"
-                android:textSize="10sp"
-                android:layout_gravity="bottom" />
+                android:textSize="13sp"
+                android:layout_marginTop="2dp"/>
+
+            <TextView
+                android:id="@+id/sharedDescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="12 cards | Created by username"
+                android:textColor="@color/text_gray"
+                android:textSize="12sp"
+                android:layout_marginTop="1dp"/>
+
+            <TextView
+                android:id="@+id/sharedBy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Shared by username"
+                android:textColor="@color/text_gray"
+                android:textSize="12sp"
+                android:layout_marginTop="10dp"/>
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/timestampText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="12:00 PM"
+            android:textColor="@color/text_gray"
+            android:textSize="10sp"
+            android:layout_gravity="bottom" />
     </LinearLayout>
 </LinearLayout>

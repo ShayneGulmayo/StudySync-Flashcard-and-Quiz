@@ -10,6 +10,16 @@ public class FlashcardSet {
     private String type;
     private String privacy;
     private String reminder;
+    private String ownerUid;
+
+    public String getOwnerUid() {
+        return ownerUid;
+    }
+
+    public void setOwnerUid(String ownerUid) {
+        this.ownerUid = ownerUid;
+    }
+
 
     public FlashcardSet() {}
 

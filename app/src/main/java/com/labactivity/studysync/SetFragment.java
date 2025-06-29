@@ -209,8 +209,12 @@ public class SetFragment extends Fragment {
 
         FlashcardSet set = new FlashcardSet(id, title, (int) numberOfItems, ownerUsername, (int) progress, null);
         set.setPrivacy(privacy);
+
+        set.setOwnerUid(doc.getString("owner_uid"));
+
         return set;
     }
+
 
     private void checkAndApplyInitialFilter() {
         if (collectionsLoaded >= totalCollectionsToLoad) {

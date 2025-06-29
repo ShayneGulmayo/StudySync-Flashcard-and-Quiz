@@ -22,13 +22,6 @@ public class SupabaseUploader {
         void onUploadComplete(boolean success, String message, String publicUrl);
     }
 
-    /**
-     * Upload a file to Supabase Storage (public bucket).
-     * @param file      The file to upload
-     * @param bucket    Bucket name (e.g., "user-files" or "chat-room-photos")
-     * @param path      Full path within the bucket (e.g., "chat-room-profile/uuid.jpg")
-     * @param callback  Result callback
-     */
     public static void uploadFile(File file, String bucket, String path, UploadCallback callback) {
         String mimeType = getMimeType(file);
         if (mimeType == null) {
@@ -71,12 +64,6 @@ public class SupabaseUploader {
         });
     }
 
-    /**
-     * Delete a file from Supabase Storage.
-     * @param bucket    Bucket name
-     * @param path      Full path within the bucket
-     * @param callback  Result callback
-     */
     public static void deleteFile(String bucket, String path, UploadCallback callback) {
         String deleteUrl = SUPABASE_URL + "/storage/v1/object/" + bucket + "/" + path;
 

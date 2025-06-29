@@ -2,6 +2,7 @@ package com.labactivity.studysync;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -47,6 +48,7 @@ public class QuizViewActivity extends AppCompatActivity {
     private boolean hasAnswered = false;
     private ImageView ownerProfile;
     private int score = 0;
+    private TextView txtViewItems;
     private List<Map<String, Object>> userAnswersList = new ArrayList<>();
 
 
@@ -156,10 +158,10 @@ public class QuizViewActivity extends AppCompatActivity {
                 // ✅ Show feedback in a popup
                 new AlertDialog.Builder(this)
                         .setTitle(isCorrect ? "✅ Correct!" : "❌ Not Quite")
-                        .setMessage("You answered: " + userAnswers + "\n\n" +
-                                "Correct answers: " + correctLower + "\n\n" +
-                                "Matched: " + correctMatched + "\n" +
-                                "Missed: " + missedAnswers)
+                        .setMessage("You answered: " + TextUtils.join(", ", userAnswers) + "\n\n" +
+                                "Correct answers: " + TextUtils.join(", ", correctLower) + "\n\n" +
+                                "Matched: " + TextUtils.join(", ", correctMatched) + "\n" +
+                                "Missed: " + TextUtils.join(", ", missedAnswers))
                         .setPositiveButton("Next", (dialog, which) -> {
                             currentQuestionIndex++;
                             displayNextValidQuestion();
@@ -178,6 +180,7 @@ public class QuizViewActivity extends AppCompatActivity {
         quizTitleView = findViewById(R.id.quiz_title);
         quizOwnerView = findViewById(R.id.owner_username);
         quizQuestionTextView = findViewById(R.id.quiz_question_txt_view);
+        txtViewItems = findViewById(R.id.txt_view_items);
         linearLayoutOptions = findViewById(R.id.linear_layout_options);
         ownerProfile = findViewById(R.id.owner_profile);
         more_button = findViewById(R.id.more_button);
@@ -357,6 +360,8 @@ public class QuizViewActivity extends AppCompatActivity {
 
     private void displayNextValidQuestion() {
         hasAnswered = false;
+        txtViewItems.setText((currentQuestionIndex + 1) + "/" + questions.size());
+
 
         while (currentQuestionIndex < questions.size()) {
             Map<String, Object> currentQuestion = questions.get(currentQuestionIndex);
@@ -557,16 +562,5 @@ public class QuizViewActivity extends AppCompatActivity {
                 .addOnSuccessListener(aVoid -> Toast.makeText(this, "Quiz result saved.", Toast.LENGTH_SHORT).show())
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to save result.", Toast.LENGTH_SHORT).show());
     }
-
-// YOU MUST CALL THIS WHEN QUIZ IS DONE
-// Example usage after final question:
-// saveQuizAttempt(userAnswersList, userScore);
-// Each item in userAnswersList:
-// Map<String, Object> answer = new HashMap<>();
-// answer.put("question", questionText);
-// answer.put("selected", selectedAnswer);
-// answer.put("correct", correctAnswer);
-// answer.put("isCorrect", selectedAnswer.equals(correctAnswer));
-// answer.put("type", questionType);
 
 }

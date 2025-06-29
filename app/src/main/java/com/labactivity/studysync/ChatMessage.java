@@ -12,9 +12,10 @@ public class ChatMessage {
     @ServerTimestamp
     private Date timestamp;
 
+    private String type; // "user" or "system"
+
     // Required public no-argument constructor
-    public ChatMessage() {
-    }
+    public ChatMessage() {}
 
     public ChatMessage(String senderId, String senderName, String senderPhotoUrl, String text, Date timestamp) {
         this.senderId = senderId;
@@ -22,6 +23,7 @@ public class ChatMessage {
         this.senderPhotoUrl = senderPhotoUrl;
         this.text = text;
         this.timestamp = timestamp;
+        this.type = "user"; // default type
     }
 
     // Getters
@@ -45,6 +47,10 @@ public class ChatMessage {
         return timestamp;
     }
 
+    public String getType() {
+        return type;
+    }
+
     // Setters
     public void setSenderId(String senderId) {
         this.senderId = senderId;
@@ -64,5 +70,9 @@ public class ChatMessage {
 
     public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

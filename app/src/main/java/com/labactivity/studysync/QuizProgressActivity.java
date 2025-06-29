@@ -49,6 +49,12 @@ public class QuizProgressActivity extends AppCompatActivity {
         review_questions_btn = findViewById(R.id.review_questions_btn);
         retake_quiz_btn = findViewById(R.id.retake_quiz_btn);
 
+        quizTitleText.setText("Loading...");
+        correctText.setText("-");
+        incorrectText.setText("-");
+        progressPercentageText.setText("...");
+        progressCircle.setProgress(0);
+
         quizId = getIntent().getStringExtra("quizId");
         if (quizId == null || quizId.isEmpty()) {
             Toast.makeText(this, "No quiz ID provided", Toast.LENGTH_SHORT).show();
@@ -218,15 +224,18 @@ public class QuizProgressActivity extends AppCompatActivity {
                             int incorrect = totalItems - correct;
                             int percentage = Math.round((correct / (float) totalItems) * 100);
 
-                            correctText.setText(correct + (correct == 1 ? " Item" : " Items"));
-                            incorrectText.setText(incorrect + (incorrect == 1 ? " Item" : " Items"));
+                            correctText.setText(correct + " Items");
+                            incorrectText.setText(incorrect + " Items");
                             progressCircle.setProgress(percentage);
                             progressPercentageText.setText(percentage + "%");
                         } else {
                             Toast.makeText(this, "Invalid attempt data", Toast.LENGTH_SHORT).show();
                         }
                     } else {
-                        Toast.makeText(this, "No previous attempt found", Toast.LENGTH_SHORT).show();
+                        correctText.setText("0 Items");
+                        incorrectText.setText("0 Items");
+                        progressCircle.setProgress(0);
+                        progressPercentageText.setText("0%");
                     }
                 })
                 .addOnFailureListener(e -> {

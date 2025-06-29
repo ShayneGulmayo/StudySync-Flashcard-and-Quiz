@@ -8,6 +8,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.Intent;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -53,7 +54,7 @@ public class ChatRoomActivity extends AppCompatActivity {
         ImageView moreBtn = findViewById(R.id.chatRoomSettings);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setStackFromEnd(true); // ✅ Messages start from bottom
+        layoutManager.setStackFromEnd(true);
         recyclerView.setLayoutManager(layoutManager);
 
         messagesRef = db.collection("chat_rooms").document(roomId).collection("messages");
@@ -104,8 +105,18 @@ public class ChatRoomActivity extends AppCompatActivity {
 
         adapter = new ChatMessageAdapter(options, currentUser.getUid());
         recyclerView.setAdapter(adapter);
+
+        adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onItemRangeInserted(int positionStart, int itemCount) {
+                super.onItemRangeInserted(positionStart, itemCount);
+                recyclerView.smoothScrollToPosition(adapter.getItemCount() - 1);
+            }
+        });
+
         adapter.startListening();
     }
+
 
     private void sendMessage() {
         String text = messageEditText.getText().toString().trim();
@@ -117,10 +128,17 @@ public class ChatRoomActivity extends AppCompatActivity {
                     String senderName = userDoc.getString("firstName") + " " + userDoc.getString("lastName");
                     String photoUrl = userDoc.getString("photoUrl");
 
-                    ChatMessage message = new ChatMessage(currentUser.getUid(), senderName, photoUrl, text, new Date());
+                    ChatMessage message = new ChatMessage(
+                            currentUser.getUid(),
+                            senderName,
+                            photoUrl,
+                            text,
+                            new Date()
+                    );
+                    message.setType("user"); // Ensure type is set
+
                     messagesRef.add(message);
                     messageEditText.setText("");
-
                     recyclerView.scrollToPosition(adapter.getItemCount() - 1);
                 });
     }
