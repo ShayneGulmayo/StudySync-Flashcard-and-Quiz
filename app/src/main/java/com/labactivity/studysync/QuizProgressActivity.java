@@ -224,8 +224,8 @@ public class QuizProgressActivity extends AppCompatActivity {
                             int incorrect = totalItems - correct;
                             int percentage = Math.round((correct / (float) totalItems) * 100);
 
-                            correctText.setText(correct + (correct == 1 ? " Item" : " Items"));
-                            incorrectText.setText(incorrect + (incorrect == 1 ? " Item" : " Items"));
+                            correctText.setText(correct + " Items");
+                            incorrectText.setText(incorrect + " Items");
                             progressCircle.setProgress(percentage);
                             progressPercentageText.setText(percentage + "%");
                         } else {

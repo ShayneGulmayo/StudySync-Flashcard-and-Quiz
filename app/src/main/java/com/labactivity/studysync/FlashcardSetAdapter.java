@@ -19,8 +19,8 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.RequestOptions;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-
 
 public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapter.ViewHolder> implements Filterable {
 
@@ -36,6 +36,9 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
     private String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
     private static final int TYPE_FLASHCARD = 0;
     private static final int TYPE_QUIZ = 1;
+
+    private final HashMap<String, String> cachedUsernames = new HashMap<>();
+    private final HashMap<String, com.google.firebase.firestore.ListenerRegistration> userListeners = new HashMap<>();
 
     @Override
     public int getItemViewType(int position) {
@@ -72,20 +75,38 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
         }
         holder.setNameText.setText(title);
         holder.setItemText.setText(set.getNumberOfItems() + " items");
-        holder.flashcardOwner.setText(set.getOwnerUsername());
 
-        // Dynamic progress for quizzes
+        String ownerUid = set.getOwnerUid();
+        holder.flashcardOwner.setText("Loading...");
+        if (cachedUsernames.containsKey(ownerUid)) {
+            holder.flashcardOwner.setText(cachedUsernames.get(ownerUid));
+        } else {
+            if (!userListeners.containsKey(ownerUid)) {
+                com.google.firebase.firestore.ListenerRegistration registration =
+                        FirebaseFirestore.getInstance()
+                                .collection("users")
+                                .document(ownerUid)
+                                .addSnapshotListener((documentSnapshot, e) -> {
+                                    if (e == null && documentSnapshot != null && documentSnapshot.exists()) {
+                                        String username = documentSnapshot.getString("username");
+                                        if (username != null) {
+                                            cachedUsernames.put(ownerUid, username);
+                                            notifyDataSetChanged();
+                                        }
+                                    }
+                                });
+                userListeners.put(ownerUid, registration);
+            }
+        }
+
         if (getItemViewType(position) == TYPE_QUIZ) {
             holder.statsProgressBar.setProgress(0);
             holder.progressPercentageText.setText("...");
 
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
-            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
             db.collection("quiz_attempts")
                     .document(set.getId())
                     .collection("users")
-                    .document(userId)
+                    .document(currentUserId)
                     .get()
                     .addOnSuccessListener(attempt -> {
                         if (attempt.exists()) {
@@ -113,13 +134,11 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
                     });
 
         } else {
-            // Flashcard sets use static progress
             int progressValue = set.getProgress();
             holder.statsProgressBar.setProgress(progressValue);
             holder.progressPercentageText.setText(progressValue + "%");
         }
 
-        // Profile picture
         if (set.getPhotoUrl() != null) {
             Glide.with(context)
                     .load(set.getPhotoUrl())
@@ -133,14 +152,12 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             holder.userProfileImage.setImageResource(R.drawable.user_profile);
         }
 
-        // Privacy icon
         if ("Private".equalsIgnoreCase(set.getPrivacy())) {
             holder.privacyIcon.setImageResource(R.drawable.lock);
         } else {
             holder.privacyIcon.setImageResource(R.drawable.public_icon);
         }
 
-        // Flashcard-specific reminder
         if (holder.viewType == TYPE_FLASHCARD) {
             if (set.getReminder() != null && !set.getReminder().isEmpty()) {
                 holder.setReminderTextView.setVisibility(View.VISIBLE);
@@ -150,7 +167,6 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             }
         }
 
-        // Click to open
         holder.itemView.setOnClickListener(v -> {
             if (set.getType().equals("quiz")) {
                 Intent intent = new Intent(context, QuizProgressActivity.class);
@@ -163,7 +179,6 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             }
         });
     }
-
 
     @Override
     public int getItemCount() {
@@ -186,7 +201,6 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             progressPercentageText = itemView.findViewById(R.id.progress_percentage2);
             statsProgressBar = itemView.findViewById(R.id.stats_progressbar);
             privacyIcon = itemView.findViewById(R.id.privacy_icon);
-
 
             if (viewType == TYPE_QUIZ) {
                 flashcardOwner = itemView.findViewById(R.id.quiz_owner);
@@ -218,7 +232,7 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
 
                 for (FlashcardSet set : flashcardSetsFull) {
                     if (set.getTitle().toLowerCase().contains(filterPattern)
-                            || set.getOwnerUsername().toLowerCase().contains(filterPattern)) {
+                            || (cachedUsernames.containsKey(set.getOwnerUid()) && cachedUsernames.get(set.getOwnerUid()).toLowerCase().contains(filterPattern))) {
                         filteredList.add(set);
                     }
                 }
@@ -237,4 +251,12 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
             notifyDataSetChanged();
         }
     };
+
+    public void cleanupListeners() {
+        for (com.google.firebase.firestore.ListenerRegistration registration : userListeners.values()) {
+            registration.remove();
+        }
+        userListeners.clear();
+        cachedUsernames.clear();
+    }
 }
