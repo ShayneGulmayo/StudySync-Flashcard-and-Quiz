@@ -6,5 +6,5 @@
     android:gravity="center"
     android:padding="12dp"
     android:textColor="@color/text_gray"
-    android:textSize="10sp"
+    android:textSize="12sp"
     android:textStyle="italic" />

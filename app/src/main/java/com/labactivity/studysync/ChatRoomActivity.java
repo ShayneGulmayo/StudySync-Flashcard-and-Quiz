@@ -46,8 +46,14 @@ public class ChatRoomActivity extends AppCompatActivity {
     private final ActivityResultLauncher<Intent> imagePickerLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Uri imageUri = result.getData().getData();
-                    if (imageUri != null) {
+                    if (result.getData().getClipData() != null) {
+                        int count = result.getData().getClipData().getItemCount();
+                        for (int i = 0; i < count; i++) {
+                            Uri imageUri = result.getData().getClipData().getItemAt(i).getUri();
+                            uploadImageAndSendMessage(imageUri);
+                        }
+                    } else if (result.getData().getData() != null) {
+                        Uri imageUri = result.getData().getData();
                         uploadImageAndSendMessage(imageUri);
                     }
                 }
@@ -173,9 +179,10 @@ public class ChatRoomActivity extends AppCompatActivity {
     }
 
     private void openImagePicker() {
-        Intent intent = new Intent(Intent.ACTION_PICK);
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         intent.setType("image/*");
-        imagePickerLauncher.launch(intent);
+        imagePickerLauncher.launch(Intent.createChooser(intent, "Select Images"));
     }
 
     private void uploadImageAndSendMessage(Uri imageUri) {
