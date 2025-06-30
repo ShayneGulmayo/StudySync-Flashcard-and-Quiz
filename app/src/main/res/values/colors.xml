@@ -12,7 +12,7 @@
         <item name="android:background">@android:color/transparent</item>
     </style>
     <color name="vibrant_green">#4CAF50</color>
-    <color name="pale_green">#86AF87</color>
+    <color name="pale_green">#51C58E</color>
     <color name="light_red">#F24F4F</color>
 
 </resources>

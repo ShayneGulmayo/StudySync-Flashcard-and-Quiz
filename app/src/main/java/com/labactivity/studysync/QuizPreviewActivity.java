@@ -51,7 +51,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
         ownerProfileImage = findViewById(R.id.owner_profile);
         backButton = findViewById(R.id.back_button);
         moreButton = findViewById(R.id.more_button);
-        TextView startFlashcardBtn = findViewById(R.id.start_flashcard_btn);
+        TextView startQuizBtn = findViewById(R.id.start_quiz_btn);
         photoUrl = getIntent().getStringExtra("photoUrl");
 
 
@@ -71,7 +71,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
             finish();
         }
 
-        startFlashcardBtn.setOnClickListener(v -> {
+        startQuizBtn.setOnClickListener(v -> {
             Intent intent = new Intent(QuizPreviewActivity.this, QuizViewActivity.class);
             intent.putExtra("quizId", quizId);
             intent.putExtra("photoUrl", photoUrl);
@@ -107,9 +107,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     }
 
                     if (createdAt != null) {
-                        String formattedDate = new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+                        String formattedDateTime = new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault())
                                 .format(createdAt.toDate());
-                        createdAtTxt.setText(formattedDate);
+                        createdAtTxt.setText(formattedDateTime);
                     }
 
                     if ("private".equalsIgnoreCase(privacy)) {

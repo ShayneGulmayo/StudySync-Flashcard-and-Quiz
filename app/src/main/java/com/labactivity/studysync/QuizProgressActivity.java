@@ -62,7 +62,6 @@ public class QuizProgressActivity extends AppCompatActivity {
             return;
         }
 
-        // Fetch data first before assigning button click behaviors
         db.collection("quiz").document(quizId).get().addOnSuccessListener(documentSnapshot -> {
             if (documentSnapshot.exists()) {
                 displayQuizProgress(documentSnapshot);
@@ -75,38 +74,43 @@ public class QuizProgressActivity extends AppCompatActivity {
             finish();
         });
 
-        // back button goes to previous activity
-        back_button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onBackPressed();
+        back_button.setOnClickListener(v -> onBackPressed());
+
+        retake_quiz_btn.setOnClickListener(v -> {
+            Intent intent = new Intent(QuizProgressActivity.this, QuizViewActivity.class);
+            intent.putExtra("quizId", quizId);
+            intent.putExtra("mode", "normal");
+
+            String photoUrl = getIntent().getStringExtra("photoUrl");
+            if (photoUrl != null) {
+                intent.putExtra("photoUrl", photoUrl);
             }
+
+            startActivity(intent);
+            finish();
         });
 
-        // retake quiz goes to QuizViewActivity
-        retake_quiz_btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(QuizProgressActivity.this, QuizViewActivity.class);
-                intent.putExtra("quizId", quizId);
-                intent.putExtra("photoUrl", getIntent().getStringExtra("photoUrl"));
-                startActivity(intent);
-                finish();
-            }
+        review_questions_btn.setOnClickListener(v -> {
+            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            db.collection("quiz_attempts")
+                    .document(quizId)
+                    .collection("users")
+                    .document(userId)
+                    .get()
+                    .addOnSuccessListener(attemptDoc -> {
+                        if (attemptDoc.exists() && attemptDoc.contains("answeredQuestions")) {
+                            Intent intent = new Intent(QuizProgressActivity.this, QuizViewActivity.class);
+                            intent.putExtra("quizId", quizId);
+                            intent.putExtra("photoUrl", getIntent().getStringExtra("photoUrl"));
+                            intent.putExtra("mode", "review_only_incorrect");
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            Toast.makeText(this, "No attempt data to review.", Toast.LENGTH_SHORT).show();
+                        }
+                    });
         });
 
-        // review questions goes to ReviewQuestionsActivity
-        review_questions_btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(QuizProgressActivity.this, ReviewQuestionsActivity.class);
-                intent.putExtra("quizId", quizId);
-                startActivity(intent);
-                finish();
-            }
-        });
-
-        // more button – placeholder
         more_button.setOnClickListener(v -> showMoreBottomSheet());
     }
 
@@ -117,7 +121,6 @@ public class QuizProgressActivity extends AppCompatActivity {
 
         TextView privacyOption = view.findViewById(R.id.privacy);
 
-        // Fetch current privacy to update label
         db.collection("quiz").document(quizId).get().addOnSuccessListener(doc -> {
             String currentPrivacy = doc.getString("privacy");
             if ("private".equalsIgnoreCase(currentPrivacy)) {
@@ -176,7 +179,6 @@ public class QuizProgressActivity extends AppCompatActivity {
         bottomSheetDialog.show();
     }
 
-
     private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("Delete Quiz")
@@ -196,7 +198,6 @@ public class QuizProgressActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete quiz.", Toast.LENGTH_SHORT).show());
     }
 
-
     private void displayQuizProgress(DocumentSnapshot doc) {
         String title = doc.getString("title");
         if (title != null && !title.trim().isEmpty()) {
@@ -205,7 +206,6 @@ public class QuizProgressActivity extends AppCompatActivity {
             quizTitleText.setText("Untitled Quiz");
         }
 
-        // 🔄 Fetch dynamic attempt result
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         db.collection("quiz_attempts")
@@ -221,13 +221,24 @@ public class QuizProgressActivity extends AppCompatActivity {
                         if (score != null && total != null && total > 0) {
                             int correct = score.intValue();
                             int totalItems = total.intValue();
+
+                            Long originalCount = doc.getLong("number_of_items");
+                            if (originalCount != null && originalCount > 0) {
+                                totalItems = originalCount.intValue();
+                            }
+
                             int incorrect = totalItems - correct;
                             int percentage = Math.round((correct / (float) totalItems) * 100);
+
 
                             correctText.setText(correct + " Items");
                             incorrectText.setText(incorrect + " Items");
                             progressCircle.setProgress(percentage);
                             progressPercentageText.setText(percentage + "%");
+
+                            if (percentage == 100) {
+                                review_questions_btn.setVisibility(View.GONE);
+                            }
                         } else {
                             Toast.makeText(this, "Invalid attempt data", Toast.LENGTH_SHORT).show();
                         }
@@ -242,8 +253,4 @@ public class QuizProgressActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to load attempt data", Toast.LENGTH_SHORT).show();
                 });
     }
-
-
-
-
 }

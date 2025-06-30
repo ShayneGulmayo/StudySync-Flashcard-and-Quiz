@@ -203,7 +203,7 @@
         app:layout_constraintTop_toBottomOf="@+id/createdAt_txt" />
 
     <Button
-        android:id="@+id/start_flashcard_btn"
+        android:id="@+id/start_quiz_btn"
         android:layout_width="317dp"
         android:layout_height="55dp"
         android:layout_marginTop="16dp"
