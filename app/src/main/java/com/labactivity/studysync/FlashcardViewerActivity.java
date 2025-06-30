@@ -86,16 +86,34 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         dialog.setContentView(view);
 
         view.findViewById(R.id.shuffle).setOnClickListener(v -> {
-            Toast.makeText(this, "Shuffle clicked", Toast.LENGTH_SHORT).show();
+            shuffleFlashcards();
             dialog.dismiss();
         });
 
         view.findViewById(R.id.restart).setOnClickListener(v -> {
-            Toast.makeText(this, "Restart clicked", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
+            Intent intent = new Intent(this, FlashcardViewerActivity.class);
+            intent.putExtra("setId", setId);
+            startActivity(intent);
+            finish();
         });
 
         dialog.show();
+    }
+
+    private void shuffleFlashcards() {
+        if (flashcards.isEmpty()) {
+            Toast.makeText(this, "No flashcards to shuffle.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        java.util.Collections.shuffle(flashcards);
+        currentIndex = 0;
+        knowCount = 0;
+        dontKnowCount = 0;
+        dontKnowFlashcards.clear();
+        showCard(currentIndex);
+
+        Toast.makeText(this, "Flashcards shuffled!", Toast.LENGTH_SHORT).show();
     }
 
     private void loadFlashcards() {
