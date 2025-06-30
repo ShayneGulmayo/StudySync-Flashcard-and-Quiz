@@ -24,7 +24,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.labactivity.studysync.CreateFlashcardActivity;
 import com.labactivity.studysync.CreateQuizActivity;
 import com.labactivity.studysync.FlashcardPreviewActivity;
-import com.labactivity.studysync.models.FlashcardSet;
+import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.adapters.SetAdapter;
 
@@ -35,8 +35,8 @@ public class SetFragment extends Fragment {
     private RecyclerView recyclerView;
     private ProgressBar progressBar;
     private SetAdapter adapter;
-    private ArrayList<FlashcardSet> allSets;
-    private ArrayList<FlashcardSet> displayedSets;
+    private ArrayList<Flashcard> allSets;
+    private ArrayList<Flashcard> displayedSets;
     private FirebaseFirestore db;
     private ImageView addButton;
     private MaterialButtonToggleGroup toggleGroup;
@@ -172,7 +172,7 @@ public class SetFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        FlashcardSet set = parseSet(doc);
+                        Flashcard set = parseSet(doc);
                         set.setType("flashcard");
                         set.setPhotoUrl(currentUserPhotoUrl);
                         set.setReminder(doc.getString("reminder"));
@@ -191,7 +191,7 @@ public class SetFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        FlashcardSet set = parseSet(doc);
+                        Flashcard set = parseSet(doc);
                         set.setType("quiz");
                         set.setPhotoUrl(currentUserPhotoUrl);
                         allSets.add(set);
@@ -205,7 +205,7 @@ public class SetFragment extends Fragment {
                 });
     }
 
-    private FlashcardSet parseSet(QueryDocumentSnapshot doc) {
+    private Flashcard parseSet(QueryDocumentSnapshot doc) {
         String id = doc.getId();
         String title = doc.getString("title");
         long numberOfItems = doc.getLong("number_of_items") != null ? doc.getLong("number_of_items") : 0;
@@ -213,7 +213,7 @@ public class SetFragment extends Fragment {
         String ownerUsername = doc.getString("owner_username");
         String privacy = doc.getString("privacy");
 
-        FlashcardSet set = new FlashcardSet(id, title, (int) numberOfItems, ownerUsername, (int) progress, null);
+        Flashcard set = new Flashcard(id, title, (int) numberOfItems, ownerUsername, (int) progress, null);
         set.setPrivacy(privacy);
 
         set.setOwnerUid(doc.getString("owner_uid"));
@@ -247,7 +247,7 @@ public class SetFragment extends Fragment {
         }
 
         displayedSets.clear();
-        for (FlashcardSet set : allSets) {
+        for (Flashcard set : allSets) {
             boolean matchesType = typeFilter.equals("all") || set.getType().equalsIgnoreCase(typeFilter);
             boolean matchesSearch = currentSearchQuery.isEmpty() ||
                     (set.getTitle() != null && set.getTitle().toLowerCase().contains(currentSearchQuery.toLowerCase()));
@@ -311,7 +311,7 @@ public class SetFragment extends Fragment {
         });
     }
 
-    private void onFlashcardSetClicked(FlashcardSet set) {
+    private void onFlashcardSetClicked(Flashcard set) {
         Intent intent = new Intent(getContext(), FlashcardPreviewActivity.class);
         intent.putExtra("setId", set.getId());
         intent.putExtra("setName", set.getTitle());

@@ -18,7 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.RequestOptions;
-import com.labactivity.studysync.models.FlashcardSet;
+import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.QuizPreviewActivity;
 import com.labactivity.studysync.R;
 
@@ -29,12 +29,12 @@ import java.util.List;
 public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> implements Filterable {
 
     public interface OnFlashcardSetClickListener {
-        void onFlashcardSetClick(FlashcardSet set);
+        void onFlashcardSetClick(Flashcard set);
     }
 
     private Context context;
-    private ArrayList<FlashcardSet> flashcardSets;
-    private ArrayList<FlashcardSet> flashcardSetsFull;
+    private ArrayList<Flashcard> flashcard;
+    private ArrayList<Flashcard> flashcardSetsFull;
     private OnFlashcardSetClickListener listener;
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
     private String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -46,13 +46,13 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
 
     @Override
     public int getItemViewType(int position) {
-        FlashcardSet set = flashcardSets.get(position);
+        Flashcard set = flashcard.get(position);
         return set.getType().equalsIgnoreCase("quiz") ? TYPE_QUIZ : TYPE_FLASHCARD;
     }
 
-    public SetAdapter(Context context, ArrayList<FlashcardSet> flashcardSets, OnFlashcardSetClickListener listener) {
+    public SetAdapter(Context context, ArrayList<Flashcard> flashcardSets, OnFlashcardSetClickListener listener) {
         this.context = context;
-        this.flashcardSets = flashcardSets;
+        this.flashcard = flashcardSets;
         this.flashcardSetsFull = new ArrayList<>(flashcardSets);
         this.listener = listener;
     }
@@ -71,7 +71,7 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        FlashcardSet set = flashcardSets.get(position);
+        Flashcard set = flashcard.get(position);
 
         String title = set.getTitle();
         if (title.length() > 20) {
@@ -186,7 +186,7 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
 
     @Override
     public int getItemCount() {
-        return flashcardSets.size();
+        return flashcard.size();
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
@@ -227,14 +227,14 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
     private final Filter flashcardSetFilter = new Filter() {
         @Override
         protected FilterResults performFiltering(CharSequence constraint) {
-            List<FlashcardSet> filteredList = new ArrayList<>();
+            List<Flashcard> filteredList = new ArrayList<>();
 
             if (constraint == null || constraint.length() == 0) {
                 filteredList.addAll(flashcardSetsFull);
             } else {
                 String filterPattern = constraint.toString().toLowerCase().trim();
 
-                for (FlashcardSet set : flashcardSetsFull) {
+                for (Flashcard set : flashcardSetsFull) {
                     if (set.getTitle().toLowerCase().contains(filterPattern)
                             || (cachedUsernames.containsKey(set.getOwnerUid()) && cachedUsernames.get(set.getOwnerUid()).toLowerCase().contains(filterPattern))) {
                         filteredList.add(set);
@@ -250,8 +250,8 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
 
         @Override
         protected void publishResults(CharSequence constraint, FilterResults results) {
-            flashcardSets.clear();
-            flashcardSets.addAll((List) results.values);
+            flashcard.clear();
+            flashcard.addAll((List) results.values);
             notifyDataSetChanged();
         }
     };

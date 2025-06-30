@@ -44,6 +44,9 @@
     <string name="delete_chatroom">Delete Chat Room</string>
     <string name="chatroom_name">Chat Room Name</string>
     <string name="add_quiz">Add Quiz</string>
+    <string name="share">Share</string>
+    <string name="general_access">General Access</string>
+    <string name="poeple_with_access">People With Access</string>
     <string name="quiz_title">Quiz Title</string>
     <string name="no_quizzes">No Quizzes Yet</string>
     <string name="quiz_review">Quiz Review</string>
