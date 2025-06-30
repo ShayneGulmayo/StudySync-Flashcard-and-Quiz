@@ -56,14 +56,8 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
 
         findViewById(R.id.back_button).setOnClickListener(v -> finish());
-        findViewById(R.id.save_button).setOnClickListener(v -> saveFlashcardSet());
+        findViewById(R.id.save_button).setOnClickListener(v -> fetchUsernameAndSaveFlashcardSet());
         findViewById(R.id.floating_add_btn).setOnClickListener(v -> addFlashcardView());
-
-        db.collection("users").document(auth.getCurrentUser().getUid())
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (doc.exists()) username = doc.getString("username");
-                });
 
         pickImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -89,6 +83,24 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             addFlashcardView();
         }
     }
+
+    private void fetchUsernameAndSaveFlashcardSet() {
+        db.collection("users").document(auth.getCurrentUser().getUid())
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        String latestUsername = doc.getString("username");
+                        saveFlashcardSet(latestUsername);
+                    } else {
+                        Toast.makeText(this, "Failed to fetch username.", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error fetching username.", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+
 
     private void addFlashcardView() {
         View flashcardView = getLayoutInflater().inflate(R.layout.item_flashcard_input, null);
@@ -163,7 +175,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to load flashcard set", Toast.LENGTH_SHORT).show());
     }
 
-    private void saveFlashcardSet() {
+    private void saveFlashcardSet(String username) {
         String setName = setNameEditText.getText().toString().trim();
         if (TextUtils.isEmpty(setName)) {
             Toast.makeText(this, "Set name is required", Toast.LENGTH_SHORT).show();
@@ -201,12 +213,13 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         Map<String, Object> flashcardSet = new HashMap<>();
         flashcardSet.put("title", setName);
         flashcardSet.put("number_of_items", itemCount);
-        flashcardSet.put("owner_username", username);
+        flashcardSet.put("owner_username", username); // <-- uses latest fetched username
         flashcardSet.put("owner_uid", auth.getCurrentUser().getUid());
         flashcardSet.put("terms", termsMap);
         flashcardSet.put("createdAt", getCurrentFormattedDateTime());
 
         if (setId != null) {
+            // UPDATE existing
             db.collection("flashcards").document(setId)
                     .set(flashcardSet)
                     .addOnSuccessListener(doc -> {
@@ -215,6 +228,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to update set", Toast.LENGTH_SHORT).show());
         } else {
+            // CREATE new
             db.collection("flashcards")
                     .add(flashcardSet)
                     .addOnSuccessListener(doc -> {
@@ -224,6 +238,8 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to save set", Toast.LENGTH_SHORT).show());
         }
     }
+
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {

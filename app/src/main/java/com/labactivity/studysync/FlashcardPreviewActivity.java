@@ -264,16 +264,30 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     }
 
                     String title = documentSnapshot.getString("title");
-                    String ownerUsername = documentSnapshot.getString("owner_username");
                     String ownerUid = documentSnapshot.getString("owner_uid");
                     Long numberOfItems = documentSnapshot.getLong("number_of_items");
 
                     titleTextView.setText(title != null ? title : "Untitled");
-                    ownerTextView.setText(ownerUsername != null ? ownerUsername : "Unknown");
                     String privacy = documentSnapshot.getString("privacy");
                     currentPrivacy = privacy != null ? privacy : "Public";
                     String reminder = documentSnapshot.getString("reminder");
                     currentReminder = (reminder != null && !reminder.isEmpty()) ? reminder : null;
+
+                    if (ownerUid != null) {
+                        db.collection("users").document(ownerUid)
+                                .get()
+                                .addOnSuccessListener(userDoc -> {
+                                    if (userDoc.exists()) {
+                                        String latestUsername = userDoc.getString("username");
+                                        ownerTextView.setText(latestUsername != null ? latestUsername : "Unknown");
+                                    } else {
+                                        ownerTextView.setText("Unknown");
+                                    }
+                                })
+                                .addOnFailureListener(e -> ownerTextView.setText("Unknown"));
+                    } else {
+                        ownerTextView.setText("Unknown");
+                    }
 
                     if (currentReminder != null) {
                         reminderTextView.setText("Reminder: " + currentReminder);
