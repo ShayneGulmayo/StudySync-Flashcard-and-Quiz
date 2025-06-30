@@ -29,6 +29,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Full Name"
+            android:layout_marginStart="10dp"
             android:layout_marginTop="5dp"
             android:textSize="12sp"
             android:textColor="@color/black"
@@ -40,7 +41,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="bottom">
+            android:gravity="bottom"
+            android:layout_marginTop="4dp">
 
             <ImageView
                 android:id="@+id/imageView"

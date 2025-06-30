@@ -84,7 +84,7 @@ public class SupabaseUploader {
         });
     }
 
-    private static String getMimeType(File file) {
+    public static String getMimeType(File file) {
         String name = file.getName();
         int lastDot = name.lastIndexOf(".");
         if (lastDot == -1) return null;
@@ -97,7 +97,18 @@ public class SupabaseUploader {
             case "webp": return "image/webp";
             case "gif": return "image/gif";
             case "pdf": return "application/pdf";
+            case "doc": return "application/msword";
+            case "docx": return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case "ppt": return "application/vnd.ms-powerpoint";
+            case "pptx": return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+            case "xls": return "application/vnd.ms-excel";
+            case "xlsx": return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case "txt": return "text/plain";
+            case "csv": return "text/csv";
+            case "zip": return "application/zip";
+            case "rar": return "application/vnd.rar";
             default: return null;
         }
     }
+
 }

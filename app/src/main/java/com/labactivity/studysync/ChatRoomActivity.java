@@ -3,10 +3,13 @@ package com.labactivity.studysync;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,7 +47,7 @@ public class ChatRoomActivity extends AppCompatActivity {
     private CollectionReference messagesRef;
     private List<String> memberUids;
     private TextView chatRoomNameText;
-    private ImageView chatRoomPhoto, sendImg;
+    private ImageView chatRoomPhoto, sendImg, sendFlashcardsandQuiz;
 
     private final ActivityResultLauncher<Intent> imagePickerLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -58,6 +61,16 @@ public class ChatRoomActivity extends AppCompatActivity {
                     } else if (result.getData().getData() != null) {
                         Uri imageUri = result.getData().getData();
                         uploadImageAndSendMessage(imageUri);
+                    }
+                }
+            });
+
+    private final ActivityResultLauncher<Intent> filePickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri fileUri = result.getData().getData();
+                    if (fileUri != null) {
+                        uploadFileAndSendMessage(fileUri);
                     }
                 }
             });
@@ -76,6 +89,7 @@ public class ChatRoomActivity extends AppCompatActivity {
         chatRoomNameText = findViewById(R.id.txtChatRoomName);
         chatRoomPhoto = findViewById(R.id.chatroom_photo);
         sendImg = findViewById(R.id.sendImg);
+        sendFlashcardsandQuiz = findViewById(R.id.sendFlashcardsandQuiz);
 
         ImageButton sendButton = findViewById(R.id.sendButton);
         ImageView backBtn = findViewById(R.id.back_button);
@@ -98,11 +112,43 @@ public class ChatRoomActivity extends AppCompatActivity {
 
         sendButton.setOnClickListener(v -> sendMessage());
         sendImg.setOnClickListener(v -> openImagePicker());
+        sendFlashcardsandQuiz.setOnClickListener(v -> showSendMorePopup());
         backBtn.setOnClickListener(v -> finish());
         moreBtn.setOnClickListener(v -> showPopupMenu(moreBtn));
 
         chatRoomPhoto.setOnClickListener(v -> openEditChatRoom());
         chatRoomNameText.setOnClickListener(v -> openEditChatRoom());
+    }
+
+    private void showSendMorePopup() {
+        View popupView = LayoutInflater.from(this).inflate(R.layout.item_send_more, null);
+
+        PopupWindow popupWindow = new PopupWindow(popupView,
+                RecyclerView.LayoutParams.MATCH_PARENT,
+                RecyclerView.LayoutParams.WRAP_CONTENT,
+                true);
+        popupWindow.setBackgroundDrawable(getDrawable(android.R.drawable.dialog_holo_light_frame)); // Required for outside tap dismissal
+        popupWindow.setOutsideTouchable(true);
+        popupWindow.setFocusable(true);
+
+        popupWindow.showAtLocation(popupView, Gravity.BOTTOM, 0, 0);
+
+        TextView sendSet = popupView.findViewById(R.id.sendSet);
+        TextView sendFile = popupView.findViewById(R.id.sendFile);
+
+        sendSet.setOnClickListener(v -> {
+            popupWindow.dismiss();
+            Intent intent = new Intent(this, SetPickerActivity.class);
+            intent.putExtra("roomId", roomId);
+            startActivity(intent);
+        });
+
+        sendFile.setOnClickListener(v -> {
+            popupWindow.dismiss();
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("*/*");
+            filePickerLauncher.launch(Intent.createChooser(intent, "Select File"));
+        });
     }
 
     private void fetchChatRoomDetails(Runnable onSuccess) {
@@ -208,6 +254,51 @@ public class ChatRoomActivity extends AppCompatActivity {
         SupabaseUploader.uploadFile(file, bucket, path, (success, message, publicUrl) -> runOnUiThread(() -> {
             if (success && publicUrl != null) {
                 sendImageMessage(publicUrl);
+            } else {
+                Toast.makeText(ChatRoomActivity.this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
+            }
+        }));
+    }
+
+    private void uploadFileAndSendMessage(Uri fileUri) {
+        String filePath = FileUtils.getPath(this, fileUri);
+        if (filePath == null) {
+            Toast.makeText(this, "Failed to get file path", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        File file = new File(filePath);
+        if (!file.exists()) {
+            Toast.makeText(this, "File not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String fileName = System.currentTimeMillis() + "_" + file.getName();
+        String path = "chat-room-files/" + roomId + "/" + fileName;
+        String bucket = "chat-room-files";
+
+        SupabaseUploader.uploadFile(file, bucket, path, (success, message, publicUrl) -> runOnUiThread(() -> {
+            if (success && publicUrl != null) {
+                db.collection("users").document(currentUser.getUid()).get().addOnSuccessListener(userDoc -> {
+                    String senderName = userDoc.getString("firstName") + " " + userDoc.getString("lastName");
+                    String photoUrl = userDoc.getString("photoUrl");
+
+                    ChatMessage fileMessage = new ChatMessage(
+                            currentUser.getUid(),
+                            senderName,
+                            photoUrl,
+                            null,
+                            new Date()
+                    );
+                    fileMessage.setType("file");
+                    fileMessage.setFileUrl(publicUrl);
+                    fileMessage.setFileName(file.getName());
+                    fileMessage.setFileSize(file.length());
+                    fileMessage.setFileType(SupabaseUploader.getMimeType(file));
+                    fileMessage.setFilePath(path);
+
+                    messagesRef.add(fileMessage);
+                });
             } else {
                 Toast.makeText(ChatRoomActivity.this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
             }

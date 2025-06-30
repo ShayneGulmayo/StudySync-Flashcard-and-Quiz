@@ -11,10 +11,19 @@ public class ChatMessage {
     private String type;
     private String imageUrl;
 
+    private String fileUrl;
+    private String fileName;
+    private long fileSize;
+    private String fileType;
+    private String filePath;
+
+    private String setId;    // ID of the shared Flashcard or Quiz set
+    private String setType;  // "flashcard" or "quiz"
+
     @ServerTimestamp
     private Date timestamp;
 
-    // Required public no-argument constructor
+    // Required no-arg constructor
     public ChatMessage() {}
 
     public ChatMessage(String senderId, String senderName, String senderPhotoUrl, String text, Date timestamp) {
@@ -27,60 +36,34 @@ public class ChatMessage {
     }
 
     // Getters
-    public String getSenderId() {
-        return senderId;
-    }
-
-    public String getSenderName() {
-        return senderName;
-    }
-
-    public String getSenderPhotoUrl() {
-        return senderPhotoUrl;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public Date getTimestamp() {
-        return timestamp;
-    }
+    public String getSenderId() { return senderId; }
+    public String getSenderName() { return senderName; }
+    public String getSenderPhotoUrl() { return senderPhotoUrl; }
+    public String getText() { return text; }
+    public String getType() { return type; }
+    public String getImageUrl() { return imageUrl; }
+    public String getFileUrl() { return fileUrl; }
+    public String getFileName() { return fileName; }
+    public long getFileSize() { return fileSize; }
+    public String getFileType() { return fileType; }
+    public String getFilePath() { return filePath; }
+    public Date getTimestamp() { return timestamp; }
+    public String getSetId() { return setId; }
+    public String getSetType() { return setType; }
 
     // Setters
-    public void setSenderId(String senderId) {
-        this.senderId = senderId;
-    }
-
-    public void setSenderName(String senderName) {
-        this.senderName = senderName;
-    }
-
-    public void setSenderPhotoUrl(String senderPhotoUrl) {
-        this.senderPhotoUrl = senderPhotoUrl;
-    }
-
-    public void setText(String text) {
-        this.text = text;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    public void setTimestamp(Date timestamp) {
-        this.timestamp = timestamp;
-    }
+    public void setSenderId(String senderId) { this.senderId = senderId; }
+    public void setSenderName(String senderName) { this.senderName = senderName; }
+    public void setSenderPhotoUrl(String senderPhotoUrl) { this.senderPhotoUrl = senderPhotoUrl; }
+    public void setText(String text) { this.text = text; }
+    public void setType(String type) { this.type = type; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+    public void setFileName(String fileName) { this.fileName = fileName; }
+    public void setFileSize(long fileSize) { this.fileSize = fileSize; }
+    public void setFileType(String fileType) { this.fileType = fileType; }
+    public void setFilePath(String filePath) { this.filePath = filePath; }
+    public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
+    public void setSetId(String setId) { this.setId = setId; }
+    public void setSetType(String setType) { this.setType = setType; }
 }
