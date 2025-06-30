@@ -109,7 +109,7 @@ public class QuizViewActivity extends AppCompatActivity {
                     currentQuestionIndex++;
                     displayNextValidQuestion();
                     selectedAnswer = null;
-                }, 3000);
+                }, 1500);
 
             } else if (type.equals("enumeration")) {
                 List<String> userAnswers = new ArrayList<>();
@@ -320,7 +320,40 @@ public class QuizViewActivity extends AppCompatActivity {
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         quizTitleView.setText(documentSnapshot.getString("title"));
-                        quizOwnerView.setText(documentSnapshot.getString("owner_username"));
+                        String ownerUid = documentSnapshot.getString("owner_uid");
+
+                        if (ownerUid != null && !ownerUid.isEmpty()) {
+                            db.collection("users").document(ownerUid).get()
+                                    .addOnSuccessListener(userDoc -> {
+                                        String latestUsername = userDoc.getString("username");
+                                        if (latestUsername != null && !latestUsername.isEmpty()) {
+                                            quizOwnerView.setText(latestUsername);
+                                        } else {
+                                            quizOwnerView.setText("Unknown User");
+                                        }
+
+                                        // Optional: update profile photo if needed
+                                        String photoUrl = userDoc.getString("photoUrl");
+                                        if (photoUrl != null && !photoUrl.isEmpty()) {
+                                            Glide.with(this)
+                                                    .load(photoUrl)
+                                                    .placeholder(R.drawable.user_profile)
+                                                    .circleCrop()
+                                                    .into(ownerProfile);
+                                        } else {
+                                            ownerProfile.setImageResource(R.drawable.user_profile);
+                                        }
+
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        quizOwnerView.setText("Failed to load user");
+                                        ownerProfile.setImageResource(R.drawable.user_profile);
+                                    });
+                        } else {
+                            quizOwnerView.setText("Unknown User");
+                            ownerProfile.setImageResource(R.drawable.user_profile);
+                        }
+
 
                         String currentPrivacy = documentSnapshot.getString("privacy");
 
@@ -360,42 +393,38 @@ public class QuizViewActivity extends AppCompatActivity {
 
     private void displayNextValidQuestion() {
         hasAnswered = false;
-        txtViewItems.setText((currentQuestionIndex + 1) + "/" + questions.size());
 
+        // Check if all questions have been shown first
+        if (currentQuestionIndex >= questions.size()) {
+            // ✅ Do NOT update txtViewItems here — quiz is done
+            Toast.makeText(this, "🎉 Quiz Completed!", Toast.LENGTH_LONG).show();
+            saveQuizAttempt(userAnswersList, score);
 
-        while (currentQuestionIndex < questions.size()) {
-            Map<String, Object> currentQuestion = questions.get(currentQuestionIndex);
-
-            String type = currentQuestion.containsKey("type")
-                    ? currentQuestion.get("type").toString().toLowerCase()
-                    : detectFallbackType(currentQuestion);
-
-            if (type.equals("multiple choice")) {
-                displayMultipleChoice(currentQuestion);
-                return;
-            } else if (type.equals("enumeration")) {
-                displayEnumeration(currentQuestion);
-                return;
-            } else {
-                Toast.makeText(this, "Unsupported or missing question type. Skipping...", Toast.LENGTH_SHORT).show();
-                currentQuestionIndex++;
-            }
+            Intent intent = new Intent(this, QuizProgressActivity.class);
+            intent.putExtra("quizId", quizId);
+            startActivity(intent);
+            finish();
+            return;
         }
 
-        // 🔴 This block runs when all questions are done!
-        // 💾 You should save attempt, show result, or redirect
+        txtViewItems.setText((currentQuestionIndex + 1) + "/" + questions.size());
 
-        Toast.makeText(this, "🎉 Quiz Completed!", Toast.LENGTH_LONG).show();
+        Map<String, Object> currentQuestion = questions.get(currentQuestionIndex);
+        String type = currentQuestion.containsKey("type")
+                ? currentQuestion.get("type").toString().toLowerCase()
+                : detectFallbackType(currentQuestion);
 
-        saveQuizAttempt(userAnswersList, score);
-
-        // Optionally collect final results here (score, answers)
-        // For now, just go back to progress screen:
-        Intent intent = new Intent(this, QuizProgressActivity.class);
-        intent.putExtra("quizId", quizId);
-        startActivity(intent);
-        finish();
+        if (type.equals("multiple choice")) {
+            displayMultipleChoice(currentQuestion);
+        } else if (type.equals("enumeration")) {
+            displayEnumeration(currentQuestion);
+        } else {
+            Toast.makeText(this, "Unsupported or missing question type. Skipping...", Toast.LENGTH_SHORT).show();
+            currentQuestionIndex++;
+            displayNextValidQuestion();  // 🔁 Try next one recursively
+        }
     }
+
 
     private String detectFallbackType(Map<String, Object> question) {
         // This is for backward compatibility: guess type if `type` is missing

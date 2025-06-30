@@ -169,7 +169,7 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
 
         holder.itemView.setOnClickListener(v -> {
             if (set.getType().equals("quiz")) {
-                Intent intent = new Intent(context, QuizProgressActivity.class);
+                Intent intent = new Intent(context, QuizPreviewActivity.class);
                 intent.putExtra("quizId", set.getId());
                 intent.putExtra("quizName", set.getTitle());
                 intent.putExtra("photoUrl", set.getPhotoUrl());

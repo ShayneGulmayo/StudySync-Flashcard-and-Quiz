@@ -76,6 +76,7 @@
     <string name="privacy_public">Public</string>
     <string name="privacy_private">Private</string>
     <string name="shared_sets">Shared Sets</string>
+    <string name="stats_quiz">Start Quiz</string>
     <string-array name="quiz_types">
         <item>Multiple Choice</item>
         <item>Enumeration</item>

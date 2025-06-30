@@ -133,6 +133,7 @@
             android:layout_marginTop="8dp"
             android:background="@drawable/green_stroke_bg"
             android:paddingStart="32dp"
+            android:paddingEnd="15dp"
             android:text="@string/notif"
             android:textAlignment="textStart"
             android:textColor="@color/primary"

@@ -20,7 +20,6 @@ public class FlashcardSet {
         this.ownerUid = ownerUid;
     }
 
-
     public FlashcardSet() {}
 
     public FlashcardSet(String id, String title, int numberOfItems, String ownerUsername, int progress, String photoUrl) {
