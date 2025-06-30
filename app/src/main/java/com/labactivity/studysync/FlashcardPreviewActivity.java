@@ -23,6 +23,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.adapters.CarouselAdapter;
 import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.receivers.ReminderReceiver;
+import com.labactivity.studysync.utils.SupabaseUploader;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -180,13 +181,60 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
     private void deleteFlashcardSet() {
         db.collection("flashcards").document(setId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Flashcard set deleted.", Toast.LENGTH_SHORT).show();
-                    finish();
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    Map<String, Object> data = documentSnapshot.getData();
+                    if (data != null && data.containsKey("terms")) {
+                        Object termsObj = data.get("terms");
+                        if (termsObj instanceof Map) {
+                            Map<String, Object> terms = (Map<String, Object>) termsObj;
+
+                            for (Map.Entry<String, Object> entry : terms.entrySet()) {
+                                Object value = entry.getValue();
+                                if (value instanceof Map) {
+                                    Map<String, Object> termEntry = (Map<String, Object>) value;
+                                    String photoPath = termEntry.get("photoPath") != null ? termEntry.get("photoPath").toString() : null;
+
+                                    if (photoPath != null && !photoPath.isEmpty()) {
+                                        SupabaseUploader.deleteFile("flashcard-images", photoPath, new SupabaseUploader.UploadCallback() {
+                                            @Override
+                                            public void onUploadComplete(boolean success, String message, String publicUrl) {
+                                                if (success) {
+                                                    Log.d("Supabase", "Deleted image: " + photoPath);
+                                                } else {
+                                                    Log.e("Supabase", "Failed to delete image: " + photoPath + " Reason: " + message);
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Delete the flashcard document itself
+                    db.collection("flashcards").document(setId)
+                            .delete()
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, "Flashcard set and images deleted.", Toast.LENGTH_SHORT).show();
+                                finish();
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to delete flashcard set.", Toast.LENGTH_SHORT).show();
+                            });
+
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete flashcard set.", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to fetch flashcard set.", Toast.LENGTH_SHORT).show();
+                });
     }
+
+
 
     private void showReminderDialog() {
         Calendar calendar = Calendar.getInstance();
@@ -385,7 +433,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                     String term = termEntry.get("term") != null ? termEntry.get("term").toString() : "";
                                     String definition = termEntry.get("definition") != null ? termEntry.get("definition").toString() : "";
                                     String photoUrl = termEntry.get("photoUrl") != null ? termEntry.get("photoUrl").toString() : "";
-                                    flashcards.add(new Flashcard(term, definition, photoUrl));
+                                    String photoPath = termEntry.get("photoPath") != null ? termEntry.get("photoPath").toString() : "";
+                                    flashcards.add(new Flashcard(term, definition, photoUrl, photoPath));
                                 } else {
                                     Log.e("Flashcards", "Skipping invalid term entry: " + entry.getKey() + " -> " + value);
                                 }

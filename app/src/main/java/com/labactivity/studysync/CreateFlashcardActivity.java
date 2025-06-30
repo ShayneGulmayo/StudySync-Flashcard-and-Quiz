@@ -193,17 +193,27 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
             String term = termEditText.getText().toString().trim();
             String definition = definitionEditText.getText().toString().trim();
-            String imageUrl = imageView.getTag() != null ? imageView.getTag().toString() : null;
 
             if (!TextUtils.isEmpty(term) && !TextUtils.isEmpty(definition)) {
                 Map<String, Object> termEntry = new HashMap<>();
                 termEntry.put("term", term);
                 termEntry.put("definition", definition);
-                if (imageUrl != null) termEntry.put("photoUrl", imageUrl);
+
+                // Retrieve image tags (photoUrl and photoPath)
+                Object tag = imageView.getTag();
+                if (tag instanceof Map) {
+                    Map<String, String> imageData = (Map<String, String>) tag;
+                    String photoUrl = imageData.get("photoUrl");
+                    String photoPath = imageData.get("photoPath");
+                    if (photoUrl != null) termEntry.put("photoUrl", photoUrl);
+                    if (photoPath != null) termEntry.put("photoPath", photoPath);
+                }
+
                 termsMap.put(String.valueOf(itemCount), termEntry);
                 itemCount++;
             }
         }
+
 
         if (itemCount < 2) {
             Toast.makeText(this, "At least 2 flashcards required", Toast.LENGTH_SHORT).show();
@@ -273,7 +283,13 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                     if (success) {
                         ImageView imageView = flashcardView.findViewById(R.id.upload_image_button);
                         Glide.with(this).load(publicUrl).into(imageView);
-                        imageView.setTag(publicUrl);
+
+                        // Store both photoUrl and photoPath in a map as tag
+                        Map<String, String> imageData = new HashMap<>();
+                        imageData.put("photoUrl", publicUrl);
+                        imageData.put("photoPath", filename);
+                        imageView.setTag(imageData);
+
                         Toast.makeText(this, "Image uploaded", Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
@@ -285,6 +301,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             Toast.makeText(this, "Image error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+
 
     public static File getFileFromUri(Context context, Uri uri) throws Exception {
         ContentResolver contentResolver = context.getContentResolver();

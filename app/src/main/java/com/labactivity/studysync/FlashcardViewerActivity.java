@@ -138,8 +138,10 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                             String term = (String) termEntry.get("term");
                             String definition = (String) termEntry.get("definition");
                             String photoUrl = (String) termEntry.get("photoUrl");
+                            String photoPath = (String) termEntry.get("photoPath");
 
-                            Flashcard card = new Flashcard(term, definition, photoUrl);
+
+                            Flashcard card = new Flashcard(term, definition, photoUrl, photoPath);
 
                             if (isReviewingOnlyDontKnow) {
                                 if (dontKnowTerms != null && dontKnowTerms.contains(term)) {
