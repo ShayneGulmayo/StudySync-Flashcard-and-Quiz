@@ -1,5 +1,7 @@
 package com.labactivity.studysync;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
@@ -7,20 +9,24 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.yalantis.ucrop.util.FileUtils;
 
+import java.io.File;
 import java.util.Date;
 import java.util.List;
 
@@ -35,6 +41,17 @@ public class ChatRoomActivity extends AppCompatActivity {
     private CollectionReference messagesRef;
     private List<String> memberUids;
     private TextView chatRoomNameText;
+    private ImageView chatRoomPhoto, sendImg;
+
+    private final ActivityResultLauncher<Intent> imagePickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri imageUri = result.getData().getData();
+                    if (imageUri != null) {
+                        uploadImageAndSendMessage(imageUri);
+                    }
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +65,8 @@ public class ChatRoomActivity extends AppCompatActivity {
         messageEditText = findViewById(R.id.messageEditText);
         recyclerView = findViewById(R.id.recyclerView);
         chatRoomNameText = findViewById(R.id.txtChatRoomName);
+        chatRoomPhoto = findViewById(R.id.chatroom_photo);
+        sendImg = findViewById(R.id.sendImg);
 
         ImageButton sendButton = findViewById(R.id.sendButton);
         ImageView backBtn = findViewById(R.id.back_button);
@@ -69,8 +88,12 @@ public class ChatRoomActivity extends AppCompatActivity {
         });
 
         sendButton.setOnClickListener(v -> sendMessage());
+        sendImg.setOnClickListener(v -> openImagePicker());
         backBtn.setOnClickListener(v -> finish());
         moreBtn.setOnClickListener(v -> showPopupMenu(moreBtn));
+
+        chatRoomPhoto.setOnClickListener(v -> openEditChatRoom());
+        chatRoomNameText.setOnClickListener(v -> openEditChatRoom());
     }
 
     private void fetchChatRoomDetails(Runnable onSuccess) {
@@ -85,6 +108,14 @@ public class ChatRoomActivity extends AppCompatActivity {
                             chatRoomNameText.setText(roomName);
                         }
 
+                        String photoUrl = doc.getString("photoUrl");
+                        if (photoUrl != null && !photoUrl.isEmpty()) {
+                            Glide.with(this).load(photoUrl)
+                                    .placeholder(R.drawable.user_profile)
+                                    .error(R.drawable.user_profile)
+                                    .circleCrop()
+                                    .into(chatRoomPhoto);
+                        }
                         onSuccess.run();
                     } else {
                         Toast.makeText(this, "Chat room not found", Toast.LENGTH_SHORT).show();
@@ -109,14 +140,12 @@ public class ChatRoomActivity extends AppCompatActivity {
         adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
             @Override
             public void onItemRangeInserted(int positionStart, int itemCount) {
-                super.onItemRangeInserted(positionStart, itemCount);
                 recyclerView.smoothScrollToPosition(adapter.getItemCount() - 1);
             }
         });
 
         adapter.startListening();
     }
-
 
     private void sendMessage() {
         String text = messageEditText.getText().toString().trim();
@@ -135,11 +164,64 @@ public class ChatRoomActivity extends AppCompatActivity {
                             text,
                             new Date()
                     );
-                    message.setType("user"); // Ensure type is set
+                    message.setType("user");
 
                     messagesRef.add(message);
                     messageEditText.setText("");
                     recyclerView.scrollToPosition(adapter.getItemCount() - 1);
+                });
+    }
+
+    private void openImagePicker() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        imagePickerLauncher.launch(intent);
+    }
+
+    private void uploadImageAndSendMessage(Uri imageUri) {
+        String filePath = FileUtils.getPath(this, imageUri);
+        if (filePath == null) {
+            Toast.makeText(this, "Failed to get file path", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        File file = new File(filePath);
+        if (!file.exists()) {
+            Toast.makeText(this, "File not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String fileName = System.currentTimeMillis() + "_" + file.getName();
+        String path = "chat-room-images/" + roomId + "/" + fileName;
+        String bucket = "chat-room-photos";
+
+        SupabaseUploader.uploadFile(file, bucket, path, (success, message, publicUrl) -> runOnUiThread(() -> {
+            if (success && publicUrl != null) {
+                sendImageMessage(publicUrl);
+            } else {
+                Toast.makeText(ChatRoomActivity.this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
+            }
+        }));
+    }
+
+    private void sendImageMessage(String imageUrl) {
+        db.collection("users").document(currentUser.getUid())
+                .get()
+                .addOnSuccessListener(userDoc -> {
+                    String senderName = userDoc.getString("firstName") + " " + userDoc.getString("lastName");
+                    String photoUrl = userDoc.getString("photoUrl");
+
+                    ChatMessage message = new ChatMessage(
+                            currentUser.getUid(),
+                            senderName,
+                            photoUrl,
+                            null,
+                            new Date()
+                    );
+                    message.setType("image");
+                    message.setImageUrl(imageUrl);
+
+                    messagesRef.add(message);
                 });
     }
 
@@ -149,21 +231,24 @@ public class ChatRoomActivity extends AppCompatActivity {
         popup.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == R.id.menu_live_quiz) {
-                // Handle live quiz
+                // TODO: Start live quiz
                 return true;
             } else if (id == R.id.menu_reminder) {
-                // Handle reminder
+                // TODO: Set reminder
                 return true;
             } else if (id == R.id.menu_settings) {
-                Intent intent = new Intent(ChatRoomActivity.this, EditChatRoomActivity.class);
-                intent.putExtra("roomId", roomId);
-                startActivity(intent);
+                openEditChatRoom();
                 return true;
             }
-
             return false;
         });
         popup.show();
+    }
+
+    private void openEditChatRoom() {
+        Intent intent = new Intent(ChatRoomActivity.this, EditChatRoomActivity.class);
+        intent.putExtra("roomId", roomId);
+        startActivity(intent);
     }
 
     @Override

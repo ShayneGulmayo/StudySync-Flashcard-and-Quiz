@@ -47,7 +47,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         } else if (viewType == VIEW_TYPE_OTHER_USER) {
             View view = inflater.inflate(R.layout.item_chat_message_other_user, parent, false);
             return new OtherUserViewHolder(view);
-        } else { // system message
+        } else {
             View view = inflater.inflate(R.layout.item_system_message, parent, false);
             return new SystemMessageViewHolder(view);
         }
@@ -69,19 +69,29 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         }
     }
 
-    // ViewHolder for current user
     static class CurrentUserViewHolder extends RecyclerView.ViewHolder {
         TextView messageText, timestampText;
+        ImageView imageView;
         boolean timestampVisible = false;
 
         public CurrentUserViewHolder(@NonNull View itemView) {
             super(itemView);
             messageText = itemView.findViewById(R.id.messageText);
             timestampText = itemView.findViewById(R.id.timestampText);
+            imageView = itemView.findViewById(R.id.imageView);
         }
 
         public void bind(ChatMessage message) {
-            messageText.setText(message.getText());
+            if ("image".equals(message.getType())) {
+                messageText.setVisibility(View.GONE);
+                imageView.setVisibility(View.VISIBLE);
+                Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
+            } else {
+                imageView.setVisibility(View.GONE);
+                messageText.setVisibility(View.VISIBLE);
+                messageText.setText(message.getText());
+            }
+
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
             timestampText.setVisibility(View.GONE);
 
@@ -92,10 +102,9 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         }
     }
 
-    // ViewHolder for other users
     static class OtherUserViewHolder extends RecyclerView.ViewHolder {
         TextView messageText, senderName, timestampText;
-        ImageView senderImage;
+        ImageView senderImage, imageView;
         boolean timestampVisible = false;
 
         public OtherUserViewHolder(@NonNull View itemView) {
@@ -104,10 +113,20 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             senderName = itemView.findViewById(R.id.senderName);
             senderImage = itemView.findViewById(R.id.senderImage);
             timestampText = itemView.findViewById(R.id.timestampText);
+            imageView = itemView.findViewById(R.id.imageView);
         }
 
         public void bind(ChatMessage message, boolean isSameSender) {
-            messageText.setText(message.getText());
+            if ("image".equals(message.getType())) {
+                messageText.setVisibility(View.GONE);
+                imageView.setVisibility(View.VISIBLE);
+                Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
+            } else {
+                imageView.setVisibility(View.GONE);
+                messageText.setVisibility(View.VISIBLE);
+                messageText.setText(message.getText());
+            }
+
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
             timestampText.setVisibility(View.GONE);
 
@@ -118,7 +137,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 senderName.setText(message.getSenderName());
                 senderName.setVisibility(View.VISIBLE);
                 senderImage.setVisibility(View.VISIBLE);
-
                 Glide.with(itemView.getContext())
                         .load(message.getSenderPhotoUrl())
                         .circleCrop()
