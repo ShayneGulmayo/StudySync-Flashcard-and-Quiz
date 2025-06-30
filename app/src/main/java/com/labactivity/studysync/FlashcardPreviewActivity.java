@@ -13,7 +13,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
@@ -37,7 +36,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private Button startFlashcardBtn;
     private FirebaseFirestore db;
     private String currentPrivacy, setId;
-
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private String currentReminder;
 
@@ -81,12 +79,11 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         backButton.setOnClickListener(v -> {
             if (fromNotification) {
-                // Go to MainActivity if launched from notification
                 Intent intent = new Intent(FlashcardPreviewActivity.this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
             }
-            finish(); // finish in both cases
+            finish();
         });
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
         startFlashcardBtn.setOnClickListener(v -> {
@@ -216,11 +213,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private void setReminder(Calendar calendar) {
         String formattedDateTime = formatDateTime(calendar);
 
-        // Save to Firestore
         db.collection("flashcards").document(setId)
                 .update("reminder", formattedDateTime)
                 .addOnSuccessListener(aVoid -> {
-                    currentReminder = formattedDateTime; // Update local state
+                    currentReminder = formattedDateTime;
                     reminderTextView.setText("Reminder: " + currentReminder);
                     reminderIcon.setImageResource(R.drawable.notifications);
                     Toast.makeText(this, "Reminder set for " + formattedDateTime, Toast.LENGTH_SHORT).show();
@@ -246,10 +242,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     AlarmManager.INTERVAL_DAY * 7,
                     pendingIntent
             );
-
         }
     }
-
 
     private String formatDateTime(Calendar calendar) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy | hh:mm a", Locale.getDefault());
@@ -286,7 +280,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         reminderIcon.setImageResource(R.drawable.off_notifications);
                     }
 
-
                     if ("Private".equals(currentPrivacy)) {
                         privacyIcon.setImageResource(R.drawable.lock);
                         privacyText.setText("Private");
@@ -317,16 +310,12 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         createdAtTextView.setText("Unknown");
                         Log.w("FlashcardPreview", "createdAt is not a Timestamp: " + createdAtObj);
                     }
-
-
                     loadOwnerProfile(ownerUid);
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to load flashcard", Toast.LENGTH_SHORT).show();
                     finish();
                 });
-
-
     }
 
     private void loadOwnerProfile(String ownerUid) {
@@ -378,12 +367,12 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                     Map<String, Object> termEntry = (Map<String, Object>) value;
                                     String term = termEntry.get("term") != null ? termEntry.get("term").toString() : "";
                                     String definition = termEntry.get("definition") != null ? termEntry.get("definition").toString() : "";
-                                    flashcards.add(new Flashcard(term, definition));
+                                    String photoUrl = termEntry.get("photoUrl") != null ? termEntry.get("photoUrl").toString() : "";
+                                    flashcards.add(new Flashcard(term, definition, photoUrl));
                                 } else {
                                     Log.e("Flashcards", "Skipping invalid term entry: " + entry.getKey() + " -> " + value);
                                 }
                             }
-
                         }
                     }
 
@@ -402,14 +391,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 });
     }
 
-
     private void setupCarousel() {
         CarouselAdapter carouselAdapter = new CarouselAdapter(flashcards);
         carouselViewPager.setOrientation(ViewPager2.ORIENTATION_HORIZONTAL);
         carouselViewPager.setAdapter(carouselAdapter);
         dotsIndicator.setViewPager2(carouselViewPager);
     }
-
-
-
 }

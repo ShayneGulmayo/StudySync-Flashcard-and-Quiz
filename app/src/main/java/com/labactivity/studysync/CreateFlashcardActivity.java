@@ -1,37 +1,46 @@
 package com.labactivity.studysync;
 
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import android.text.Editable;
 import android.text.TextUtils;
-import android.text.TextWatcher;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
-
-import androidx.appcompat.app.AlertDialog;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import androidx.core.content.FileProvider;
+import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
-
+import com.yalantis.ucrop.UCrop;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class CreateFlashcardActivity extends AppCompatActivity {
 
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
     private EditText setNameEditText;
     private LinearLayout flashcardContainer;
-    private FloatingActionButton floatingAddButton;
     private FirebaseFirestore db;
     private FirebaseAuth auth;
-    private ImageView backButton, saveButton;
     private String username;
+    private View currentFlashcardView;
+    private ActivityResultLauncher<Intent> pickImageLauncher;
     private String setId = null;
 
     @Override
@@ -41,72 +50,112 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
         setNameEditText = findViewById(R.id.set_name);
         flashcardContainer = findViewById(R.id.flashcard_container);
-        floatingAddButton = findViewById(R.id.floating_add_btn);
-        backButton = findViewById(R.id.back_button);
-        saveButton = findViewById(R.id.save_button);
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        backButton.setOnClickListener(v -> showExitConfirmation());
+        findViewById(R.id.back_button).setOnClickListener(v -> finish());
+        findViewById(R.id.save_button).setOnClickListener(v -> saveFlashcardSet());
+        findViewById(R.id.floating_add_btn).setOnClickListener(v -> addFlashcardView());
 
-        floatingAddButton.setOnClickListener(v -> addFlashcardView());
-
-        saveButton.setOnClickListener(v -> {
-            if (setId != null) {
-                updateFlashcardSet(); // <-- Now uses .set()
-            } else {
-                saveFlashcardSet();
-            }
-        });
-
-        addFlashcardView();
-        addFlashcardView();
-
-        setNameEditText.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (s.length() > 20) {
-                    setNameEditText.setText(s.subSequence(0, 20));
-                    setNameEditText.setSelection(20);
-                    Toast.makeText(CreateFlashcardActivity.this, "Title cannot exceed 20 characters", Toast.LENGTH_SHORT).show();
-                }
-            }
-            @Override public void afterTextChanged(Editable s) {}
-        });
-
-        db.collection("users")
-                .document(auth.getCurrentUser().getUid())
+        db.collection("users").document(auth.getCurrentUser().getUid())
                 .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        username = documentSnapshot.getString("username");
-                    }
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) username = doc.getString("username");
                 });
 
-        if (getIntent().hasExtra("setId")) {
-            setId = getIntent().getStringExtra("setId");
-            loadFlashcardSetForEditing(setId);
+        pickImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri sourceUri = result.getData().getData();
+                        File file = new File(getCacheDir(), UUID.randomUUID().toString() + ".jpg");
+                        Uri destUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", file);
+
+                        UCrop.of(sourceUri, destUri)
+                                .withAspectRatio(1, 1)
+                                .withMaxResultSize(512, 512)
+                                .start(this);
+                    }
+                }
+        );
+
+        setId = getIntent().getStringExtra("setId");
+        if (setId != null) {
+            loadFlashcardSetForEdit(setId);
+        } else {
+            addFlashcardView();
+            addFlashcardView();
         }
     }
 
-    private void loadFlashcardSetForEditing(String setId) {
+    private void addFlashcardView() {
+        View flashcardView = getLayoutInflater().inflate(R.layout.item_flashcard_input, null);
+        ImageButton deleteButton = flashcardView.findViewById(R.id.delete_btn);
+        ImageView imageButton = flashcardView.findViewById(R.id.upload_image_button);
+
+        deleteButton.setOnClickListener(v -> {
+            if (flashcardContainer.getChildCount() > 2) {
+                flashcardContainer.removeView(flashcardView);
+            } else {
+                Toast.makeText(this, "At least 2 flashcards required", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        imageButton.setOnClickListener(v -> {
+            currentFlashcardView = flashcardView;
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            pickImageLauncher.launch(Intent.createChooser(intent, "Select Image"));
+        });
+
+        flashcardContainer.addView(flashcardView);
+    }
+
+    private void loadFlashcardSetForEdit(String setId) {
         db.collection("flashcards").document(setId)
                 .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        String title = documentSnapshot.getString("title");
-                        setNameEditText.setText(title);
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        setNameEditText.setText(doc.getString("title"));
+                        Map<String, Object> terms = (Map<String, Object>) doc.get("terms");
 
-                        Map<String, Object> terms = (Map<String, Object>) documentSnapshot.get("terms");
-                        if (terms != null) {
-                            flashcardContainer.removeAllViews();
-                            for (int i = 0; i < terms.size(); i++) {
-                                Map<String, Object> termEntry = (Map<String, Object>) terms.get(String.valueOf(i));
-                                String term = (String) termEntry.get("term");
-                                String definition = (String) termEntry.get("definition");
-                                addFlashcardView(term, definition);
+                        flashcardContainer.removeAllViews();
+
+                        for (Map.Entry<String, Object> entry : terms.entrySet()) {
+                            Map<String, Object> termData = (Map<String, Object>) entry.getValue();
+                            View flashcardView = getLayoutInflater().inflate(R.layout.item_flashcard_input, null);
+
+                            EditText termEditText = flashcardView.findViewById(R.id.flashcard_term);
+                            EditText definitionEditText = flashcardView.findViewById(R.id.flashcard_definition);
+                            ImageView imageButton = flashcardView.findViewById(R.id.upload_image_button);
+
+                            termEditText.setText((String) termData.get("term"));
+                            definitionEditText.setText((String) termData.get("definition"));
+
+                            String photoUrl = (String) termData.get("photoUrl");
+                            if (photoUrl != null && !photoUrl.isEmpty()) {
+                                Glide.with(this).load(photoUrl).into(imageButton);
+                                imageButton.setTag(photoUrl);
                             }
+
+                            ImageButton deleteButton = flashcardView.findViewById(R.id.delete_btn);
+                            deleteButton.setOnClickListener(v -> {
+                                if (flashcardContainer.getChildCount() > 2) {
+                                    flashcardContainer.removeView(flashcardView);
+                                } else {
+                                    Toast.makeText(this, "At least 2 flashcards required", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+
+                            imageButton.setOnClickListener(v -> {
+                                currentFlashcardView = flashcardView;
+                                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                                intent.setType("image/*");
+                                pickImageLauncher.launch(Intent.createChooser(intent, "Select Image"));
+                            });
+
+                            flashcardContainer.addView(flashcardView);
                         }
                     }
                 })
@@ -115,169 +164,134 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
     private void saveFlashcardSet() {
         String setName = setNameEditText.getText().toString().trim();
-
         if (TextUtils.isEmpty(setName)) {
-            setNameEditText.setError("Set name is required");
+            Toast.makeText(this, "Set name is required", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        int numberOfItems = 0;
+        int itemCount = 0;
         Map<String, Object> termsMap = new HashMap<>();
 
         for (int i = 0; i < flashcardContainer.getChildCount(); i++) {
-            View view = flashcardContainer.getChildAt(i);
-            EditText termEditText = view.findViewById(R.id.flashcard_term);
-            EditText definitionEditText = view.findViewById(R.id.flashcard_definition);
+            View cardView = flashcardContainer.getChildAt(i);
+            EditText termEditText = cardView.findViewById(R.id.flashcard_term);
+            EditText definitionEditText = cardView.findViewById(R.id.flashcard_definition);
+            ImageView imageView = cardView.findViewById(R.id.upload_image_button);
 
             String term = termEditText.getText().toString().trim();
             String definition = definitionEditText.getText().toString().trim();
+            String imageUrl = imageView.getTag() != null ? imageView.getTag().toString() : null;
 
             if (!TextUtils.isEmpty(term) && !TextUtils.isEmpty(definition)) {
                 Map<String, Object> termEntry = new HashMap<>();
                 termEntry.put("term", term);
                 termEntry.put("definition", definition);
-                termsMap.put(String.valueOf(numberOfItems), termEntry);
-                numberOfItems++;
+                if (imageUrl != null) termEntry.put("photoUrl", imageUrl);
+                termsMap.put(String.valueOf(itemCount), termEntry);
+                itemCount++;
             }
         }
 
-        if (numberOfItems < 2) {
-            Toast.makeText(this, "A set must have at least 2 flashcards", Toast.LENGTH_SHORT).show();
+        if (itemCount < 2) {
+            Toast.makeText(this, "At least 2 flashcards required", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        String uid = auth.getCurrentUser().getUid();
 
         Map<String, Object> flashcardSet = new HashMap<>();
         flashcardSet.put("title", setName);
-        flashcardSet.put("number_of_items", numberOfItems);
+        flashcardSet.put("number_of_items", itemCount);
         flashcardSet.put("owner_username", username);
-        flashcardSet.put("owner_uid", uid);
-        flashcardSet.put("progress", 0);
+        flashcardSet.put("owner_uid", auth.getCurrentUser().getUid());
         flashcardSet.put("terms", termsMap);
         flashcardSet.put("createdAt", getCurrentFormattedDateTime());
 
-        db.collection("flashcards")
-                .add(flashcardSet)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(this, "Flashcard set saved", Toast.LENGTH_SHORT).show();
-                    setResult(RESULT_OK);
-                    finish();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to save flashcard set", Toast.LENGTH_SHORT).show());
+        if (setId != null) {
+            db.collection("flashcards").document(setId)
+                    .set(flashcardSet)
+                    .addOnSuccessListener(doc -> {
+                        Toast.makeText(this, "Flashcard set updated", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to update set", Toast.LENGTH_SHORT).show());
+        } else {
+            db.collection("flashcards")
+                    .add(flashcardSet)
+                    .addOnSuccessListener(doc -> {
+                        Toast.makeText(this, "Flashcard set saved", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to save set", Toast.LENGTH_SHORT).show());
+        }
     }
 
-    private void updateFlashcardSet() {
-        String setName = setNameEditText.getText().toString().trim();
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
 
-        if (TextUtils.isEmpty(setName)) {
-            setNameEditText.setError("Set name is required");
-            return;
-        }
-
-        int numberOfItems = 0;
-        Map<String, Object> termsMap = new HashMap<>();
-
-        for (int i = 0; i < flashcardContainer.getChildCount(); i++) {
-            View view = flashcardContainer.getChildAt(i);
-            EditText termEditText = view.findViewById(R.id.flashcard_term);
-            EditText definitionEditText = view.findViewById(R.id.flashcard_definition);
-
-            String term = termEditText.getText().toString().trim();
-            String definition = definitionEditText.getText().toString().trim();
-
-            if (!TextUtils.isEmpty(term) && !TextUtils.isEmpty(definition)) {
-                Map<String, Object> termEntry = new HashMap<>();
-                termEntry.put("term", term);
-                termEntry.put("definition", definition);
-                termsMap.put(String.valueOf(numberOfItems), termEntry);
-                numberOfItems++;
+        if (requestCode == UCrop.REQUEST_CROP && resultCode == RESULT_OK && data != null) {
+            Uri resultUri = UCrop.getOutput(data);
+            if (resultUri != null && currentFlashcardView != null) {
+                uploadImageAndAttachToFlashcard(resultUri, currentFlashcardView);
             }
         }
-
-        if (numberOfItems < 2) {
-            Toast.makeText(this, "A set must have at least 2 flashcards", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        Map<String, Object> updatedData = new HashMap<>();
-        updatedData.put("title", setName);
-        updatedData.put("number_of_items", numberOfItems);
-        updatedData.put("terms", termsMap);
-        updatedData.put("owner_username", username);
-        updatedData.put("owner_uid", auth.getCurrentUser().getUid());
-        updatedData.put("createdAt", getCurrentFormattedDateTime());
-
-        db.collection("flashcards").document(setId)
-                .set(updatedData) // <-- fixed: overwrite entire doc to clear old keys
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Flashcard set updated!", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to update flashcard set", Toast.LENGTH_SHORT).show());
     }
 
-    private void addFlashcardView() {
-        View flashcardView = getLayoutInflater().inflate(R.layout.item_flashcard_input, null);
-        ImageButton deleteButton = flashcardView.findViewById(R.id.delete_btn);
-
-        deleteButton.setOnClickListener(v -> {
-            if (flashcardContainer.getChildCount() > 2) {
-                flashcardContainer.removeView(flashcardView);
-                Toast.makeText(CreateFlashcardActivity.this, "Flashcard removed", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(CreateFlashcardActivity.this, "A set must have at least 2 flashcards", Toast.LENGTH_SHORT).show();
+    private void uploadImageAndAttachToFlashcard(Uri imageUri, View flashcardView) {
+        try {
+            File file = getFileFromUri(this, imageUri);
+            if (file.length() > MAX_FILE_SIZE) {
+                Toast.makeText(this, "Image too large (max 5MB)", Toast.LENGTH_SHORT).show();
+                return;
             }
-            updateDeleteButtons();
-        });
 
-        flashcardContainer.addView(flashcardView);
-        updateDeleteButtons();
-    }
+            String mimeType = getMimeType(Uri.fromFile(file));
+            String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+            if (ext == null) ext = "jpg";
 
-    private void addFlashcardView(String term, String definition) {
-        View flashcardView = getLayoutInflater().inflate(R.layout.item_flashcard_input, null);
-        EditText termEditText = flashcardView.findViewById(R.id.flashcard_term);
-        EditText definitionEditText = flashcardView.findViewById(R.id.flashcard_definition);
-        ImageButton deleteButton = flashcardView.findViewById(R.id.delete_btn);
+            String filename = "flashcard_" + UUID.randomUUID() + "." + ext;
+            String bucket = "flashcard-images";
 
-        termEditText.setText(term);
-        definitionEditText.setText(definition);
+            SupabaseUploader.uploadFile(file, bucket, filename, (success, message, publicUrl) -> {
+                runOnUiThread(() -> {
+                    if (success) {
+                        ImageView imageView = flashcardView.findViewById(R.id.upload_image_button);
+                        Glide.with(this).load(publicUrl).into(imageView);
+                        imageView.setTag(publicUrl);
+                        Toast.makeText(this, "Image uploaded", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
 
-        deleteButton.setOnClickListener(v -> {
-            if (flashcardContainer.getChildCount() > 2) {
-                flashcardContainer.removeView(flashcardView);
-                Toast.makeText(CreateFlashcardActivity.this, "Flashcard removed", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(CreateFlashcardActivity.this, "A set must have at least 2 flashcards", Toast.LENGTH_SHORT).show();
-            }
-            updateDeleteButtons();
-        });
-
-        flashcardContainer.addView(flashcardView);
-        updateDeleteButtons();
-    }
-
-    private void updateDeleteButtons() {
-        int count = flashcardContainer.getChildCount();
-        for (int i = 0; i < count; i++) {
-            View cardView = flashcardContainer.getChildAt(i);
-            ImageButton deleteButton = cardView.findViewById(R.id.delete_btn);
-            deleteButton.setEnabled(count > 2);
+        } catch (Exception e) {
+            Toast.makeText(this, "Image error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void showExitConfirmation() {
-        new AlertDialog.Builder(this)
-                .setTitle("Leave Flashcard?")
-                .setMessage("Are you sure you want to leave making this flashcard?")
-                .setPositiveButton("No", null)
-                .setNegativeButton("Yes", (dialog, which) -> finish())
-                .show();
+    public static File getFileFromUri(Context context, Uri uri) throws Exception {
+        ContentResolver contentResolver = context.getContentResolver();
+        String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(uri));
+        if (extension == null) extension = "jpg";
+        File tempFile = File.createTempFile("upload", "." + extension, context.getCacheDir());
+
+        try (InputStream inputStream = contentResolver.openInputStream(uri);
+             OutputStream outputStream = new FileOutputStream(tempFile)) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        }
+        return tempFile;
+    }
+
+    private String getMimeType(Uri uri) {
+        return getContentResolver().getType(uri);
     }
 
     private String getCurrentFormattedDateTime() {
-        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy | hh:mm a");
-        return sdf.format(new Date());
+        return new SimpleDateFormat("MM/dd/yyyy | hh:mm a").format(new Date());
     }
 }
+

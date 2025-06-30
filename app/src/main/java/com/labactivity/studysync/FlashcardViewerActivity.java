@@ -1,30 +1,20 @@
 package com.labactivity.studysync;
 
 import android.annotation.SuppressLint;
-import android.app.AlarmManager;
-import android.app.DatePickerDialog;
-import android.app.PendingIntent;
-import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.firestore.FirebaseFirestore;
-
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Locale;
 import java.util.Map;
 
 public class FlashcardViewerActivity extends AppCompatActivity {
@@ -34,14 +24,14 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     private ArrayList<Flashcard> flashcards;
     private ArrayList<Flashcard> dontKnowFlashcards;
     private boolean isReviewingOnlyDontKnow = false;
-
     private TextView frontCard, backCard, items;
+    private ImageView flashcardImage;
     private ImageView backButton, moreButton, knowBtn, dontKnowBtn;
+    private View cardFront, cardBack;
     private int knowCount;
     private int dontKnowCount;
     private int currentIndex = 0;
     private boolean showingFront = true;
-    private String ownerUid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,17 +40,21 @@ public class FlashcardViewerActivity extends AppCompatActivity {
 
         setId = getIntent().getStringExtra("setId");
         isReviewingOnlyDontKnow = getIntent().getBooleanExtra("isReviewingOnlyDontKnow", false);
+
         db = FirebaseFirestore.getInstance();
         flashcards = new ArrayList<>();
         dontKnowFlashcards = new ArrayList<>();
 
         frontCard = findViewById(R.id.front_card);
         backCard = findViewById(R.id.back_card);
+        flashcardImage = findViewById(R.id.flashcard_image);
         backButton = findViewById(R.id.back_button);
         moreButton = findViewById(R.id.more_button);
         knowBtn = findViewById(R.id.know_btn);
         dontKnowBtn = findViewById(R.id.dont_know_btn);
         items = findViewById(R.id.txtView_items);
+        cardFront = findViewById(R.id.card_front);
+        cardBack = findViewById(R.id.card_back);
 
         backButton.setOnClickListener(v -> finish());
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
@@ -80,28 +74,28 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onResume() {
+    protected void onResume() {
         super.onResume();
         loadFlashcards();
     }
 
     @SuppressLint("MissingInflatedId")
     private void showMoreBottomSheet() {
-        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_viewer, null);
-        bottomSheetDialog.setContentView(view);
+        dialog.setContentView(view);
 
         view.findViewById(R.id.shuffle).setOnClickListener(v -> {
             Toast.makeText(this, "Shuffle clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
+            dialog.dismiss();
         });
 
         view.findViewById(R.id.restart).setOnClickListener(v -> {
             Toast.makeText(this, "Restart clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
+            dialog.dismiss();
         });
 
-        bottomSheetDialog.show();
+        dialog.show();
     }
 
     private void loadFlashcards() {
@@ -123,7 +117,9 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                             Map<String, Object> termEntry = (Map<String, Object>) entry.getValue();
                             String term = (String) termEntry.get("term");
                             String definition = (String) termEntry.get("definition");
-                            Flashcard card = new Flashcard(term, definition);
+                            String photoUrl = (String) termEntry.get("photoUrl");
+
+                            Flashcard card = new Flashcard(term, definition, photoUrl);
 
                             if (isReviewingOnlyDontKnow) {
                                 if (dontKnowTerms != null && dontKnowTerms.contains(term)) {
@@ -152,39 +148,57 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             Flashcard card = flashcards.get(index);
             frontCard.setText(card.getTerm());
             backCard.setText(card.getDefinition());
-            showingFront = true;
-            frontCard.setVisibility(View.VISIBLE);
-            backCard.setVisibility(View.GONE);
             items.setText((index + 1) + " / " + flashcards.size());
+
+            if (card.getPhotoUrl() != null && !card.getPhotoUrl().isEmpty()) {
+                flashcardImage.setVisibility(View.VISIBLE);
+                Glide.with(this).load(card.getPhotoUrl()).transform(new RoundedCorners(dpToPx(20))).into(flashcardImage);
+
+                int paddingLeftRightBottom = dpToPx(24);
+                int paddingTop = dpToPx(40);
+                backCard.setPadding(paddingLeftRightBottom, paddingTop, paddingLeftRightBottom, paddingLeftRightBottom);
+
+            } else {
+                flashcardImage.setVisibility(View.GONE);
+                int defaultPadding = dpToPx(24);
+                backCard.setPadding(defaultPadding, defaultPadding, defaultPadding, defaultPadding);
+            }
+            showingFront = true;
+            cardFront.setVisibility(View.VISIBLE);
+            cardBack.setVisibility(View.GONE);
+
         } else {
             openFlashcardProgressActivity();
         }
     }
 
-    private void flipCard() {
-        View visible = showingFront ? frontCard : backCard;
-        View hidden = showingFront ? backCard : frontCard;
+    private int dpToPx(int dp) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dp * density);
+    }
 
-        visible.animate()
+    private void flipCard() {
+        View visibleCard = showingFront ? cardFront : cardBack;
+        View hiddenCard = showingFront ? cardBack : cardFront;
+
+        visibleCard.animate()
                 .rotationY(90f)
                 .setDuration(200)
                 .setInterpolator(new AccelerateInterpolator())
                 .withEndAction(() -> {
-                    visible.setVisibility(View.GONE);
-                    visible.setRotationY(0f);
+                    visibleCard.setVisibility(View.GONE);
+                    visibleCard.setRotationY(0f);
 
-                    hidden.setVisibility(View.VISIBLE);
-                    hidden.setRotationY(-90f);
-
-                    hidden.animate()
+                    hiddenCard.setVisibility(View.VISIBLE);
+                    hiddenCard.setRotationY(-90f);
+                    hiddenCard.animate()
                             .rotationY(0f)
                             .setDuration(200)
                             .setInterpolator(new DecelerateInterpolator())
                             .start();
 
                     showingFront = !showingFront;
-                })
-                .start();
+                }).start();
     }
 
     private void animateCardSwipe(boolean isRightSwipe) {
@@ -193,8 +207,8 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             return;
         }
 
-        View cardView = showingFront ? frontCard : backCard;
-        View hiddenCard = showingFront ? backCard : frontCard;
+        View cardView = showingFront ? cardFront : cardBack;
+        View hiddenCard = showingFront ? cardBack : cardFront;
 
         float toX = isRightSwipe ? cardView.getWidth() * 1.5f : -cardView.getWidth() * 1.5f;
         float rotation = isRightSwipe ? 15f : -15f;
@@ -214,8 +228,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                     hiddenCard.setAlpha(1f);
 
                     nextCard(isRightSwipe);
-                })
-                .start();
+                }).start();
     }
 
     private void nextCard(boolean previousWasRightSwipe) {
@@ -223,7 +236,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         if (currentIndex < flashcards.size()) {
             showCard(currentIndex);
 
-            View newCardView = showingFront ? frontCard : backCard;
+            View newCardView = showingFront ? cardFront : cardBack;
             float fromX = previousWasRightSwipe ? -newCardView.getWidth() * 1.5f : newCardView.getWidth() * 1.5f;
 
             newCardView.setTranslationX(fromX);

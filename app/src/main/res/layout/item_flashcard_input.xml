@@ -84,7 +84,7 @@
                     android:hint="@string/definition"
                     app:boxBackgroundMode="outline"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@+id/flashcard_image_def"
+                    app:layout_constraintEnd_toStartOf="@+id/upload_image_button"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent">
 
@@ -101,7 +101,7 @@
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <ImageView
-                    android:id="@+id/flashcard_image_def"
+                    android:id="@+id/upload_image_button"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     app:layout_constraintBottom_toBottomOf="parent"
