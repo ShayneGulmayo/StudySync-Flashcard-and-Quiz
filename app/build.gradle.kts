@@ -61,6 +61,8 @@ dependencies {
     implementation ("com.github.bumptech.glide:glide:4.16.0")
     implementation ("com.firebaseui:firebase-ui-firestore:8.0.2")
     implementation ("com.tbuonomo:dotsindicator:5.0")
+    implementation ("com.github.chrisbanes:PhotoView:2.3.0")
+
 
 
 

@@ -1,5 +1,6 @@
 package com.labactivity.studysync;
 
+import android.content.Intent;
 import android.icu.text.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,7 +21,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     private static final int VIEW_TYPE_OTHER_USER = 2;
     private static final int VIEW_TYPE_SYSTEM_MESSAGE = 3;
 
-    private String currentUserId;
+    private final String currentUserId;
 
     public ChatMessageAdapter(@NonNull FirestoreRecyclerOptions<ChatMessage> options, String currentUserId) {
         super(options);
@@ -86,6 +87,12 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 messageText.setVisibility(View.GONE);
                 imageView.setVisibility(View.VISIBLE);
                 Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
+
+                imageView.setOnClickListener(v -> {
+                    Intent intent = new Intent(itemView.getContext(), ImageViewerActivity.class);
+                    intent.putExtra("imageUrl", message.getImageUrl());
+                    itemView.getContext().startActivity(intent);
+                });
             } else {
                 imageView.setVisibility(View.GONE);
                 messageText.setVisibility(View.VISIBLE);
@@ -121,6 +128,12 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 messageText.setVisibility(View.GONE);
                 imageView.setVisibility(View.VISIBLE);
                 Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
+
+                imageView.setOnClickListener(v -> {
+                    Intent intent = new Intent(itemView.getContext(), ImageViewerActivity.class);
+                    intent.putExtra("imageUrl", message.getImageUrl());
+                    itemView.getContext().startActivity(intent);
+                });
             } else {
                 imageView.setVisibility(View.GONE);
                 messageText.setVisibility(View.VISIBLE);
