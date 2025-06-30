@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.models;
 public class User {
     private String uid;
     private String firstName;

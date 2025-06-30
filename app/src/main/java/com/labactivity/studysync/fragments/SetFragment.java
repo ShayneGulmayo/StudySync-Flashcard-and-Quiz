@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.fragments;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
@@ -21,6 +21,12 @@ import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.labactivity.studysync.CreateFlashcardActivity;
+import com.labactivity.studysync.CreateQuizActivity;
+import com.labactivity.studysync.FlashcardPreviewActivity;
+import com.labactivity.studysync.models.FlashcardSet;
+import com.labactivity.studysync.R;
+import com.labactivity.studysync.adapters.SetAdapter;
 
 import java.util.ArrayList;
 
@@ -28,7 +34,7 @@ public class SetFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private ProgressBar progressBar;
-    private FlashcardSetAdapter adapter;
+    private SetAdapter adapter;
     private ArrayList<FlashcardSet> allSets;
     private ArrayList<FlashcardSet> displayedSets;
     private FirebaseFirestore db;
@@ -69,7 +75,7 @@ public class SetFragment extends Fragment {
         allSets = new ArrayList<>();
         displayedSets = new ArrayList<>();
 
-        adapter = new FlashcardSetAdapter(getContext(), displayedSets, this::onFlashcardSetClicked);
+        adapter = new SetAdapter(getContext(), displayedSets, this::onFlashcardSetClicked);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
 

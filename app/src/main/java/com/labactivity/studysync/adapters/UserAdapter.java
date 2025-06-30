@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.adapters;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +11,9 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.labactivity.studysync.R;
+import com.labactivity.studysync.models.User;
+
 import java.util.List;
 
 public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {

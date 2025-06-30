@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.adapters;
 
 import android.content.Intent;
 import android.icu.text.DateFormat;
@@ -14,6 +14,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.labactivity.studysync.ImageViewerActivity;
+import com.labactivity.studysync.R;
+import com.labactivity.studysync.models.ChatMessage;
 
 public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, RecyclerView.ViewHolder> {
 

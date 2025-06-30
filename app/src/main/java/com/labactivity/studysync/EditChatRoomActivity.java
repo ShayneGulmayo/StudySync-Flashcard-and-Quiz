@@ -21,6 +21,8 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
+import com.labactivity.studysync.models.ChatRoom;
+import com.labactivity.studysync.utils.SupabaseUploader;
 import com.yalantis.ucrop.UCrop;
 
 import java.io.File;

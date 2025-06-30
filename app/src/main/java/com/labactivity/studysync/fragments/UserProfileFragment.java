@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.fragments;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -21,6 +21,10 @@ import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.labactivity.studysync.LoginActivity;
+import com.labactivity.studysync.R;
+import com.labactivity.studysync.UserSettingsActivity;
+import com.labactivity.studysync.utils.SupabaseUploader;
 import com.yalantis.ucrop.UCrop;
 
 import java.io.File;

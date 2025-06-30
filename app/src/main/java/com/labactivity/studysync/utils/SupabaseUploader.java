@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.utils;
 
 import okhttp3.Call;
 import okhttp3.Callback;

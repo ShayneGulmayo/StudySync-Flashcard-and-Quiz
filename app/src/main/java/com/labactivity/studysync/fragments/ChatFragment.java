@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -20,6 +20,10 @@ import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.*;
+import com.labactivity.studysync.models.ChatRoom;
+import com.labactivity.studysync.adapters.ChatRoomAdapter;
+import com.labactivity.studysync.CreateChatRoomActivity;
+import com.labactivity.studysync.R;
 
 import java.util.*;
 
@@ -46,11 +50,11 @@ public class ChatFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_chat, container, false);
+        View view = inflater.inflate(com.labactivity.studysync.R.layout.fragment_chat, container, false);
 
-        addButton = view.findViewById(R.id.add_button);
-        searchView = view.findViewById(R.id.search_set);
-        progressBar = view.findViewById(R.id.progress_bar);
+        addButton = view.findViewById(com.labactivity.studysync.R.id.add_button);
+        searchView = view.findViewById(com.labactivity.studysync.R.id.search_set);
+        progressBar = view.findViewById(com.labactivity.studysync.R.id.progress_bar);
         chatRecyclerView = view.findViewById(R.id.recycler_flashcards);
 
         EditText searchEditText = searchView.findViewById(androidx.appcompat.R.id.search_src_text);

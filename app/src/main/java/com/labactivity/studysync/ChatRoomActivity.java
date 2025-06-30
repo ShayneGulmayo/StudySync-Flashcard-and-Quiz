@@ -24,6 +24,9 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.labactivity.studysync.adapters.ChatMessageAdapter;
+import com.labactivity.studysync.models.ChatMessage;
+import com.labactivity.studysync.utils.SupabaseUploader;
 import com.yalantis.ucrop.util.FileUtils;
 
 import java.io.File;

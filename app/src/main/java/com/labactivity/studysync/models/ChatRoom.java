@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.models;
 
 import java.util.Date;
 import java.util.List;

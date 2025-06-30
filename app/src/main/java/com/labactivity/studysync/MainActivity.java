@@ -9,6 +9,9 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.labactivity.studysync.fragments.ChatFragment;
+import com.labactivity.studysync.fragments.SetFragment;
+import com.labactivity.studysync.fragments.UserProfileFragment;
 
 public class MainActivity extends AppCompatActivity {
 

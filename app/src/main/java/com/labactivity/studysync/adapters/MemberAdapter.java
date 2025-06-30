@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.adapters;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -15,6 +15,10 @@ import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.labactivity.studysync.R;
+import com.labactivity.studysync.SeeMembersActivity;
+import com.labactivity.studysync.models.User;
+import com.labactivity.studysync.models.UserWithRole;
 
 import java.util.Date;
 import java.util.HashMap;

@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.receivers;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -14,8 +14,9 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.labactivity.studysync.FlashcardPreviewActivity;
+import com.labactivity.studysync.R;
 
 public class ReminderReceiver extends BroadcastReceiver {
 

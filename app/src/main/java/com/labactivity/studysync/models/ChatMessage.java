@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.models;
 
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;

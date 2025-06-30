@@ -20,6 +20,7 @@ import androidx.core.content.FileProvider;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.labactivity.studysync.utils.SupabaseUploader;
 import com.yalantis.ucrop.UCrop;
 import java.io.File;
 import java.io.FileOutputStream;

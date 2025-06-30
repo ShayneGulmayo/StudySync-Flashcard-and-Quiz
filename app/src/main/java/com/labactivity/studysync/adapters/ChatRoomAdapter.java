@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.adapters;
 
 import android.content.Context;
 import android.content.Intent;
@@ -16,6 +16,9 @@ import com.bumptech.glide.Glide;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
+import com.labactivity.studysync.ChatRoomActivity;
+import com.labactivity.studysync.R;
+import com.labactivity.studysync.models.ChatRoom;
 
 import java.util.ArrayList;
 import java.util.Date;

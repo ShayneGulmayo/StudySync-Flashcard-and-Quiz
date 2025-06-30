@@ -1,4 +1,4 @@
-package com.labactivity.studysync;
+package com.labactivity.studysync.adapters;
 
 import android.content.Context;
 import android.content.Intent;
@@ -18,11 +18,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.RequestOptions;
+import com.labactivity.studysync.models.FlashcardSet;
+import com.labactivity.studysync.QuizPreviewActivity;
+import com.labactivity.studysync.R;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapter.ViewHolder> implements Filterable {
+public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> implements Filterable {
 
     public interface OnFlashcardSetClickListener {
         void onFlashcardSetClick(FlashcardSet set);
@@ -46,7 +50,7 @@ public class FlashcardSetAdapter extends RecyclerView.Adapter<FlashcardSetAdapte
         return set.getType().equalsIgnoreCase("quiz") ? TYPE_QUIZ : TYPE_FLASHCARD;
     }
 
-    public FlashcardSetAdapter(Context context, ArrayList<FlashcardSet> flashcardSets, OnFlashcardSetClickListener listener) {
+    public SetAdapter(Context context, ArrayList<FlashcardSet> flashcardSets, OnFlashcardSetClickListener listener) {
         this.context = context;
         this.flashcardSets = flashcardSets;
         this.flashcardSetsFull = new ArrayList<>(flashcardSets);
