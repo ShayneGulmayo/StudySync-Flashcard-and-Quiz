@@ -89,9 +89,15 @@ public class Quiz {
         private String question;
         private String type;
         private List<String> choices;
-        private Object correctAnswer; // Could be String or List<String>
+        private String correctAnswer;  // will store comma-separated values if it's a list
 
         public Question() {}
+
+        public Question(String question, List<String> choices) {
+            this.question = question;
+            this.choices = choices;
+        }
+
 
         public String getQuestion() {
             return question;
@@ -117,13 +123,14 @@ public class Quiz {
             this.choices = choices;
         }
 
-        public Object getCorrectAnswer() {
+        public String getCorrectAnswer() {
             return correctAnswer;
         }
 
-        public void setCorrectAnswer(Object correctAnswer) {
+        public void setCorrectAnswer(String correctAnswer) {
             this.correctAnswer = correctAnswer;
         }
+
 
         // Convenience method
         public boolean isMultipleChoice() {

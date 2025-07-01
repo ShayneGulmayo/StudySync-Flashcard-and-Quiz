@@ -84,7 +84,9 @@
         <item>Multiple Choice</item>
         <item>Enumeration</item>
     </string-array>
-    <string name="Check">Check</string>
+    <string name="check">Check</string>
+    <string name="question">Question</string>
+
 
 
 </resources>

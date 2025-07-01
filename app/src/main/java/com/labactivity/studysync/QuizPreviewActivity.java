@@ -17,10 +17,19 @@ import androidx.core.view.WindowInsetsCompat;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import androidx.viewpager2.widget.ViewPager2;
+import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
+import com.labactivity.studysync.adapters.QuizCarouselAdapter;
+import com.labactivity.studysync.models.Quiz;
+
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class QuizPreviewActivity extends AppCompatActivity {
 
@@ -29,6 +38,10 @@ public class QuizPreviewActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private String quizId;
     private String photoUrl;
+    private ViewPager2 carouselViewPager;
+    private SpringDotsIndicator dotsIndicator;
+    private List<Quiz.Question> quizQuestions = new ArrayList<>();
+
 
 
     @Override
@@ -53,9 +66,8 @@ public class QuizPreviewActivity extends AppCompatActivity {
         moreButton = findViewById(R.id.more_button);
         TextView startQuizBtn = findViewById(R.id.start_quiz_btn);
         photoUrl = getIntent().getStringExtra("photoUrl");
-
-
-
+        carouselViewPager = findViewById(R.id.carousel_viewpager);
+        dotsIndicator = findViewById(R.id.dots_indicator);
 
         db = FirebaseFirestore.getInstance();
 
@@ -121,11 +133,44 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     }
 
                     loadOwnerProfile(ownerUid);
+
+                    // ✅ Load the quiz questions from the 'questions' array field
+                    List<Map<String, Object>> questionList = (List<Map<String, Object>>) documentSnapshot.get("questions");
+                    if (questionList != null) {
+                        quizQuestions.clear();
+                        for (Map<String, Object> q : questionList) {
+                            Quiz.Question question = new Quiz.Question();
+                            question.setQuestion((String) q.get("question"));
+                            question.setType((String) q.get("type"));
+                            question.setChoices((List<String>) q.get("choices"));
+
+                            Object correctAnsRaw = q.get("correctAnswer");
+                            if (correctAnsRaw instanceof String) {
+                                question.setCorrectAnswer((String) correctAnsRaw);
+                            } else if (correctAnsRaw instanceof List) {
+                                List<String> answerList = new ArrayList<>();
+                                for (Object a : (List<?>) correctAnsRaw) {
+                                    answerList.add(String.valueOf(a));
+                                }
+                                question.setCorrectAnswer(String.join(", ", answerList));
+                            } else {
+                                question.setCorrectAnswer("N/A");
+                            }
+
+                            quizQuestions.add(question);
+                        }
+
+                        QuizCarouselAdapter adapter = new QuizCarouselAdapter(quizQuestions);
+                        carouselViewPager.setAdapter(adapter);
+                        dotsIndicator.setViewPager2(carouselViewPager);
+                    }
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to load quiz data", Toast.LENGTH_SHORT).show();
                 });
     }
+
+
 
     private void loadOwnerProfile(String ownerUid) {
         if (ownerUid == null || ownerUid.isEmpty()) {

@@ -174,7 +174,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="10dp"
         android:padding="12dp"
-        android:text="@string/Check"
+        android:text="@string/check"
         android:textColor="@color/white"
         android:textSize="18sp"
         android:textStyle="bold"
