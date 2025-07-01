@@ -47,32 +47,40 @@ public class SendSetAdapter extends RecyclerView.Adapter<SendSetAdapter.SetViewH
         if (set instanceof Flashcard) {
             Flashcard flashcard = (Flashcard) set;
             holder.setTitle.setText(flashcard.getTitle());
+            String defaultDesc = "Flashcard set · " + flashcard.getNumberOfItems() + " terms";
+            holder.setDescription.setText(defaultDesc);
+            holder.cardView.setOnClickListener(v -> listener.onSetClick(flashcard));
 
-            db.collection("users").document(flashcard.getOwnerUid())
-                    .get()
-                    .addOnSuccessListener(snapshot -> {
-                        User user = snapshot.toObject(User.class);
-                        if (user != null) {
-                            String desc = "Flashcard set · " + flashcard.getNumberOfItems() + " terms · by " + user.getUsername();
-                            holder.setDescription.setText(desc);
-                            holder.cardView.setOnClickListener(v -> listener.onSetClick(flashcard));
-                        }
-                    });
+            if (flashcard.getOwnerUid() != null) {
+                db.collection("users").document(flashcard.getOwnerUid())
+                        .get()
+                        .addOnSuccessListener(snapshot -> {
+                            User user = snapshot.toObject(User.class);
+                            if (user != null && user.getUsername() != null) {
+                                String updatedDesc = defaultDesc + " · by " + user.getUsername();
+                                holder.setDescription.setText(updatedDesc);
+                            }
+                        });
+            }
 
         } else if (set instanceof Quiz) {
             Quiz quiz = (Quiz) set;
             holder.setTitle.setText(quiz.getTitle());
+            String defaultDesc = "Quiz set · " + quiz.getNumber_of_items() + " items";
+            holder.setDescription.setText(defaultDesc);
+            holder.cardView.setOnClickListener(v -> listener.onSetClick(quiz));
 
-            db.collection("users").document(quiz.getOwner_uid())
-                    .get()
-                    .addOnSuccessListener(snapshot -> {
-                        User user = snapshot.toObject(User.class);
-                        if (user != null) {
-                            String desc = "Quiz set · " + quiz.getNumber_of_items() + " items · by " + user.getUsername();
-                            holder.setDescription.setText(desc);
-                            holder.cardView.setOnClickListener(v -> listener.onSetClick(quiz));
-                        }
-                    });
+            if (quiz.getOwner_uid() != null) {
+                db.collection("users").document(quiz.getOwner_uid())
+                        .get()
+                        .addOnSuccessListener(snapshot -> {
+                            User user = snapshot.toObject(User.class);
+                            if (user != null && user.getUsername() != null) {
+                                String updatedDesc = defaultDesc + " · by " + user.getUsername();
+                                holder.setDescription.setText(updatedDesc);
+                            }
+                        });
+            }
         }
     }
 
@@ -89,7 +97,7 @@ public class SendSetAdapter extends RecyclerView.Adapter<SendSetAdapter.SetViewH
             super(itemView);
             setTitle = itemView.findViewById(R.id.setTitle);
             setDescription = itemView.findViewById(R.id.description);
-            cardView = (CardView) itemView;
+            cardView = itemView.findViewById(R.id.card_view);
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.labactivity.studysync.models;
 
+import com.google.firebase.firestore.PropertyName;
+
 public class Flashcard {
     private String term;
     private String definition;
@@ -15,13 +17,16 @@ public class Flashcard {
     private String reminder;
     private String ownerUid;
 
+    public Flashcard() {}
+
     public Flashcard(String term, String definition, String photoUrl, String photoPath) {
         this.term = term;
         this.definition = definition;
         this.photoUrl = photoUrl;
         this.photoPath = photoPath;
     }
-    public Flashcard (String id, String title, int numberOfItems, String ownerUsername, int progress, String photoUrl) {
+
+    public Flashcard(String id, String title, int numberOfItems, String ownerUsername, int progress, String photoUrl) {
         this.id = id;
         this.title = title;
         this.numberOfItems = numberOfItems;
@@ -34,7 +39,10 @@ public class Flashcard {
     public String getDefinition() { return definition; }
     public String getPhotoPath() { return photoPath; }
 
+    @PropertyName("owner_uid")
     public String getOwnerUid() { return ownerUid; }
+
+    @PropertyName("owner_uid")
     public void setOwnerUid(String ownerUid) { this.ownerUid = ownerUid; }
 
     public String getId() { return id; }
@@ -46,7 +54,10 @@ public class Flashcard {
     public int getNumberOfItems() { return numberOfItems; }
     public void setNumberOfItems(int numberOfItems) { this.numberOfItems = numberOfItems; }
 
+    @PropertyName("owner_username")
     public String getOwnerUsername() { return ownerUsername; }
+
+    @PropertyName("owner_username")
     public void setOwnerUsername(String ownerUsername) { this.ownerUsername = ownerUsername; }
 
     public int getProgress() { return progress; }
@@ -63,5 +74,4 @@ public class Flashcard {
 
     public String getReminder() { return reminder; }
     public void setReminder(String reminder) { this.reminder = reminder; }
-
 }

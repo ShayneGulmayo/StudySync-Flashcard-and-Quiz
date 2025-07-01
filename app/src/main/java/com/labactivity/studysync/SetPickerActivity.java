@@ -30,6 +30,8 @@ public class SetPickerActivity extends AppCompatActivity {
     private final List<Object> ownedSets = new ArrayList<>();
     private final List<Object> publicSets = new ArrayList<>();
     private String chatRoomId;
+    private boolean flashcardsLoaded = false;
+    private boolean quizzesLoaded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,30 +59,30 @@ public class SetPickerActivity extends AppCompatActivity {
             for (var doc : query) {
                 Flashcard card = doc.toObject(Flashcard.class);
                 card.setId(doc.getId());
-
-                if (card.getOwnerUid().equals(currentUser.getUid())) {
+                if (currentUser.getUid().equals(card.getOwnerUid())) {
                     ownedSets.add(card);
-                } else if ("public".equals(card.getPrivacy())) {
+                } else if ("public".equalsIgnoreCase(card.getPrivacy())) {
                     publicSets.add(card);
                 }
             }
-            setupAdapters();
+            flashcardsLoaded = true;
+            if (quizzesLoaded) setupAdapters();
         });
     }
 
     private void fetchQuizzes() {
-        db.collection("quizzes").get().addOnSuccessListener(query -> {
+        db.collection("quiz").get().addOnSuccessListener(query -> {
             for (var doc : query) {
                 Quiz quiz = doc.toObject(Quiz.class);
                 quiz.setQuizId(doc.getId());
-
-                if (quiz.getOwner_uid().equals(currentUser.getUid())) {
+                if (currentUser.getUid().equals(quiz.getOwner_uid())) {
                     ownedSets.add(quiz);
-                } else if ("public".equals(quiz.getPrivacy())) {
+                } else if ("public".equalsIgnoreCase(quiz.getPrivacy())) {
                     publicSets.add(quiz);
                 }
             }
-            setupAdapters();
+            quizzesLoaded = true;
+            if (flashcardsLoaded) setupAdapters();
         });
     }
 
@@ -104,14 +106,14 @@ public class SetPickerActivity extends AppCompatActivity {
         String setId, setType;
 
         if (item instanceof Flashcard) {
-            Flashcard flashcard = (Flashcard) item;
-            setId = flashcard.getId();
+            setId = ((Flashcard) item).getId();
             setType = "flashcard";
         } else if (item instanceof Quiz) {
-            Quiz quiz = (Quiz) item;
-            setId = quiz.getQuizId();
+            setId = ((Quiz) item).getQuizId();
             setType = "quiz";
-        } else return;
+        } else {
+            return;
+        }
 
         db.collection("users").document(currentUser.getUid())
                 .get()
