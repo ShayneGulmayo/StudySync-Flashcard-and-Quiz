@@ -1,16 +1,19 @@
 package com.labactivity.studysync;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-
+import java.util.Collections;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,6 +21,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.List;
+import java.util.Map;
 
 public class QuizProgressActivity extends AppCompatActivity {
 
@@ -65,6 +71,7 @@ public class QuizProgressActivity extends AppCompatActivity {
         db.collection("quiz").document(quizId).get().addOnSuccessListener(documentSnapshot -> {
             if (documentSnapshot.exists()) {
                 displayQuizProgress(documentSnapshot);
+                displayAnsweredQuestions();
             } else {
                 Toast.makeText(this, "Quiz not found", Toast.LENGTH_SHORT).show();
                 finish();
@@ -253,4 +260,93 @@ public class QuizProgressActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to load attempt data", Toast.LENGTH_SHORT).show();
                 });
     }
+    private void displayAnsweredQuestions() {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
+        LayoutInflater inflater = LayoutInflater.from(this);
+
+        db.collection("quiz_attempts")
+                .document(quizId)
+                .collection("users")
+                .document(userId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        List<Map<String, Object>> answeredQuestions = (List<Map<String, Object>>) doc.get("answeredQuestions");
+                        if (answeredQuestions != null) {
+                            Collections.sort(answeredQuestions, (a, b) -> {
+                                int orderA = a.get("order") != null ? ((Number) a.get("order")).intValue() : 0;
+                                int orderB = b.get("order") != null ? ((Number) b.get("order")).intValue() : 0;
+                                return Integer.compare(orderA, orderB);
+                            });
+                        }
+                        if (answeredQuestions != null) {
+
+                            int number = 1;
+                            for (Map<String, Object> q : answeredQuestions) {
+                                View answerView = inflater.inflate(R.layout.item_quiz_attempt_view, answersLayout, false);
+
+                                TextView questionText = answerView.findViewById(R.id.question_text);
+                                TextView correctAnswerText = answerView.findViewById(R.id.correct_answer_text);
+                                TextView selectedWrongAnswerText = answerView.findViewById(R.id.selected_wrong_answer_text);
+                                View wrongAnswerContainer = answerView.findViewById(R.id.selected_wrong_answer_container);
+
+                                String question = (String) q.get("question");
+                                Object correctObj = q.get("correct");
+                                Object selectedObj = q.get("selected");
+                                boolean isCorrect = Boolean.TRUE.equals(q.get("isCorrect"));
+
+                                questionText.setText(number + ". " + question);
+                                number++;
+
+                                TextView statusLabel = answerView.findViewById(R.id.status_label);
+                                if (isCorrect) {
+                                    statusLabel.setText("Correct");
+                                    statusLabel.setBackgroundColor(Color.parseColor("#00BF63"));
+                                    wrongAnswerContainer.setVisibility(View.GONE);
+                                } else {
+                                    statusLabel.setText("Incorrect");
+                                    statusLabel.setBackgroundColor(Color.parseColor("#F24F4F"));
+                                    wrongAnswerContainer.setVisibility(View.VISIBLE);
+                                }
+
+                                if (correctObj instanceof String && selectedObj instanceof String) {
+                                    String correct = (String) correctObj;
+                                    String selected = (String) selectedObj;
+
+                                    correctAnswerText.setText(correct);
+
+                                    if (!isCorrect && !correct.equals(selected)) {
+                                        selectedWrongAnswerText.setText(selected);
+                                        wrongAnswerContainer.setVisibility(View.VISIBLE);
+                                    } else {
+                                        wrongAnswerContainer.setVisibility(View.GONE);
+                                    }
+
+                                } else if (correctObj instanceof List && selectedObj instanceof List) {
+                                    List<String> correctList = (List<String>) correctObj;
+                                    List<String> selectedList = (List<String>) selectedObj;
+
+                                    String correctStr = android.text.TextUtils.join(", ", correctList);
+                                    String selectedStr = android.text.TextUtils.join(", ", selectedList);
+
+                                    correctAnswerText.setText(correctStr);
+
+                                    if (!isCorrect && !correctStr.equals(selectedStr)) {
+                                        selectedWrongAnswerText.setText(selectedStr);
+                                        wrongAnswerContainer.setVisibility(View.VISIBLE);
+                                    } else {
+                                        wrongAnswerContainer.setVisibility(View.GONE);
+                                    }
+                                }
+
+                                answersLayout.addView(answerView);
+                            }
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to load answers", Toast.LENGTH_SHORT).show());
+    }
+
+
 }

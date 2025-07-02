@@ -8,6 +8,7 @@
     android:clickable="false"
     tools:context=".QuizProgressActivity">
 
+    <!-- Top Navigation Bar -->
     <RelativeLayout
         android:id="@+id/navigation_bar"
         android:layout_width="0dp"
@@ -46,168 +47,181 @@
             app:srcCompat="@drawable/more_vert" />
     </RelativeLayout>
 
+    <!-- Everything below is inside this ScrollView -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/navigation_bar">
 
-    <TextView
-        android:id="@+id/progress_txt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/your_progress"
-        android:textColor="@color/black"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/navigation_bar" />
-
-    <FrameLayout
-        android:id="@+id/frameLayout"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/progress_txt">
-
-        <ProgressBar
-            android:id="@+id/background_progressbar"
-            style="?android:attr/progressBarStyleHorizontal"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:indeterminate="false"
-            android:max="100"
-            android:progress="100"
-            android:progressDrawable="@drawable/full_progress" />
-
-        <ProgressBar
-            android:id="@+id/stats_progressbar"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:indeterminate="false"
-            android:max="100"
-            android:progress="75"
-            android:progressDrawable="@drawable/progress" />
-
-        <TextView
-            android:id="@+id/progress_percentage"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="0%"
-            android:textColor="@android:color/black"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            />
-    </FrameLayout>
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingTop="16dp"
+            android:paddingBottom="32dp">
 
-    <LinearLayout
-        android:id="@+id/know_progress_value"
-        android:layout_width="250dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="32dp"
-        android:background="@drawable/progress_bg"
-        android:orientation="horizontal"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/frameLayout">
+            <TextView
+                android:id="@+id/progress_txt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/your_progress"
+                android:textColor="@color/black"
+                android:textSize="20sp"
+                android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/know_progress"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1"
-            android:text="@string/know_text"
-            android:textColor="@color/black"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            <FrameLayout
+                android:id="@+id/frameLayout"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:layout_marginTop="16dp">
 
-        <TextView
-            android:id="@+id/know_items"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginEnd="16dp"
-            android:layout_weight="1"
-            android:text="@string/items"
-            android:textAlignment="textEnd"
-            android:textColor="@color/black"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            tools:ignore="RtlCompat" />
-    </LinearLayout>
+                <ProgressBar
+                    android:id="@+id/background_progressbar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:indeterminate="false"
+                    android:max="100"
+                    android:progress="100"
+                    android:progressDrawable="@drawable/full_progress" />
 
-    <LinearLayout
-        android:id="@+id/still_learning_value"
-        android:layout_width="250dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="32dp"
-        android:background="@drawable/proggress_bg_2"
-        android:orientation="horizontal"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/know_progress_value">
+                <ProgressBar
+                    android:id="@+id/stats_progressbar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:indeterminate="false"
+                    android:max="100"
+                    android:progress="75"
+                    android:progressDrawable="@drawable/progress" />
 
-        <TextView
-            android:id="@+id/still_learning_progress"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1"
-            android:text="@string/still_learning"
-            android:textColor="@color/black"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/progress_percentage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="0%"
+                    android:textColor="@android:color/black"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
 
-        <TextView
-            android:id="@+id/still_learning_items"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginEnd="16dp"
-            android:layout_weight="1"
-            android:text="@string/items"
-            android:textAlignment="textEnd"
-            android:textColor="@color/black"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            tools:ignore="RtlCompat" />
-    </LinearLayout>
+            <LinearLayout
+                android:id="@+id/know_progress_value"
+                android:layout_width="250dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/progress_bg"
+                android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/review_questions_btn"
-        android:layout_width="300dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:backgroundTint="@color/primary"
-        android:text="@string/keep_reviewing_questions"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/still_learning_value" />
+                <TextView
+                    android:id="@+id/know_progress"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:text="@string/know_text"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-    <TextView
-        android:id="@+id/retake_quiz_btn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:clickable="true"
-        android:contentDescription="retake quiz"
-        android:focusable="true"
-        android:text="@string/retake_quiz"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/review_questions_btn" />
+                <TextView
+                    android:id="@+id/know_items"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginEnd="16dp"
+                    android:layout_weight="1"
+                    android:text="@string/items"
+                    android:textAlignment="textEnd"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:ignore="RtlCompat" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/still_learning_value"
+                android:layout_width="250dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/proggress_bg_2"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/still_learning_progress"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:text="@string/still_learning"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/still_learning_items"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginEnd="16dp"
+                    android:layout_weight="1"
+                    android:text="@string/items"
+                    android:textAlignment="textEnd"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:ignore="RtlCompat" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/review_questions_btn"
+                android:layout_width="300dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:backgroundTint="@color/primary"
+                android:text="@string/keep_reviewing_questions"
+                android:textColor="@color/white"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/retake_quiz_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
+                android:clickable="true"
+                android:contentDescription="retake quiz"
+                android:focusable="true"
+                android:text="@string/retake_quiz"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/answers_linear_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:id="@+id/your_answer_txt_view"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="20dp"
+                    android:text="@string/your_answer"
+                    android:textColor="#000000"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
