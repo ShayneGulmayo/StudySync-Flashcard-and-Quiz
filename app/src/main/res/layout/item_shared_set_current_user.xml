@@ -55,14 +55,7 @@
                     android:textSize="12sp"
                     android:layout_marginTop="1dp"/>
 
-                <TextView
-                    android:id="@+id/sharedBy"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Shared by username"
-                    android:textColor="@color/light_gray"
-                    android:textSize="12sp"
-                    android:layout_marginTop="10dp"/>
+
             </LinearLayout>
             <TextView
                 android:id="@+id/timestampText"

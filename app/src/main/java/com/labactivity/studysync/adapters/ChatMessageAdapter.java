@@ -36,6 +36,9 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     private static final int VIEW_TYPE_FILE_CURRENT_USER = 5;
     private static final int VIEW_TYPE_FILE_OTHER_USER = 6;
 
+    private static final int VIEW_TYPE_SHARED_SET_CURRENT_USER = 7;
+
+
     private final String currentUserId;
 
     public ChatMessageAdapter(@NonNull FirestoreRecyclerOptions<ChatMessage> options, String currentUserId) {
@@ -47,7 +50,9 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     public int getItemViewType(int position) {
         ChatMessage message = getItem(position);
         if ("system".equals(message.getType())) return VIEW_TYPE_SYSTEM_MESSAGE;
-        if ("set".equals(message.getType())) return VIEW_TYPE_SHARED_SET;
+        if ("set".equals(message.getType())) {
+            return message.getSenderId().equals(currentUserId) ? VIEW_TYPE_SHARED_SET_CURRENT_USER : VIEW_TYPE_SHARED_SET;
+        }
         if ("file".equals(message.getType())) {
             return message.getSenderId().equals(currentUserId) ? VIEW_TYPE_FILE_CURRENT_USER : VIEW_TYPE_FILE_OTHER_USER;
         }
@@ -58,7 +63,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-
         switch (viewType) {
             case VIEW_TYPE_CURRENT_USER:
                 return new CurrentUserViewHolder(inflater.inflate(R.layout.item_chat_message_current_user, parent, false));
@@ -68,6 +72,8 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 return new SystemMessageViewHolder(inflater.inflate(R.layout.item_system_message, parent, false));
             case VIEW_TYPE_SHARED_SET:
                 return new SharedSetViewHolder(inflater.inflate(R.layout.item_shared_set_other_user, parent, false));
+            case VIEW_TYPE_SHARED_SET_CURRENT_USER:
+                return new SharedSetCurrentUserViewHolder(inflater.inflate(R.layout.item_shared_set_current_user, parent, false));
             case VIEW_TYPE_FILE_CURRENT_USER:
                 return new FileCurrentUserViewHolder(inflater.inflate(R.layout.item_file_message_current_user, parent, false));
             case VIEW_TYPE_FILE_OTHER_USER:
@@ -76,6 +82,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 throw new IllegalArgumentException("Invalid view type");
         }
     }
+
 
     @Override
     protected void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, @NonNull ChatMessage message) {
@@ -88,6 +95,8 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             ((SystemMessageViewHolder) holder).bind(message);
         } else if (holder instanceof SharedSetViewHolder) {
             ((SharedSetViewHolder) holder).bind(message);
+        } else if (holder instanceof SharedSetCurrentUserViewHolder) {
+            ((SharedSetCurrentUserViewHolder) holder).bind(message);
         } else if (holder instanceof FileCurrentUserViewHolder) {
             ((FileCurrentUserViewHolder) holder).bind(message);
         } else if (holder instanceof FileOtherUserViewHolder) {
@@ -224,6 +233,43 @@ static class FileCurrentUserViewHolder extends RecyclerView.ViewHolder {
                 intent.setData(Uri.parse(message.getFileUrl()));
                 itemView.getContext().startActivity(intent);
             });
+        }
+    }
+
+    static class SharedSetCurrentUserViewHolder extends RecyclerView.ViewHolder {
+        TextView sharedTitle, sharedType, sharedDescription, timestampText;
+
+        public SharedSetCurrentUserViewHolder(@NonNull View itemView) {
+            super(itemView);
+            sharedTitle = itemView.findViewById(R.id.sharedTitle);
+            sharedType = itemView.findViewById(R.id.sharedType);
+            sharedDescription = itemView.findViewById(R.id.sharedDescription);
+            timestampText = itemView.findViewById(R.id.timestampText);
+        }
+
+        public void bind(ChatMessage message) {
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
+
+            if ("flashcard".equals(message.getSetType())) {
+                db.collection("flashcards").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
+                    Flashcard flashcard = snapshot.toObject(Flashcard.class);
+                    if (flashcard != null) {
+                        sharedTitle.setText(flashcard.getTitle());
+                        sharedType.setText("Flashcard Set");
+                        sharedDescription.setText(flashcard.getNumberOfItems() + " terms");
+                    }
+                });
+            } else if ("quiz".equals(message.getSetType())) {
+                db.collection("quizzes").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
+                    Quiz quiz = snapshot.toObject(Quiz.class);
+                    if (quiz != null) {
+                        sharedTitle.setText(quiz.getTitle());
+                        sharedType.setText("Quiz Set");
+                        sharedDescription.setText(quiz.getNumber_of_items() + " items");
+                    }
+                });
+            }
         }
     }
 
