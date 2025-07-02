@@ -59,7 +59,9 @@ public class PrivacyActivity extends AppCompatActivity {
         setId = getIntent().getStringExtra("setId");
 
         selectedRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        selectedAdapter = new PrivacyUserAdapter(selectedUserList, selectedUserList, false, new PrivacyUserAdapter.OnUserSelectedListener() {
+        // inside onCreate()
+
+        selectedAdapter = new PrivacyUserAdapter(selectedUserList, selectedUserList, false, isPublic, new PrivacyUserAdapter.OnUserSelectedListener() {
             @Override
             public void onUserSelected(User user, boolean selected, int position) {
                 removeFromSelectedUsers(user);
@@ -76,7 +78,7 @@ public class PrivacyActivity extends AppCompatActivity {
         selectedRecyclerView.setAdapter(selectedAdapter);
 
         searchResultsRecycler.setLayoutManager(new LinearLayoutManager(this));
-        searchAdapter = new PrivacyUserAdapter(searchResults, selectedUserList, true, (user, selected, position) -> {
+        searchAdapter = new PrivacyUserAdapter(searchResults, selectedUserList, true, isPublic, (user, selected, position) -> {
             int index = selectedUserList.indexOf(user);
             if (selected) {
                 if (!selectedUserList.contains(user)) {
@@ -86,7 +88,6 @@ public class PrivacyActivity extends AppCompatActivity {
             } else {
                 if (index != -1) {
                     selectedUserList.remove(user);
-                    // remove from selectedUsers by uid
                     for (int i = 0; i < selectedUsers.size(); i++) {
                         if (selectedUsers.get(i).getUser().getUid().equals(user.getUid())) {
                             selectedUsers.remove(i);
@@ -106,6 +107,7 @@ public class PrivacyActivity extends AppCompatActivity {
         });
 
         searchResultsRecycler.setAdapter(searchAdapter);
+
 
         searchView.setEnabled(false);
         loadOwnerAndUsers();
@@ -161,6 +163,8 @@ public class PrivacyActivity extends AppCompatActivity {
                         if (privacy != null) {
                             isPublic = privacy.equalsIgnoreCase("public");
                             updatePrivacyUI();
+                            selectedAdapter.setIsPublic(isPublic);
+                            searchAdapter.setIsPublic(isPublic);
                         }
                     }
                 })
@@ -168,6 +172,7 @@ public class PrivacyActivity extends AppCompatActivity {
                     Log.e("PrivacyActivity", "Failed to load privacy setting: " + e.getMessage());
                 });
     }
+
 
     private void loadOwnerAndUsers() {
         db.collection("users").document(currentUserId)
@@ -243,8 +248,11 @@ public class PrivacyActivity extends AppCompatActivity {
     private void togglePrivacyMode() {
         isPublic = !isPublic;
         updatePrivacyUI();
+        selectedAdapter.setIsPublic(isPublic);
+        searchAdapter.setIsPublic(isPublic);
         selectedAdapter.notifyDataSetChanged();
     }
+
 
     private void updatePrivacyUI() {
         if (isPublic) {
