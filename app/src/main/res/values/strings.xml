@@ -45,6 +45,10 @@
     <string name="chatroom_name">Chat Room Name</string>
     <string name="add_quiz">Add Quiz</string>
     <string name="share">Share</string>
+    <string name="view">View</string>
+    <string name="done">Done</string>
+    <string name="only_people_with_access_can_view_edit">Only People with Access can View or Edit</string>
+    <string name="anyone_can_view">Anyone Can View</string>
     <string name="general_access">General Access</string>
     <string name="poeple_with_access">People With Access</string>
     <string name="quiz_title">Quiz Title</string>

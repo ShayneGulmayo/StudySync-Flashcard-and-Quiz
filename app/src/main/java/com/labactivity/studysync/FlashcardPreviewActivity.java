@@ -39,9 +39,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private SpringDotsIndicator dotsIndicator;
     private Button startFlashcardBtn;
     private FirebaseFirestore db;
-    private String currentPrivacy, setId;
+    private String currentPrivacy, setId, currentReminder;
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
-    private String currentReminder;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -60,6 +59,14 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this, "No Flashcard ID provided", Toast.LENGTH_SHORT).show();
             finish();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (setId != null && !setId.isEmpty()) {
+            loadFlashcardSet();
         }
     }
 
@@ -112,8 +119,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         });
 
         view.findViewById(R.id.privacy).setOnClickListener(v -> {
-            togglePrivacy();
             bottomSheetDialog.dismiss();
+            Intent intent = new Intent(this, PrivacyActivity.class);
+            intent.putExtra("setId", setId);
+            startActivity(intent);
         });
 
         view.findViewById(R.id.reminder).setOnClickListener(v -> {
@@ -140,34 +149,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         });
 
         bottomSheetDialog.show();
-    }
-
-    private void togglePrivacy() {
-        if (setId == null) return;
-
-        String newPrivacy = "Public".equals(currentPrivacy) ? "Private" : "Public";
-
-        db.collection("flashcards").document(setId)
-                .update("privacy", newPrivacy)
-                .addOnSuccessListener(aVoid -> {
-                    currentPrivacy = newPrivacy;
-                    Toast.makeText(this, "Privacy set to " + newPrivacy, Toast.LENGTH_SHORT).show();
-                    // Update icon here
-                    if ("Private".equals(currentPrivacy)) {
-                        privacyIcon.setImageResource(R.drawable.lock);
-                        privacyText.setText("Private");
-
-                    } else {
-                        privacyIcon.setImageResource(R.drawable.public_icon);
-                        privacyText.setText("Public");
-
-                    }
-
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to update privacy.", Toast.LENGTH_SHORT).show();
-                });
-
     }
 
     private void showDeleteConfirmationDialog() {
@@ -217,7 +198,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         }
                     }
 
-                    // Delete the flashcard document itself
                     db.collection("flashcards").document(setId)
                             .delete()
                             .addOnSuccessListener(aVoid -> {
@@ -233,8 +213,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to fetch flashcard set.", Toast.LENGTH_SHORT).show();
                 });
     }
-
-
 
     private void showReminderDialog() {
         Calendar calendar = Calendar.getInstance();
@@ -316,8 +294,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     Long numberOfItems = documentSnapshot.getLong("number_of_items");
 
                     titleTextView.setText(title != null ? title : "Untitled");
+
                     String privacy = documentSnapshot.getString("privacy");
                     currentPrivacy = privacy != null ? privacy : "Public";
+
                     String reminder = documentSnapshot.getString("reminder");
                     currentReminder = (reminder != null && !reminder.isEmpty()) ? reminder : null;
 
@@ -345,7 +325,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         reminderIcon.setImageResource(R.drawable.off_notifications);
                     }
 
-                    if ("Private".equals(currentPrivacy)) {
+                    if ("private".equals(currentPrivacy)) {
                         privacyIcon.setImageResource(R.drawable.lock);
                         privacyText.setText("Private");
                     } else {
