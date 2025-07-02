@@ -13,15 +13,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.*;
 import com.labactivity.studysync.adapters.PrivacyUserAdapter;
 import com.labactivity.studysync.models.User;
 import com.labactivity.studysync.models.UserWithRole;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @SuppressLint("MissingInflatedId")
 public class PrivacyActivity extends AppCompatActivity {
@@ -31,10 +27,9 @@ public class PrivacyActivity extends AppCompatActivity {
     private SearchView searchView;
     private RecyclerView selectedRecyclerView, searchResultsRecycler;
     private boolean isPublic = true;
-    private final List<UserWithRole> selectedUsers = new ArrayList<>();
+    private final List<UserWithRole> selectedUserList = new ArrayList<>();
     private final List<User> allUsers = new ArrayList<>();
     private final List<User> searchResults = new ArrayList<>();
-    private final List<User> selectedUserList = new ArrayList<>();
     private PrivacyUserAdapter selectedAdapter, searchAdapter;
     private FirebaseFirestore db;
     private String setId, currentUserId;
@@ -59,55 +54,31 @@ public class PrivacyActivity extends AppCompatActivity {
         setId = getIntent().getStringExtra("setId");
 
         selectedRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        // inside onCreate()
-
-        selectedAdapter = new PrivacyUserAdapter(selectedUserList, selectedUserList, false, isPublic, new PrivacyUserAdapter.OnUserSelectedListener() {
-            @Override
-            public void onUserSelected(User user, boolean selected, int position) {
-                removeFromSelectedUsers(user);
-            }
-
-            @Override
-            public void onAccessListEmpty() {
-                if (selectedUserList.size() <= 1) {
-                    Toast.makeText(PrivacyActivity.this, "No other users selected.", Toast.LENGTH_SHORT).show();
+        selectedAdapter = new PrivacyUserAdapter(
+                selectedUserList, selectedUserList, false, isPublic,
+                (user, selected, position) -> {
+                    removeUser(user);
+                    selectedAdapter.notifyDataSetChanged();
                 }
-            }
-        });
-
+        );
         selectedRecyclerView.setAdapter(selectedAdapter);
 
         searchResultsRecycler.setLayoutManager(new LinearLayoutManager(this));
-        searchAdapter = new PrivacyUserAdapter(searchResults, selectedUserList, true, isPublic, (user, selected, position) -> {
-            int index = selectedUserList.indexOf(user);
-            if (selected) {
-                if (!selectedUserList.contains(user)) {
-                    selectedUserList.add(user);
-                    selectedUsers.add(new UserWithRole(user, "View"));
-                }
-            } else {
-                if (index != -1) {
-                    selectedUserList.remove(user);
-                    for (int i = 0; i < selectedUsers.size(); i++) {
-                        if (selectedUsers.get(i).getUser().getUid().equals(user.getUid())) {
-                            selectedUsers.remove(i);
-                            break;
+        searchAdapter = new PrivacyUserAdapter(
+                searchResults, selectedUserList, true, isPublic,
+                (user, selected, position) -> {
+                    if (selected) {
+                        if (!containsUser(user)) {
+                            selectedUserList.add(new UserWithRole(user, "View"));
                         }
+                    } else {
+                        removeUser(user);
                     }
+                    selectedAdapter.notifyDataSetChanged();
+                    searchAdapter.notifyDataSetChanged();
                 }
-            }
-
-            selectedAdapter.notifyDataSetChanged();
-
-            if (searchResults.isEmpty()) {
-                searchResultsRecycler.setVisibility(RecyclerView.GONE);
-            } else {
-                searchAdapter.notifyDataSetChanged();
-            }
-        });
-
+        );
         searchResultsRecycler.setAdapter(searchAdapter);
-
 
         searchView.setEnabled(false);
         loadOwnerAndUsers();
@@ -119,17 +90,13 @@ public class PrivacyActivity extends AppCompatActivity {
         findViewById(R.id.constraintLayout).setOnClickListener(v -> togglePrivacyMode());
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
+            @Override public boolean onQueryTextSubmit(String query) {
                 searchResultsRecycler.setVisibility(RecyclerView.GONE);
                 return true;
             }
 
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                if (!allUsers.isEmpty()) {
-                    filterUsers(newText.trim());
-                }
+            @Override public boolean onQueryTextChange(String newText) {
+                filterUsers(newText.trim());
                 return true;
             }
         });
@@ -140,84 +107,85 @@ public class PrivacyActivity extends AppCompatActivity {
     private void loadSetTitle() {
         db.collection("flashcards").document(setId)
                 .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        String title = documentSnapshot.getString("title");
-                        titleTxt.setText(title != null ? title : "Untitled");
-                    } else {
-                        titleTxt.setText("Untitled");
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    titleTxt.setText("Untitled");
-                    Toast.makeText(this, "Failed to load title: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                .addOnSuccessListener(doc -> {
+                    titleTxt.setText(doc.getString("title") != null ? doc.getString("title") : "Untitled");
                 });
     }
 
     private void loadSetPrivacy() {
         db.collection("flashcards").document(setId)
                 .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        String privacy = documentSnapshot.getString("privacy");
-                        if (privacy != null) {
-                            isPublic = privacy.equalsIgnoreCase("public");
-                            updatePrivacyUI();
-                            selectedAdapter.setIsPublic(isPublic);
-                            searchAdapter.setIsPublic(isPublic);
-                        }
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("PrivacyActivity", "Failed to load privacy setting: " + e.getMessage());
+                .addOnSuccessListener(doc -> {
+                    String privacy = doc.getString("privacy");
+                    isPublic = "public".equalsIgnoreCase(privacy);
+                    updatePrivacyUI();
+                    selectedAdapter.setIsPublic(isPublic);
+                    searchAdapter.setIsPublic(isPublic);
                 });
     }
-
 
     private void loadOwnerAndUsers() {
         db.collection("users").document(currentUserId)
                 .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        User ownerUser = documentSnapshot.toObject(User.class);
-                        ownerUser.setUid(currentUserId);
-
-                        selectedUserList.add(ownerUser);
-                        selectedUsers.add(new UserWithRole(ownerUser, "Owner"));
-
+                .addOnSuccessListener(ownerDoc -> {
+                    if (ownerDoc.exists()) {
+                        User owner = ownerDoc.toObject(User.class);
+                        owner.setUid(currentUserId);
+                        selectedUserList.add(new UserWithRole(owner, "Owner"));
                         selectedAdapter.notifyDataSetChanged();
                     }
+                    loadAccessUsers();
+                });
+    }
+
+    private void loadAccessUsers() {
+        db.collection("flashcards").document(setId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.contains("accessUsers")) {
+                        Map<String, String> accessMap = (Map<String, String>) doc.get("accessUsers");
+                        for (String uid : accessMap.keySet()) {
+                            if (uid.equals(currentUserId)) continue;
+                            String role = accessMap.get(uid);
+                            db.collection("users").document(uid)
+                                    .get()
+                                    .addOnSuccessListener(userDoc -> {
+                                        if (userDoc.exists()) {
+                                            User u = userDoc.toObject(User.class);
+                                            u.setUid(uid);
+                                            selectedUserList.add(new UserWithRole(u, role));
+                                            selectedAdapter.notifyDataSetChanged();
+                                        }
+                                    });
+                        }
+                    }
                     loadAllOtherUsers();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to load owner: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                });
     }
 
     private void loadAllOtherUsers() {
-        db.collection("users").get().addOnSuccessListener(querySnapshot -> {
+        db.collection("users").get().addOnSuccessListener(snap -> {
             allUsers.clear();
-            for (QueryDocumentSnapshot doc : querySnapshot) {
-                if (doc.getId().equals(currentUserId)) {
-                    continue;
-                }
+            for (QueryDocumentSnapshot doc : snap) {
                 User user = doc.toObject(User.class);
                 user.setUid(doc.getId());
-                allUsers.add(user);
+                if (!user.getUid().equals(currentUserId)) {
+                    allUsers.add(user);
+                }
             }
-            Log.d("PrivacyActivity", "Loaded " + allUsers.size() + " other users.");
             searchView.setEnabled(true);
-        }).addOnFailureListener(e -> Toast.makeText(this, "Failed to load users: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        });
     }
 
     private void filterUsers(String query) {
         searchResults.clear();
         if (!TextUtils.isEmpty(query)) {
             for (User user : allUsers) {
-                String fullName = user.getFullName() != null ? user.getFullName() : "";
-                String username = user.getUsername() != null ? user.getUsername() : "";
-
-                if ((fullName.toLowerCase().contains(query.toLowerCase())
-                        || username.toLowerCase().contains(query.toLowerCase()))
-                        && !selectedUserList.contains(user)) {
+                String name = user.getFullName() != null ? user.getFullName() : "";
+                String uname = user.getUsername() != null ? user.getUsername() : "";
+                if ((name.toLowerCase().contains(query.toLowerCase()) ||
+                        uname.toLowerCase().contains(query.toLowerCase())) &&
+                        !containsUser(user)) {
                     searchResults.add(user);
                 }
             }
@@ -226,33 +194,12 @@ public class PrivacyActivity extends AppCompatActivity {
         searchResultsRecycler.setVisibility(searchResults.isEmpty() ? RecyclerView.GONE : RecyclerView.VISIBLE);
     }
 
-    private void removeFromSelectedUsers(User user) {
-        if (user.getUid().equals(currentUserId)) {
-            Toast.makeText(this, "You cannot remove yourself.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        selectedUserList.remove(user);
-        for (int i = 0; i < selectedUsers.size(); i++) {
-            if (selectedUsers.get(i).getUser().getUid().equals(user.getUid())) {
-                selectedUsers.remove(i);
-                break;
-            }
-        }
-
-        selectedAdapter.notifyDataSetChanged();
-        searchAdapter.notifyDataSetChanged(); // keep search results consistent
-    }
-
-
     private void togglePrivacyMode() {
         isPublic = !isPublic;
         updatePrivacyUI();
         selectedAdapter.setIsPublic(isPublic);
         searchAdapter.setIsPublic(isPublic);
-        selectedAdapter.notifyDataSetChanged();
     }
-
 
     private void updatePrivacyUI() {
         if (isPublic) {
@@ -272,11 +219,11 @@ public class PrivacyActivity extends AppCompatActivity {
         Map<String, Object> data = new HashMap<>();
         data.put("privacy", isPublic ? "public" : "private");
 
-        Map<String, String> accessUsers = new HashMap<>();
-        for (UserWithRole u : selectedUsers) {
-            accessUsers.put(u.getUser().getUid(), u.getRole());
+        Map<String, String> accessMap = new HashMap<>();
+        for (UserWithRole uwr : selectedUserList) {
+            accessMap.put(uwr.getUser().getUid(), uwr.getRole());
         }
-        data.put("accessUsers", accessUsers);
+        data.put("accessUsers", accessMap);
 
         db.collection("flashcards").document(setId)
                 .update(data)
@@ -285,5 +232,21 @@ public class PrivacyActivity extends AppCompatActivity {
                     finish();
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private boolean containsUser(User user) {
+        for (UserWithRole u : selectedUserList) {
+            if (u.getUser().getUid().equals(user.getUid())) return true;
+        }
+        return false;
+    }
+
+    private void removeUser(User user) {
+        for (int i = 0; i < selectedUserList.size(); i++) {
+            if (selectedUserList.get(i).getUser().getUid().equals(user.getUid())) {
+                selectedUserList.remove(i);
+                break;
+            }
+        }
     }
 }

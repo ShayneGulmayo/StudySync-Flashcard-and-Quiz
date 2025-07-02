@@ -17,6 +17,7 @@ import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.models.User;
+import com.labactivity.studysync.models.UserWithRole;
 
 import java.util.List;
 
@@ -25,23 +26,22 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private static final int TYPE_SELECTABLE = 0;
     private static final int TYPE_SELECTED = 1;
 
-    private List<User> userList;
-    private List<User> selectedUsers;
-    private OnUserSelectedListener listener;
-    private boolean isSelectionList;
-    private boolean isPublic;  // <-- New flag for public/private privacy
+    private final List<?> userList;
+    private final List<UserWithRole> selectedUsers;
+    private final boolean isSelectionList;
+    private boolean isPublic;
+    private final OnUserSelectedListener listener;
 
     public interface OnUserSelectedListener {
         void onUserSelected(User user, boolean selected, int position);
-        default void onAccessListEmpty() {}
     }
 
-    public PrivacyUserAdapter(List<User> userList, List<User> selectedUsers, boolean isSelectionList, boolean isPublic, OnUserSelectedListener listener) {
+    public PrivacyUserAdapter(List<?> userList, List<UserWithRole> selectedUsers, boolean isSelectionList, boolean isPublic, OnUserSelectedListener listener) {
         this.userList = userList;
         this.selectedUsers = selectedUsers;
-        this.listener = listener;
         this.isSelectionList = isSelectionList;
         this.isPublic = isPublic;
+        this.listener = listener;
     }
 
     public void setIsPublic(boolean isPublic) {
@@ -69,18 +69,17 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     @SuppressLint("NonConstantResourceId")
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        User user = userList.get(position);
-        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
         if (holder.getItemViewType() == TYPE_SELECTED) {
+            UserWithRole uwr = (UserWithRole) userList.get(position);
+            User user = uwr.getUser();
             SelectedViewHolder viewHolder = (SelectedViewHolder) holder;
 
             viewHolder.fullName.setText(user.getFullName());
             viewHolder.username.setText("@" + user.getUsername());
 
-            boolean isOwner = currentUserId.equals(user.getUid());
-            String initialRole = isOwner ? "Owner" : "View";
-            viewHolder.txtRole.setText(initialRole);
+            boolean isOwner = user.getUid().equals(FirebaseAuth.getInstance().getCurrentUser().getUid());
+            String roleText = isOwner ? "Owner" : uwr.getRole();
+            viewHolder.txtRole.setText(roleText);
 
             int colorRes = isOwner ? R.color.text_gray : R.color.primary;
             viewHolder.txtRole.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), colorRes));
@@ -91,33 +90,29 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                     .circleCrop()
                     .into(viewHolder.profileImage);
 
+            if (isOwner) return;
+
             viewHolder.txtRole.setOnClickListener(v -> {
-                if (isOwner) return;
-                int adapterPosition = holder.getAdapterPosition();
-                if (adapterPosition == RecyclerView.NO_POSITION) return;
+                int adapterPos = holder.getAdapterPosition();
+                if (adapterPos == RecyclerView.NO_POSITION) return;
 
                 PopupMenu popupMenu = new PopupMenu(holder.itemView.getContext(), viewHolder.txtRole);
                 popupMenu.getMenuInflater().inflate(R.menu.privacy_role_menu, popupMenu.getMenu());
 
                 if (isPublic) {
-                    // Hide Edit option if public
                     popupMenu.getMenu().findItem(R.id.edit_role).setVisible(false);
                 }
 
                 popupMenu.setOnMenuItemClickListener(item -> {
-                    if (adapterPosition == RecyclerView.NO_POSITION) return false;
-
                     if (item.getItemId() == R.id.view_role) {
-                        viewHolder.txtRole.setText("View");
-                        viewHolder.txtRole.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.primary));
+                        uwr.setRole("View");
+                        notifyItemChanged(adapterPos);
                     } else if (item.getItemId() == R.id.edit_role) {
-                        viewHolder.txtRole.setText("Edit");
-                        viewHolder.txtRole.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.primary));
+                        uwr.setRole("Edit");
+                        notifyItemChanged(adapterPos);
                     } else if (item.getItemId() == R.id.remove_access) {
-                        selectedUsers.remove(user);
-                        listener.onUserSelected(user, false, position);
+                        listener.onUserSelected(user, false, adapterPos);
                     }
-
                     return true;
                 });
 
@@ -125,6 +120,7 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             });
 
         } else {
+            User user = (User) userList.get(position);
             SelectableViewHolder viewHolder = (SelectableViewHolder) holder;
 
             viewHolder.fullName.setText(user.getFullName());
@@ -136,21 +132,16 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                     .circleCrop()
                     .into(viewHolder.profileImage);
 
-            boolean isSelected = selectedUsers.contains(user);
+            boolean isSelected = isUserSelected(user);
             viewHolder.selectRadio.setChecked(isSelected);
 
             View.OnClickListener toggleSelection = v -> {
-                int adapterPosition = holder.getAdapterPosition();
-                if (adapterPosition == RecyclerView.NO_POSITION) return;
+                int adapterPos = holder.getAdapterPosition();
+                if (adapterPos == RecyclerView.NO_POSITION) return;
 
-                if (selectedUsers.contains(user)) {
-                    selectedUsers.remove(user);
-                    listener.onUserSelected(user, false, adapterPosition);
-                } else {
-                    selectedUsers.add(user);
-                    listener.onUserSelected(user, true, adapterPosition);
-                }
-                notifyItemChanged(adapterPosition);
+                boolean nowSelected = !isSelected;
+                listener.onUserSelected(user, nowSelected, adapterPos);
+                notifyItemChanged(adapterPos);
             };
 
             viewHolder.itemView.setOnClickListener(toggleSelection);
@@ -163,12 +154,21 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         return userList.size();
     }
 
+    private boolean isUserSelected(User user) {
+        for (UserWithRole u : selectedUsers) {
+            if (u.getUser().getUid().equals(user.getUid())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static class SelectableViewHolder extends RecyclerView.ViewHolder {
         ImageView profileImage;
         TextView fullName, username;
         RadioButton selectRadio;
 
-        public SelectableViewHolder(@NonNull View itemView) {
+        SelectableViewHolder(@NonNull View itemView) {
             super(itemView);
             profileImage = itemView.findViewById(R.id.profile_image);
             fullName = itemView.findViewById(R.id.full_name);
@@ -181,7 +181,7 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         ImageView profileImage;
         TextView fullName, username, txtRole;
 
-        public SelectedViewHolder(@NonNull View itemView) {
+        SelectedViewHolder(@NonNull View itemView) {
             super(itemView);
             profileImage = itemView.findViewById(R.id.profile_image);
             fullName = itemView.findViewById(R.id.full_name);
