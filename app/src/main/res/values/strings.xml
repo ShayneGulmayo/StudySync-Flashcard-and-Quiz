@@ -86,7 +86,10 @@
     </string-array>
     <string name="check">Check</string>
     <string name="question">Question</string>
-
+    <string name="correct_answer">Correct Answer</string>
+    <string name="selected_wrong_answer">Incorrect Answer</string>
+    <string name="your_answer">Your answers</string>
 
 
 </resources>
+
