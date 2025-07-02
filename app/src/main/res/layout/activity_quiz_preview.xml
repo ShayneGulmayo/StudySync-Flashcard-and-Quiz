@@ -88,14 +88,17 @@
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/carousel_viewpager"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:clipToPadding="false"
+        android:layout_height="240dp"
+        android:layout_marginTop="5dp"
         android:clipChildren="false"
+        android:clipToPadding="false"
         android:overScrollMode="never"
-        app:layout_constraintTop_toBottomOf="@+id/owner_username"
+        android:paddingStart="5dp"
+        android:paddingEnd="5dp"
+        app:layout_constraintBottom_toTopOf="@id/dots_indicator"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/owner_username" />
 
     <!-- DOTS -->
     <com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator
@@ -201,28 +204,10 @@
 
     <!-- START QUIZ -->
 
-    <Switch
-        android:id="@+id/shuffle_switch"
-        android:layout_width="315dp"
-        android:layout_height="60dp"
-        android:layout_marginTop="92dp"
-        android:background="@drawable/green_stroke_bg"
-        android:paddingStart="20dp"
-        android:paddingTop="10dp"
-        android:paddingEnd="15dp"
-        android:paddingBottom="10dp"
-        android:text="Shuffle Questions"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/reminder_txt" />
-
     <Button
         android:id="@+id/start_quiz_btn"
         android:layout_width="350dp"
         android:layout_height="62dp"
-        android:layout_marginTop="10dp"
         android:layout_marginBottom="16dp"
         android:text="@string/stats_quiz"
         android:textColor="@color/white"
@@ -231,8 +216,23 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.491"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/shuffle_switch"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Switch
+        android:id="@+id/shuffle_switch"
+        android:layout_width="315dp"
+        android:layout_height="60dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/green_stroke_bg"
+        android:paddingStart="20dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="15dp"
+        android:paddingBottom="10dp"
+        android:text="Shuffle Questions"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toTopOf="@+id/start_quiz_btn"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

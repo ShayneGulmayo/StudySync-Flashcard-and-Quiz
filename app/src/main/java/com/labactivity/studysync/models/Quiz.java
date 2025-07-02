@@ -98,7 +98,6 @@ public class Quiz {
             this.choices = choices;
         }
 
-
         public String getQuestion() {
             return question;
         }
@@ -129,6 +128,16 @@ public class Quiz {
 
         public void setCorrectAnswer(String correctAnswer) {
             this.correctAnswer = correctAnswer;
+        }
+
+        private String reminder;
+
+        public String getReminder() {
+            return reminder;
+        }
+
+        public void setReminder(String reminder) {
+            this.reminder = reminder;
         }
 
 

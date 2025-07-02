@@ -71,7 +71,7 @@
     <string name="start_flashcard">Start Flashcard</string>
     <string name="back">Back</string>
     <string name="downloaded">Downloaded</string>
-    <string name="not_download">Not Download Yet</string>
+    <string name="not_download">Not Downloaded Yet</string>
     <string name="created_at">Created At mm/dd/yyyy</string>
     <string name="enter_option">Enter option</string>
     <string name="enter_answer">Enter answer</string>

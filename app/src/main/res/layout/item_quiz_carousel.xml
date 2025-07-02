@@ -4,19 +4,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:padding="0dp"
+    android:background="@android:color/white">
 
     <FrameLayout
         android:id="@+id/card_container"
         android:layout_width="0dp"
-        android:layout_height="220dp"
+        android:layout_height="230dp"
+        android:background="@android:color/transparent"
+        android:clickable="true"
+        android:focusable="true"
+        android:clipChildren="false"
+        android:foreground="?attr/selectableItemBackground"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:clickable="true"
-        android:focusable="true">
-
+        app:layout_constraintEnd_toEndOf="parent">
 
         <!-- Front of card -->
         <androidx.cardview.widget.CardView
@@ -24,21 +27,23 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:cardCornerRadius="16dp"
-            app:cardElevation="6dp">
+            app:cardElevation="13dp"
+            app:cardPreventCornerOverlap="false"
+            app:cardUseCompatPadding="true">
 
             <TextView
                 android:id="@+id/question_text"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/light_gray"
+                android:background="@color/ic_launcher_background"
                 android:gravity="center"
-                android:padding="16dp"
+                android:lineSpacingExtra="4dp"
+                android:padding="24dp"
                 android:text="Question?"
+                android:textAlignment="center"
                 android:textColor="@color/black"
-                android:textSize="16sp"
-                android:textStyle="bold"
-
-                />
+                android:textSize="18sp"
+                android:textStyle="bold" />
         </androidx.cardview.widget.CardView>
 
         <!-- Back of card -->
@@ -48,21 +53,22 @@
             android:layout_height="match_parent"
             android:visibility="gone"
             app:cardCornerRadius="16dp"
-            app:cardElevation="6dp">
+            app:cardElevation="10dp"
+            app:cardUseCompatPadding="true"
+            app:cardPreventCornerOverlap="false">
 
             <TextView
                 android:id="@+id/answer_text"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:background="@color/ic_launcher_background"
                 android:gravity="center"
-                android:padding="16dp"
-                android:text="Answers"
-                android:background="@color/light_gray"
+                android:lineSpacingExtra="4dp"
+                android:text="Answer"
+                android:textAlignment="center"
                 android:textColor="@color/black"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textAlignment="center" />
-
+                android:textSize="18sp"
+                android:textStyle="bold" />
         </androidx.cardview.widget.CardView>
 
     </FrameLayout>

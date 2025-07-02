@@ -137,6 +137,13 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
                         holder.progressPercentageText.setText("0%");
                     });
 
+            if (set.getReminder() != null && !set.getReminder().isEmpty()) {
+                holder.setReminderTextView.setVisibility(View.VISIBLE);
+                holder.setReminderTextView.setText("Reminder: " + set.getReminder());
+            } else {
+                holder.setReminderTextView.setVisibility(View.GONE);
+            }
+
         } else {
             int progressValue = set.getProgress();
             holder.statsProgressBar.setProgress(progressValue);
@@ -210,6 +217,7 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
                 flashcardOwner = itemView.findViewById(R.id.quiz_owner);
                 cardView = itemView.findViewById(R.id.cardView);
                 userProfileImage = itemView.findViewById(R.id.quiz_user_profile);
+                setReminderTextView = itemView.findViewById(R.id.set_reminder);
             } else {
                 flashcardOwner = itemView.findViewById(R.id.flashcard_owner);
                 userProfileImage = itemView.findViewById(R.id.user_profile);

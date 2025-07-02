@@ -1,5 +1,10 @@
 package com.labactivity.studysync;
 
+import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.DatePickerDialog;
+import android.app.PendingIntent;
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -22,12 +27,15 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import androidx.viewpager2.widget.ViewPager2;
+
+import com.labactivity.studysync.receivers.ReminderReceiver;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 import com.labactivity.studysync.adapters.QuizCarouselAdapter;
 import com.labactivity.studysync.models.Quiz;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -42,6 +50,10 @@ public class QuizPreviewActivity extends AppCompatActivity {
     private ViewPager2 carouselViewPager;
     private SpringDotsIndicator dotsIndicator;
     private List<Quiz.Question> quizQuestions = new ArrayList<>();
+    private TextView reminderTxt;
+    private ImageView reminderIcon;
+    private String currentReminder;
+
 
 
 
@@ -69,6 +81,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
         photoUrl = getIntent().getStringExtra("photoUrl");
         carouselViewPager = findViewById(R.id.carousel_viewpager);
         dotsIndicator = findViewById(R.id.dots_indicator);
+        reminderTxt = findViewById(R.id.reminder_txt);
+        reminderIcon = findViewById(R.id.reminder_icon);
+
 
         db = FirebaseFirestore.getInstance();
 
@@ -120,6 +135,17 @@ public class QuizPreviewActivity extends AppCompatActivity {
                         itemTxt.setText(numberOfItems + label);
                     } else {
                         itemTxt.setText("0 items");
+                    }
+
+                    String reminder = documentSnapshot.getString("reminder");
+                    currentReminder = (reminder != null && !reminder.isEmpty()) ? reminder : null;
+
+                    if (currentReminder != null) {
+                        reminderTxt.setText("Reminder: " + currentReminder);
+                        reminderIcon.setImageResource(R.drawable.notifications);
+                    } else {
+                        reminderTxt.setText("Reminder: None");
+                        reminderIcon.setImageResource(R.drawable.off_notifications);
                     }
 
                     if (createdAt != null) {
@@ -227,6 +253,15 @@ public class QuizPreviewActivity extends AppCompatActivity {
             } else {
                 privacyOption.setText("Set as Private");
             }
+
+            String reminder = doc.getString("reminder");
+            if (reminder != null && !reminder.isEmpty()) {
+                reminderTxt.setText("Reminder: " + reminder);
+                reminderIcon.setImageResource(R.drawable.notifications);
+            } else {
+                reminderTxt.setText("Reminder: None");
+                reminderIcon.setImageResource(R.drawable.off_notifications);
+            }
         });
 
         view.findViewById(R.id.download).setOnClickListener(v -> {
@@ -262,9 +297,10 @@ public class QuizPreviewActivity extends AppCompatActivity {
         });
 
         view.findViewById(R.id.reminder).setOnClickListener(v -> {
-            Toast.makeText(this, "Reminder clicked", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
+            showReminderDialog();
         });
+
 
         view.findViewById(R.id.sendToChat).setOnClickListener(v -> {
             Toast.makeText(this, "Send to Chat clicked", Toast.LENGTH_SHORT).show();
@@ -285,6 +321,66 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         bottomSheetDialog.show();
     }
+
+    private void showReminderDialog() {
+        Calendar calendar = Calendar.getInstance();
+
+        DatePickerDialog datePickerDialog = new DatePickerDialog(this, R.style.DialogTheme, (view, year, month, dayOfMonth) -> {
+            calendar.set(Calendar.YEAR, year);
+            calendar.set(Calendar.MONTH, month);
+            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+
+            TimePickerDialog timePickerDialog = new TimePickerDialog(this, R.style.DialogTheme, (timeView, hourOfDay, minute) -> {
+                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                calendar.set(Calendar.MINUTE, minute);
+                calendar.set(Calendar.SECOND, 0);
+
+                setReminder(calendar);
+            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
+
+            timePickerDialog.show();
+
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
+
+        datePickerDialog.show();
+    }
+
+    @SuppressLint("ScheduleExactAlarm")
+    private void setReminder(Calendar calendar) {
+        String formattedDateTime = new SimpleDateFormat("MMMM dd, yyyy | hh:mm a", Locale.getDefault())
+                .format(calendar.getTime());
+
+        db.collection("quiz").document(quizId)
+                .update("reminder", formattedDateTime)
+                .addOnSuccessListener(aVoid -> {
+                    reminderTxt.setText("Reminder: " + formattedDateTime);
+                    reminderIcon.setImageResource(R.drawable.notifications);
+                    Toast.makeText(this, "Reminder set for " + formattedDateTime, Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to set reminder.", Toast.LENGTH_SHORT).show();
+                    reminderTxt.setText("Reminder: None");
+                    reminderIcon.setImageResource(R.drawable.off_notifications);
+                });
+
+        Intent intent = new Intent(this, ReminderReceiver.class);
+        intent.putExtra("quizId", quizId);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.setRepeating(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.getTimeInMillis(),
+                    AlarmManager.INTERVAL_DAY * 7,
+                    pendingIntent
+            );
+        }
+    }
+
 
     private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)

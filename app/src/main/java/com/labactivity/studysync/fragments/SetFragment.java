@@ -194,6 +194,7 @@ public class SetFragment extends Fragment {
                         Flashcard set = parseSet(doc);
                         set.setType("quiz");
                         set.setPhotoUrl(currentUserPhotoUrl);
+                        set.setReminder(doc.getString("reminder"));
                         allSets.add(set);
                     }
                     collectionsLoaded++;
