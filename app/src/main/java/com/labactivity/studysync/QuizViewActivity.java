@@ -11,6 +11,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -53,6 +55,8 @@ public class QuizViewActivity extends AppCompatActivity {
     private String mode = "normal";
     private List<Map<String, Object>> incorrectQuestions = new ArrayList<>();
     private int originalQuestionCount = 0;
+    private boolean shouldShuffle = false;
+
 
 
 
@@ -109,6 +113,9 @@ public class QuizViewActivity extends AppCompatActivity {
         // Determine mode (default is normal)
         mode = getIntent().getStringExtra("mode");
         if (mode == null) mode = "normal";
+        shouldShuffle = getIntent().getBooleanExtra("shuffle", false);
+
+
 
 
         // Load appropriate quiz content
@@ -276,6 +283,9 @@ public class QuizViewActivity extends AppCompatActivity {
                                     questions.add((Map<String, Object>) item);
                                 }
                             }
+                        }
+                        if (shouldShuffle) {
+                            Collections.shuffle(questions);
                         }
                         originalQuestionCount = questions.size();
 

@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -87,6 +88,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
             Intent intent = new Intent(QuizPreviewActivity.this, QuizViewActivity.class);
             intent.putExtra("quizId", quizId);
             intent.putExtra("photoUrl", photoUrl);
+            Switch shuffleSwitch = findViewById(R.id.shuffle_switch);
+            intent.putExtra("shuffle", shuffleSwitch.isChecked());
+
             startActivity(intent);
         });
     }

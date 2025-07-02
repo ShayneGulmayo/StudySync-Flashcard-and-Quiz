@@ -200,19 +200,39 @@
         app:layout_constraintStart_toEndOf="@id/reminder_icon" />
 
     <!-- START QUIZ -->
+
+    <Switch
+        android:id="@+id/shuffle_switch"
+        android:layout_width="315dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="92dp"
+        android:background="@drawable/green_stroke_bg"
+        android:paddingStart="20dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="15dp"
+        android:paddingBottom="10dp"
+        android:text="Shuffle Questions"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/reminder_txt" />
+
     <Button
         android:id="@+id/start_quiz_btn"
         android:layout_width="350dp"
-        android:layout_height="55dp"
-        android:layout_marginTop="24dp"
+        android:layout_height="62dp"
+        android:layout_marginTop="10dp"
         android:layout_marginBottom="16dp"
         android:text="@string/stats_quiz"
         android:textColor="@color/white"
-        android:textSize="16sp"
+        android:textSize="18sp"
+        app:cornerRadius="15dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_bias="0.491"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/reminder_txt" />
+        app:layout_constraintTop_toBottomOf="@id/shuffle_switch"
+        app:layout_constraintVertical_bias="0.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
