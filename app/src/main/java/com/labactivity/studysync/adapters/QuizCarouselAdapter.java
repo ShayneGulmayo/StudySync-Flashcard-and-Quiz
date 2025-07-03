@@ -55,9 +55,9 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
         }
         */
 
-        String correctAnswer = question.getCorrectAnswer();
-        if (correctAnswer != null && !correctAnswer.trim().isEmpty()) {
-            answerBuilder.append("").append(correctAnswer);
+        String correctAnswer = question.getCorrectAnswerAsString();
+        if (!correctAnswer.isEmpty()) {
+            answerBuilder.append(correctAnswer);
         } else {
             answerBuilder.append("N/A");
         }

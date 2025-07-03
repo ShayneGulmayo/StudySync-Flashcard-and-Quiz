@@ -89,14 +89,10 @@ public class Quiz {
         private String question;
         private String type;
         private List<String> choices;
-        private String correctAnswer;  // will store comma-separated values if it's a list
+        private Object correctAnswer;
+        private String reminder;
 
         public Question() {}
-
-        public Question(String question, List<String> choices) {
-            this.question = question;
-            this.choices = choices;
-        }
 
         public String getQuestion() {
             return question;
@@ -122,15 +118,27 @@ public class Quiz {
             this.choices = choices;
         }
 
-        public String getCorrectAnswer() {
+        public Object getCorrectAnswerRaw() {
             return correctAnswer;
         }
 
-        public void setCorrectAnswer(String correctAnswer) {
+        public void setCorrectAnswer(Object correctAnswer) {
             this.correctAnswer = correctAnswer;
         }
 
-        private String reminder;
+        public List<String> getCorrectAnswerAsList() {
+            if (correctAnswer instanceof List) {
+                return (List<String>) correctAnswer;
+            } else if (correctAnswer instanceof String) {
+                return List.of((String) correctAnswer);
+            } else {
+                return List.of();
+            }
+        }
+
+        public String getCorrectAnswerAsString() {
+            return String.join(", ", getCorrectAnswerAsList());
+        }
 
         public String getReminder() {
             return reminder;
@@ -140,8 +148,6 @@ public class Quiz {
             this.reminder = reminder;
         }
 
-
-        // Convenience method
         public boolean isMultipleChoice() {
             return "multiple choice".equalsIgnoreCase(type);
         }

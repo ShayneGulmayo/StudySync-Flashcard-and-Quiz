@@ -114,32 +114,24 @@ public class SetPickerActivity extends AppCompatActivity {
         } else {
             return;
         }
+        ChatMessage message = new ChatMessage();
+        message.setSenderId(currentUser.getUid());
+        message.setTimestamp(new Date());
+        message.setType("set");
+        message.setSetId(setId);
+        message.setSetType(setType);
 
-        db.collection("users").document(currentUser.getUid())
-                .get()
-                .addOnSuccessListener(snapshot -> {
-                    User sender = snapshot.toObject(User.class);
-                    if (sender == null) return;
-
-                    ChatMessage message = new ChatMessage(
-                            currentUser.getUid(),
-                            sender.getFullName(),
-                            sender.getPhotoUrl(),
-                            null,
-                            new Date()
-                    );
-                    message.setType("set");
-                    message.setSetId(setId);
-                    message.setSetType(setType);
-
-                    db.collection("chat_rooms")
-                            .document(chatRoomId)
-                            .collection("messages")
-                            .add(message)
-                            .addOnSuccessListener(ref -> {
-                                Toast.makeText(this, "Set sent!", Toast.LENGTH_SHORT).show();
-                                finish();
-                            });
+        db.collection("chat_rooms")
+                .document(chatRoomId)
+                .collection("messages")
+                .add(message)
+                .addOnSuccessListener(ref -> {
+                    Toast.makeText(this, "Set sent!", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to send set: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
+
 }

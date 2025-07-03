@@ -16,9 +16,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.labactivity.studysync.FlashcardPreviewActivity;
 import com.labactivity.studysync.ImageViewerActivity;
+import com.labactivity.studysync.QuizPreviewActivity;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.models.ChatMessage;
 import com.labactivity.studysync.models.Flashcard;
@@ -26,6 +30,9 @@ import com.labactivity.studysync.models.Quiz;
 import com.labactivity.studysync.models.User;
 
 import java.text.DecimalFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, RecyclerView.ViewHolder> {
 
@@ -104,7 +111,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         }
     }
 
-    static class SharedSetViewHolder extends RecyclerView.ViewHolder {
+    public class SharedSetViewHolder extends RecyclerView.ViewHolder {
         TextView senderName, sharedTitle, sharedType, sharedDescription, timestampText;
         ImageView senderImage, saveSetBtn;
 
@@ -121,7 +128,12 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
         public void bind(ChatMessage message) {
             FirebaseFirestore db = FirebaseFirestore.getInstance();
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            String currentUserId = auth.getCurrentUser().getUid();
 
+            timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
+
+            // Fetch sender info
             db.collection("users").document(message.getSenderId()).get().addOnSuccessListener(userSnap -> {
                 User user = userSnap.toObject(User.class);
                 if (user != null) {
@@ -130,54 +142,99 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 }
             });
 
+            // Fetch set info
             if ("flashcard".equals(message.getSetType())) {
-                db.collection("flashcards").document(message.getSetId())
-                        .get()
-                        .addOnSuccessListener(snapshot -> {
-                            Flashcard flashcard = snapshot.toObject(Flashcard.class);
-                            if (flashcard != null) {
-                                sharedTitle.setText(flashcard.getTitle());
-                                sharedType.setText("Flashcard Set");
-
-                                // Fetch the owner's username from the users collection
-                                db.collection("users").document(flashcard.getOwnerUid())
-                                        .get()
-                                        .addOnSuccessListener(ownerDoc -> {
-                                            User owner = ownerDoc.toObject(User.class);
-                                            if (owner != null) {
-                                                String description = flashcard.getNumberOfItems() + " terms · by " + owner.getUsername();
-                                                sharedDescription.setText(description);
-                                            } else {
-                                                sharedDescription.setText(flashcard.getNumberOfItems() + " terms");
-                                            }
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            sharedDescription.setText(flashcard.getNumberOfItems() + " terms");
-                                        });
-                            }
+                db.collection("flashcards").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
+                    Flashcard flashcard = snapshot.toObject(Flashcard.class);
+                    if (flashcard != null) {
+                        sharedTitle.setText(flashcard.getTitle());
+                        sharedType.setText("Flashcard Set");
+                        db.collection("users").document(flashcard.getOwnerUid()).get().addOnSuccessListener(ownerDoc -> {
+                            User owner = ownerDoc.toObject(User.class);
+                            String desc = flashcard.getNumberOfItems() + " terms" + (owner != null ? " · by " + owner.getUsername() : "");
+                            sharedDescription.setText(desc);
                         });
-        } else if ("quiz".equals(message.getSetType())) {
-                db.collection("quizzes").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
+                    }
+                });
+            } else if ("quiz".equals(message.getSetType())) {
+                db.collection("quiz").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
                     Quiz quiz = snapshot.toObject(Quiz.class);
                     if (quiz != null) {
                         sharedTitle.setText(quiz.getTitle());
                         sharedType.setText("Quiz Set");
                         db.collection("users").document(quiz.getOwner_uid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
-                            if (owner != null) {
-                                sharedDescription.setText(quiz.getNumber_of_items() + " items · by " + owner.getUsername());
-                            }
+                            String desc = quiz.getNumber_of_items() + " items" + (owner != null ? " · by " + owner.getUsername() : "");
+                            sharedDescription.setText(desc);
                         });
                     }
                 });
             }
 
-            timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
-            saveSetBtn.setOnClickListener(v -> Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show());
+            db.collection("users").document(currentUserId).get().addOnSuccessListener(userDoc -> {
+                if (userDoc.exists() && userDoc.contains("saved_sets")) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
+
+                    boolean alreadySaved = false;
+                    if (savedSets != null) {
+                        for (Map<String, Object> set : savedSets) {
+                            String id = (String) set.get("id");
+                            String type = (String) set.get("type");
+                            if (id != null && id.equals(message.getSetId()) && type.equals(message.getSetType())) {
+                                alreadySaved = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (alreadySaved) {
+                        saveSetBtn.setImageResource(R.drawable.check_circle);
+                        saveSetBtn.setEnabled(false);
+                    } else {
+                        saveSetBtn.setImageResource(R.drawable.bookmark);
+                        saveSetBtn.setEnabled(true);
+                        saveSetBtn.setOnClickListener(v -> {
+
+                            v.setClickable(false);
+                            v.setFocusable(false);
+                            Map<String, Object> setData = new HashMap<>();
+                            setData.put("id", message.getSetId());
+                            setData.put("type", message.getSetType());
+
+                            db.collection("users").document(currentUserId)
+                                    .update("saved_sets", FieldValue.arrayUnion(setData))
+                                    .addOnSuccessListener(aVoid -> {
+                                        Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show();
+                                        saveSetBtn.setImageResource(R.drawable.check_circle);
+                                        saveSetBtn.setEnabled(false);
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Toast.makeText(itemView.getContext(), "Failed to save set", Toast.LENGTH_SHORT).show();
+                                    });
+                        });
+                    }
+                }
+            });
+
+            itemView.setOnClickListener(v -> {
+                if (saveSetBtn.isPressed()) return;
+
+                Intent intent;
+                if ("flashcard".equals(message.getSetType())) {
+                    intent = new Intent(itemView.getContext(), FlashcardPreviewActivity.class);
+                    intent.putExtra("setId", message.getSetId());
+                } else {
+                    intent = new Intent(itemView.getContext(), QuizPreviewActivity.class);
+                    intent.putExtra("quizId", message.getSetId());
+                }
+                itemView.getContext().startActivity(intent);
+            });
+
         }
     }
 
-static class FileCurrentUserViewHolder extends RecyclerView.ViewHolder {
+    static class FileCurrentUserViewHolder extends RecyclerView.ViewHolder {
         TextView fileName, fileDetails, timestampText;
         ImageView saveFileButton;
 
@@ -261,7 +318,7 @@ static class FileCurrentUserViewHolder extends RecyclerView.ViewHolder {
                     }
                 });
             } else if ("quiz".equals(message.getSetType())) {
-                db.collection("quizzes").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
+                db.collection("quiz").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
                     Quiz quiz = snapshot.toObject(Quiz.class);
                     if (quiz != null) {
                         sharedTitle.setText(quiz.getTitle());
