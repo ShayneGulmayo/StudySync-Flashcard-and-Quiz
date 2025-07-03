@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.Map;
+import com.google.firebase.firestore.ListenerRegistration;
+
 
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
@@ -41,6 +43,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private String currentPrivacy, setId, currentReminder;
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
+    private ListenerRegistration reminderListener;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -49,13 +52,13 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         setContentView(R.layout.activity_flashcard_preview);
 
         initializeViews();
-
         db = FirebaseFirestore.getInstance();
 
         if (getIntent().hasExtra("setId")) {
             setId = getIntent().getStringExtra("setId");
             loadFlashcardSet();
             loadFlashcards();
+            listenToReminderUpdates(); // <-- added here
         } else {
             Toast.makeText(this, "No Flashcard ID provided", Toast.LENGTH_SHORT).show();
             finish();
@@ -67,6 +70,14 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         super.onResume();
         if (setId != null && !setId.isEmpty()) {
             loadFlashcardSet();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (reminderListener != null) {
+            reminderListener.remove();
         }
     }
 
@@ -238,6 +249,27 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         datePickerDialog.show();
     }
 
+    private void listenToReminderUpdates() {
+        if (setId == null) return;
+
+        reminderListener = db.collection("flashcards").document(setId)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null || snapshot == null || !snapshot.exists()) {
+                        Log.e("ReminderListener", "Error or document missing");
+                        return;
+                    }
+
+                    String reminder = snapshot.getString("reminder");
+                    if (reminder != null && !reminder.isEmpty()) {
+                        reminderTextView.setText("Reminder: " + reminder);
+                        reminderIcon.setImageResource(R.drawable.notifications);
+                    } else {
+                        reminderTextView.setText("Reminder: None");
+                        reminderIcon.setImageResource(R.drawable.off_notifications);
+                    }
+                });
+    }
+
     @SuppressLint("ScheduleExactAlarm")
     private void setReminder(Calendar calendar) {
         String formattedDateTime = formatDateTime(calendar);
@@ -245,30 +277,25 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         db.collection("flashcards").document(setId)
                 .update("reminder", formattedDateTime)
                 .addOnSuccessListener(aVoid -> {
-                    currentReminder = formattedDateTime;
-                    reminderTextView.setText("Reminder: " + currentReminder);
-                    reminderIcon.setImageResource(R.drawable.notifications);
                     Toast.makeText(this, "Reminder set for " + formattedDateTime, Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to set reminder.", Toast.LENGTH_SHORT).show();
-                    reminderTextView.setText("Reminder: None");
-                    reminderIcon.setImageResource(R.drawable.off_notifications);
                 });
 
         Intent intent = new Intent(this, ReminderReceiver.class);
         intent.putExtra("setId", setId);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                this, setId.hashCode(), intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
 
         AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
         if (alarmManager != null) {
-            alarmManager.setRepeating(
+            alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     calendar.getTimeInMillis(),
-                    AlarmManager.INTERVAL_DAY * 7,
                     pendingIntent
             );
         }

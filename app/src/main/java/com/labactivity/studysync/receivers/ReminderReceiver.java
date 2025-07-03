@@ -11,9 +11,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
-
 import androidx.core.app.NotificationCompat;
-
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.FlashcardPreviewActivity;
 import com.labactivity.studysync.R;
@@ -22,7 +20,6 @@ public class ReminderReceiver extends BroadcastReceiver {
 
     private static final String CHANNEL_ID = "study_reminder_channel";
     private static final String CHANNEL_NAME = "Study Reminders";
-    private static final int NOTIFICATION_ID = 1;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -35,7 +32,6 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-        // Fetch title and clear the reminder
         db.collection("flashcards").document(setId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -44,19 +40,16 @@ public class ReminderReceiver extends BroadcastReceiver {
                         return;
                     }
 
-                    // Get title
                     String setTitle = documentSnapshot.getString("title");
                     if (setTitle == null || setTitle.isEmpty()) {
                         setTitle = "Untitled Flashcard";
                     }
 
-                    // Clear reminder field
                     db.collection("flashcards").document(setId)
                             .update("reminder", null)
                             .addOnSuccessListener(aVoid -> Log.d("ReminderReceiver", "Reminder cleared"))
                             .addOnFailureListener(e -> Log.e("ReminderReceiver", "Failed to clear reminder", e));
 
-                    // Send notification
                     sendNotification(context, setId, setTitle);
 
                 })
@@ -66,15 +59,17 @@ public class ReminderReceiver extends BroadcastReceiver {
     private void sendNotification(Context context, String setId, String setTitle) {
         createNotificationChannel(context);
 
-        // Intent to open FlashcardViewerActivity
         Intent intent = new Intent(context, FlashcardPreviewActivity.class);
         intent.putExtra("setId", setId);
         intent.putExtra("fromNotification", true);
 
-        // Ensure correct back stack
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
         stackBuilder.addNextIntentWithParentStack(intent);
-        PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        PendingIntent pendingIntent = stackBuilder.getPendingIntent(
+                setId.hashCode(),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
 
         Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
@@ -91,7 +86,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (notificationManager != null) {
-            notificationManager.notify(NOTIFICATION_ID, builder.build());
+            notificationManager.notify(setId.hashCode(), builder.build());
         }
     }
 
