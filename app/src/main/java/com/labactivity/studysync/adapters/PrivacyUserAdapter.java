@@ -8,24 +8,20 @@ import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.RadioButton;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.models.User;
 import com.labactivity.studysync.models.UserWithRole;
-
 import java.util.List;
 
 public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int TYPE_SELECTABLE = 0;
     private static final int TYPE_SELECTED = 1;
-
     private final List<?> userList;
     private final List<UserWithRole> selectedUsers;
     private final boolean isSelectionList;

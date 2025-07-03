@@ -55,7 +55,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        findViewById(R.id.back_button).setOnClickListener(v -> finish());
+        findViewById(R.id.back_button).setOnClickListener(v -> onBackPressed());
         findViewById(R.id.save_button).setOnClickListener(v -> fetchUsernameAndSaveFlashcardSet());
         findViewById(R.id.floating_add_btn).setOnClickListener(v -> addFlashcardView());
 
@@ -99,8 +99,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                     Toast.makeText(this, "Error fetching username.", Toast.LENGTH_SHORT).show();
                 });
     }
-
-
 
     private void addFlashcardView() {
         View flashcardView = getLayoutInflater().inflate(R.layout.item_flashcard_input, null);
@@ -199,7 +197,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 termEntry.put("term", term);
                 termEntry.put("definition", definition);
 
-                // Retrieve image tags (photoUrl and photoPath)
                 Object tag = imageView.getTag();
                 if (tag instanceof Map) {
                     Map<String, String> imageData = (Map<String, String>) tag;
@@ -213,7 +210,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 itemCount++;
             }
         }
-
 
         if (itemCount < 2) {
             Toast.makeText(this, "At least 2 flashcards required", Toast.LENGTH_SHORT).show();
@@ -229,7 +225,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         flashcardSet.put("createdAt", getCurrentFormattedDateTime());
 
         if (setId != null) {
-            // UPDATE existing
             db.collection("flashcards").document(setId)
                     .set(flashcardSet)
                     .addOnSuccessListener(doc -> {
@@ -238,7 +233,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to update set", Toast.LENGTH_SHORT).show());
         } else {
-            // CREATE new
             db.collection("flashcards")
                     .add(flashcardSet)
                     .addOnSuccessListener(doc -> {
@@ -248,8 +242,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to save set", Toast.LENGTH_SHORT).show());
         }
     }
-
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -284,7 +276,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                         ImageView imageView = flashcardView.findViewById(R.id.upload_image_button);
                         Glide.with(this).load(publicUrl).into(imageView);
 
-                        // Store both photoUrl and photoPath in a map as tag
                         Map<String, String> imageData = new HashMap<>();
                         imageData.put("photoUrl", publicUrl);
                         imageData.put("photoPath", filename);
@@ -301,7 +292,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             Toast.makeText(this, "Image error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
-
 
     public static File getFileFromUri(Context context, Uri uri) throws Exception {
         ContentResolver contentResolver = context.getContentResolver();
@@ -327,5 +317,20 @@ public class CreateFlashcardActivity extends AppCompatActivity {
     private String getCurrentFormattedDateTime() {
         return new SimpleDateFormat("MM/dd/yyyy | hh:mm a").format(new Date());
     }
+
+    @Override
+    public void onBackPressed() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Leave without saving?")
+                .setMessage("Are you sure you want to leave? Any unsaved changes will be lost.")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    super.onBackPressed();
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> {
+                    dialog.dismiss();
+                })
+                .show();
+    }
+
 }
 

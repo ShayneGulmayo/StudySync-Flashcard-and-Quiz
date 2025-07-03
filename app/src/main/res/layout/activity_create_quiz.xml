@@ -33,6 +33,7 @@
             android:layout_height="30dp"
             android:layout_gravity="right|center_vertical"
             android:layout_margin="16dp"
+            android:tint="@color/primary"
             app:srcCompat="@drawable/check" />
 
         <TextView
