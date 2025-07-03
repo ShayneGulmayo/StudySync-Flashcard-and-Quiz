@@ -9,12 +9,10 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 public class FlashcardProgressActivity extends AppCompatActivity {
@@ -23,7 +21,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
     TextView progressPercentage, knowItems, stillLearningItems, flashcardTitleTxt;
     Button reviewQuestionsBtn;
     TextView retakeFlashcardBtn;
-    ImageView backButton, moreButton;
+    ImageView backButton;
     int knowCount, stillLearningCount, totalItems;
     String setId;
     FirebaseFirestore db;
@@ -50,7 +48,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
         reviewQuestionsBtn = findViewById(R.id.review_questions_btn);
         retakeFlashcardBtn = findViewById(R.id.retake_quiz_btn);
         backButton = findViewById(R.id.back_button);
-        moreButton = findViewById(R.id.more_button);
         flashcardTitleTxt = findViewById(R.id.flashcard_title);
 
         knowCount = getIntent().getIntExtra("knowCount", 0);
@@ -70,14 +67,11 @@ public class FlashcardProgressActivity extends AppCompatActivity {
             reviewQuestionsBtn.setVisibility(View.GONE);
         }
 
-
         updateProgressInFirestore(setId, progressValue);
 
         loadFlashcardTitle(setId);
 
         backButton.setOnClickListener(v -> finish());
-        moreButton.setOnClickListener(v -> showMoreBottomSheet());
-
 
         retakeFlashcardBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, FlashcardViewerActivity.class);
@@ -95,64 +89,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
         });
     }
 
-    private void showMoreBottomSheet() {
-        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_preview, null);
-        bottomSheetDialog.setContentView(view);
-
-        view.findViewById(R.id.download).setOnClickListener(v -> {
-            Toast.makeText(this, "Download clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.privacy).setOnClickListener(v -> {
-            Toast.makeText(this, "Privacy clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.reminder).setOnClickListener(v -> {
-            Toast.makeText(this, "Reminder clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.sendToChat).setOnClickListener(v -> {
-            Toast.makeText(this, "Send to Chat clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.edit).setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-            Intent intent = new Intent(this, CreateFlashcardActivity.class);
-            intent.putExtra("setId", setId);
-            startActivity(intent);
-        });
-
-        view.findViewById(R.id.delete).setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-            showDeleteConfirmationDialog();
-        });
-
-        bottomSheetDialog.show();
-    }
-
-    private void showDeleteConfirmationDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete Flashcard Set")
-                .setMessage("Are you sure you want to delete this flashcard set? This action cannot be undone.")
-                .setPositiveButton("Yes", (dialog, which) -> deleteFlashcardSet())
-                .setNegativeButton("No", null)
-                .show();
-    }
-
-    private void deleteFlashcardSet() {
-        db.collection("flashcards").document(setId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Flashcard set deleted.", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete flashcard set.", Toast.LENGTH_SHORT).show());
-    }
     private void updateProgressInFirestore(String setId, int progressValue) {
         if (setId == null) return;
 
