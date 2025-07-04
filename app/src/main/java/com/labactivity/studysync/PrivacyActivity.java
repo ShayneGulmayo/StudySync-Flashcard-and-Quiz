@@ -8,15 +8,18 @@ import android.widget.ImageView;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.*;
 import com.labactivity.studysync.adapters.PrivacyUserAdapter;
 import com.labactivity.studysync.models.User;
 import com.labactivity.studysync.models.UserWithRole;
+
 import java.util.*;
 
 @SuppressLint("MissingInflatedId")
@@ -32,13 +35,14 @@ public class PrivacyActivity extends AppCompatActivity {
     private final List<User> searchResults = new ArrayList<>();
     private PrivacyUserAdapter selectedAdapter, searchAdapter;
     private FirebaseFirestore db;
-    private String setId, currentUserId;
+    private String setId, currentUserId, setType;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_privacy);
 
+        // Initialize views
         backButton = findViewById(R.id.back_button);
         checkButton = findViewById(R.id.check_button);
         privacyIcon = findViewById(R.id.privacy_icon);
@@ -52,15 +56,17 @@ public class PrivacyActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         setId = getIntent().getStringExtra("setId");
+        setType = getIntent().getStringExtra("setType");
+        if (setType == null) setType = "flashcards";  // fallback default
 
+        // Setup RecyclerViews
         selectedRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         selectedAdapter = new PrivacyUserAdapter(
                 selectedUserList, selectedUserList, false, isPublic,
                 (user, selected, position) -> {
                     removeUser(user);
                     selectedAdapter.notifyDataSetChanged();
-                }
-        );
+                });
         selectedRecyclerView.setAdapter(selectedAdapter);
 
         searchResultsRecycler.setLayoutManager(new LinearLayoutManager(this));
@@ -76,8 +82,7 @@ public class PrivacyActivity extends AppCompatActivity {
                     }
                     selectedAdapter.notifyDataSetChanged();
                     searchAdapter.notifyDataSetChanged();
-                }
-        );
+                });
         searchResultsRecycler.setAdapter(searchAdapter);
 
         searchView.setEnabled(false);
@@ -94,7 +99,6 @@ public class PrivacyActivity extends AppCompatActivity {
                 searchResultsRecycler.setVisibility(RecyclerView.GONE);
                 return true;
             }
-
             @Override public boolean onQueryTextChange(String newText) {
                 filterUsers(newText.trim());
                 return true;
@@ -105,15 +109,13 @@ public class PrivacyActivity extends AppCompatActivity {
     }
 
     private void loadSetTitle() {
-        db.collection("flashcards").document(setId)
+        db.collection(setType).document(setId)
                 .get()
-                .addOnSuccessListener(doc -> {
-                    titleTxt.setText(doc.getString("title") != null ? doc.getString("title") : "Untitled");
-                });
+                .addOnSuccessListener(doc -> titleTxt.setText(doc.getString("title") != null ? doc.getString("title") : "Untitled"));
     }
 
     private void loadSetPrivacy() {
-        db.collection("flashcards").document(setId)
+        db.collection(setType).document(setId)
                 .get()
                 .addOnSuccessListener(doc -> {
                     String privacy = doc.getString("privacy");
@@ -139,7 +141,7 @@ public class PrivacyActivity extends AppCompatActivity {
     }
 
     private void loadAccessUsers() {
-        db.collection("flashcards").document(setId)
+        db.collection(setType).document(setId)
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (doc.contains("accessUsers")) {
@@ -199,6 +201,27 @@ public class PrivacyActivity extends AppCompatActivity {
         updatePrivacyUI();
         selectedAdapter.setIsPublic(isPublic);
         searchAdapter.setIsPublic(isPublic);
+
+        if (isPublic) {
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("privacy", "public");
+
+            Map<String, String> updatedAccessUsers = new HashMap<>();
+            for (UserWithRole uwr : selectedUserList) {
+                updatedAccessUsers.put(uwr.getUser().getUid(), "View");
+                uwr.setRole("View");
+            }
+            updates.put("accessUsers", updatedAccessUsers);
+
+            db.collection(setType)
+                    .document(setId)
+                    .update(updates)
+                    .addOnSuccessListener(aVoid -> {
+                        selectedAdapter.notifyDataSetChanged();
+                        searchAdapter.notifyDataSetChanged();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to update roles.", Toast.LENGTH_SHORT).show());
+        }
     }
 
     private void updatePrivacyUI() {
@@ -221,11 +244,13 @@ public class PrivacyActivity extends AppCompatActivity {
 
         Map<String, String> accessMap = new HashMap<>();
         for (UserWithRole uwr : selectedUserList) {
-            accessMap.put(uwr.getUser().getUid(), uwr.getRole());
+            String role = isPublic ? "View" : uwr.getRole();
+            accessMap.put(uwr.getUser().getUid(), role);
         }
         data.put("accessUsers", accessMap);
 
-        db.collection("flashcards").document(setId)
+        db.collection(setType)
+                .document(setId)
                 .update(data)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Privacy settings saved.", Toast.LENGTH_SHORT).show();
