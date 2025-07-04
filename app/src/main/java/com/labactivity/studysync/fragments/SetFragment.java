@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.labactivity.studysync.CreateFlashcardActivity;
@@ -29,6 +30,9 @@ import com.labactivity.studysync.R;
 import com.labactivity.studysync.adapters.SetAdapter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class SetFragment extends Fragment {
 
@@ -42,7 +46,7 @@ public class SetFragment extends Fragment {
     private MaterialButtonToggleGroup toggleGroup;
     private TextView noSetsText;
     private SearchView searchView;
-    private int totalCollectionsToLoad = 2;
+    private int totalCollectionsToLoad = 3;
     private int collectionsLoaded = 0;
     private String currentUserPhotoUrl;
     private String currentSearchQuery = "";
@@ -149,19 +153,44 @@ public class SetFragment extends Fragment {
         allSets.clear();
         displayedSets.clear();
         collectionsLoaded = 0;
+        totalCollectionsToLoad = 4; // flashcards, quiz, owned_sets, saved_sets
 
         db.collection("users").document(currentUid)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         currentUserPhotoUrl = documentSnapshot.getString("photoUrl");
+
+                        // Load owned_sets
+                        List<Map<String, Object>> owned = (List<Map<String, Object>>) documentSnapshot.get("owned_sets");
+                        if (owned != null) {
+                            for (Map<String, Object> entry : owned) {
+                                loadSingleSet(entry, false);
+                            }
+                        }
+                        collectionsLoaded++;
+                        checkAndApplyInitialFilter();
+
+                        // Load saved_sets
+                        List<Map<String, Object>> saved = (List<Map<String, Object>>) documentSnapshot.get("saved_sets");
+                        if (saved != null) {
+                            for (Map<String, Object> entry : saved) {
+                                loadSingleSet(entry, true);
+                            }
+                        }
+                        collectionsLoaded++;
+                        checkAndApplyInitialFilter();
                     } else {
                         currentUserPhotoUrl = null;
+                        collectionsLoaded += 2;
+                        checkAndApplyInitialFilter();
                     }
                     loadFlashcardsAndQuizzes(currentUid);
                 })
                 .addOnFailureListener(e -> {
                     currentUserPhotoUrl = null;
+                    collectionsLoaded += 2;
+                    checkAndApplyInitialFilter();
                     loadFlashcardsAndQuizzes(currentUid);
                 });
     }
@@ -206,7 +235,7 @@ public class SetFragment extends Fragment {
                 });
     }
 
-    private Flashcard parseSet(QueryDocumentSnapshot doc) {
+    private Flashcard parseSet(DocumentSnapshot doc) {
         String id = doc.getId();
         String title = doc.getString("title");
         long numberOfItems = doc.getLong("number_of_items") != null ? doc.getLong("number_of_items") : 0;
@@ -216,12 +245,10 @@ public class SetFragment extends Fragment {
 
         Flashcard set = new Flashcard(id, title, (int) numberOfItems, ownerUsername, (int) progress, null);
         set.setPrivacy(privacy);
-
         set.setOwnerUid(doc.getString("owner_uid"));
 
         return set;
     }
-
 
     private void checkAndApplyInitialFilter() {
         if (collectionsLoaded >= totalCollectionsToLoad) {
@@ -318,4 +345,27 @@ public class SetFragment extends Fragment {
         intent.putExtra("setName", set.getTitle());
         startActivity(intent);
     }
+    private void loadSingleSet(Map<String, Object> entry, boolean isSaved) {
+        if (entry == null) return;
+
+        String id = (String) entry.get("id");
+        String type = (String) entry.get("type");
+
+        if (id == null || type == null) return;
+
+        db.collection(type.equals("quiz") ? "quiz" : "flashcards")
+                .document(id)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        Flashcard set = parseSet(doc);
+                        set.setType(type);
+                        set.setPhotoUrl(doc.getString("photoUrl"));
+                        set.setReminder(doc.getString("reminder"));
+                        allSets.add(set);
+                    }
+                    applyFilters();
+                });
+    }
+
 }

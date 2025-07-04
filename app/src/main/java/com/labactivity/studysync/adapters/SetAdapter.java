@@ -10,17 +10,21 @@ import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.auth.FirebaseAuth;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.RequestOptions;
-import com.labactivity.studysync.models.Flashcard;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.QuizPreviewActivity;
 import com.labactivity.studysync.R;
+import com.labactivity.studysync.models.Flashcard;
+import com.labactivity.studysync.models.User;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,8 +45,7 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
     private static final int TYPE_FLASHCARD = 0;
     private static final int TYPE_QUIZ = 1;
 
-    private final HashMap<String, String> cachedUsernames = new HashMap<>();
-    private final HashMap<String, com.google.firebase.firestore.ListenerRegistration> userListeners = new HashMap<>();
+    private final HashMap<String, User> cachedUsers = new HashMap<>();
 
     @Override
     public int getItemViewType(int position) {
@@ -60,12 +63,11 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view;
-        if (viewType == TYPE_QUIZ) {
-            view = LayoutInflater.from(context).inflate(R.layout.item_quiz_set, parent, false);
-        } else {
-            view = LayoutInflater.from(context).inflate(R.layout.item_flashcard_set, parent, false);
-        }
+        View view = LayoutInflater.from(context).inflate(
+                viewType == TYPE_QUIZ ? R.layout.item_quiz_set : R.layout.item_flashcard_set,
+                parent,
+                false
+        );
         return new ViewHolder(view, viewType);
     }
 
@@ -74,33 +76,28 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
         Flashcard set = flashcard.get(position);
 
         String title = set.getTitle();
-        if (title.length() > 20) {
-            title = title.substring(0, 17) + "...";
-        }
+        if (title.length() > 20) title = title.substring(0, 17) + "...";
         holder.setNameText.setText(title);
         holder.setItemText.setText(set.getNumberOfItems() + " items");
 
         String ownerUid = set.getOwnerUid();
         holder.flashcardOwner.setText("Loading...");
-        if (cachedUsernames.containsKey(ownerUid)) {
-            holder.flashcardOwner.setText(cachedUsernames.get(ownerUid));
+
+        if (cachedUsers.containsKey(ownerUid)) {
+            User owner = cachedUsers.get(ownerUid);
+            holder.flashcardOwner.setText(owner != null ? owner.getUsername() : "Unknown");
+            loadPhoto(holder.userProfileImage, owner != null ? owner.getPhotoUrl() : null);
         } else {
-            if (!userListeners.containsKey(ownerUid)) {
-                com.google.firebase.firestore.ListenerRegistration registration =
-                        FirebaseFirestore.getInstance()
-                                .collection("users")
-                                .document(ownerUid)
-                                .addSnapshotListener((documentSnapshot, e) -> {
-                                    if (e == null && documentSnapshot != null && documentSnapshot.exists()) {
-                                        String username = documentSnapshot.getString("username");
-                                        if (username != null) {
-                                            cachedUsernames.put(ownerUid, username);
-                                            notifyDataSetChanged();
-                                        }
-                                    }
-                                });
-                userListeners.put(ownerUid, registration);
-            }
+            db.collection("users").document(ownerUid).get().addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    User user = documentSnapshot.toObject(User.class);
+                    cachedUsers.put(ownerUid, user);
+                    holder.flashcardOwner.setText(user != null ? user.getUsername() : "Unknown");
+                    loadPhoto(holder.userProfileImage, user != null ? user.getPhotoUrl() : null);
+                } else {
+                    holder.flashcardOwner.setText("Unknown");
+                }
+            });
         }
 
         if (getItemViewType(position) == TYPE_QUIZ) {
@@ -114,13 +111,10 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
                     .get()
                     .addOnSuccessListener(attempt -> {
                         if (attempt.exists()) {
-                            Long scoreL = attempt.getLong("score");
-                            Long totalL = attempt.getLong("total");
-
-                            if (scoreL != null && totalL != null && totalL > 0) {
-                                int correct = scoreL.intValue();
-                                int totalItems = totalL.intValue();
-                                int percent = Math.round((correct / (float) totalItems) * 100);
+                            Long score = attempt.getLong("score");
+                            Long total = attempt.getLong("total");
+                            if (score != null && total != null && total > 0) {
+                                int percent = Math.round((score.floatValue() / total) * 100);
                                 holder.statsProgressBar.setProgress(percent);
                                 holder.progressPercentageText.setText(percent + "%");
                             } else {
@@ -131,10 +125,6 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
                             holder.statsProgressBar.setProgress(0);
                             holder.progressPercentageText.setText("0%");
                         }
-                    })
-                    .addOnFailureListener(e -> {
-                        holder.statsProgressBar.setProgress(0);
-                        holder.progressPercentageText.setText("0%");
                     });
 
             if (set.getReminder() != null && !set.getReminder().isEmpty()) {
@@ -148,28 +138,7 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
             int progressValue = set.getProgress();
             holder.statsProgressBar.setProgress(progressValue);
             holder.progressPercentageText.setText(progressValue + "%");
-        }
 
-        if (set.getPhotoUrl() != null) {
-            Glide.with(context)
-                    .load(set.getPhotoUrl())
-                    .apply(new RequestOptions()
-                            .placeholder(R.drawable.user_profile)
-                            .error(R.drawable.user_profile)
-                            .circleCrop())
-                    .transition(DrawableTransitionOptions.withCrossFade())
-                    .into(holder.userProfileImage);
-        } else {
-            holder.userProfileImage.setImageResource(R.drawable.user_profile);
-        }
-
-        if ("Private".equalsIgnoreCase(set.getPrivacy())) {
-            holder.privacyIcon.setImageResource(R.drawable.lock);
-        } else {
-            holder.privacyIcon.setImageResource(R.drawable.public_icon);
-        }
-
-        if (holder.viewType == TYPE_FLASHCARD) {
             if (set.getReminder() != null && !set.getReminder().isEmpty()) {
                 holder.setReminderTextView.setVisibility(View.VISIBLE);
                 holder.setReminderTextView.setText("Reminder: " + set.getReminder());
@@ -177,6 +146,8 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
                 holder.setReminderTextView.setVisibility(View.GONE);
             }
         }
+
+        holder.privacyIcon.setImageResource("Private".equalsIgnoreCase(set.getPrivacy()) ? R.drawable.lock : R.drawable.public_icon);
 
         holder.itemView.setOnClickListener(v -> {
             if (set.getType().equals("quiz")) {
@@ -191,6 +162,21 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
         });
     }
 
+    private void loadPhoto(ImageView view, String url) {
+        if (url != null && !url.isEmpty()) {
+            Glide.with(context)
+                    .load(url)
+                    .apply(new RequestOptions()
+                            .placeholder(R.drawable.user_profile)
+                            .error(R.drawable.user_profile)
+                            .circleCrop())
+                    .transition(DrawableTransitionOptions.withCrossFade())
+                    .into(view);
+        } else {
+            view.setImageResource(R.drawable.user_profile);
+        }
+    }
+
     @Override
     public int getItemCount() {
         return flashcard.size();
@@ -200,7 +186,6 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
         TextView setNameText, setItemText, flashcardOwner, progressPercentageText, setReminderTextView;
         ProgressBar statsProgressBar;
         ImageView userProfileImage, privacyIcon;
-        CardView cardView;
         int viewType;
 
         public ViewHolder(@NonNull View itemView, int viewType) {
@@ -212,17 +197,14 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
             progressPercentageText = itemView.findViewById(R.id.progress_percentage2);
             statsProgressBar = itemView.findViewById(R.id.stats_progressbar);
             privacyIcon = itemView.findViewById(R.id.privacy_icon);
+            setReminderTextView = itemView.findViewById(R.id.set_reminder);
 
             if (viewType == TYPE_QUIZ) {
                 flashcardOwner = itemView.findViewById(R.id.quiz_owner);
-                cardView = itemView.findViewById(R.id.cardView);
                 userProfileImage = itemView.findViewById(R.id.quiz_user_profile);
-                setReminderTextView = itemView.findViewById(R.id.set_reminder);
             } else {
                 flashcardOwner = itemView.findViewById(R.id.flashcard_owner);
                 userProfileImage = itemView.findViewById(R.id.user_profile);
-                privacyIcon = itemView.findViewById(R.id.privacy_icon);
-                setReminderTextView = itemView.findViewById(R.id.set_reminder);
             }
         }
     }
@@ -243,8 +225,13 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
                 String filterPattern = constraint.toString().toLowerCase().trim();
 
                 for (Flashcard set : flashcardSetsFull) {
-                    if (set.getTitle().toLowerCase().contains(filterPattern)
-                            || (cachedUsernames.containsKey(set.getOwnerUid()) && cachedUsernames.get(set.getOwnerUid()).toLowerCase().contains(filterPattern))) {
+                    boolean matchesTitle = set.getTitle().toLowerCase().contains(filterPattern);
+                    boolean matchesOwner = false;
+                    User owner = cachedUsers.get(set.getOwnerUid());
+                    if (owner != null && owner.getUsername() != null) {
+                        matchesOwner = owner.getUsername().toLowerCase().contains(filterPattern);
+                    }
+                    if (matchesTitle || matchesOwner) {
                         filteredList.add(set);
                     }
                 }
@@ -252,23 +239,18 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
 
             FilterResults results = new FilterResults();
             results.values = filteredList;
-
             return results;
         }
 
         @Override
         protected void publishResults(CharSequence constraint, FilterResults results) {
             flashcard.clear();
-            flashcard.addAll((List) results.values);
+            flashcard.addAll((List<Flashcard>) results.values);
             notifyDataSetChanged();
         }
     };
 
     public void cleanupListeners() {
-        for (com.google.firebase.firestore.ListenerRegistration registration : userListeners.values()) {
-            registration.remove();
-        }
-        userListeners.clear();
-        cachedUsernames.clear();
+        cachedUsers.clear();
     }
 }
