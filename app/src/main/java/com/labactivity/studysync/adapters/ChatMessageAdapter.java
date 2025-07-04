@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -113,7 +114,8 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
     public class SharedSetViewHolder extends RecyclerView.ViewHolder {
         TextView senderName, sharedTitle, sharedType, sharedDescription, timestampText;
-        ImageView senderImage, saveSetBtn;
+        ImageView senderImage, saveSetBtn, savedIndicator;
+        Button btnViewSet;
 
         public SharedSetViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -124,6 +126,12 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             timestampText = itemView.findViewById(R.id.timestampText);
             senderImage = itemView.findViewById(R.id.senderImage);
             saveSetBtn = itemView.findViewById(R.id.saveSetBtn);
+            savedIndicator = itemView.findViewById(R.id.savedIndicator);
+            btnViewSet = itemView.findViewById(R.id.btnViewSet);
+
+            itemView.setOnClickListener(v -> {
+                timestampText.setVisibility(timestampText.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+            });
         }
 
         public void bind(ChatMessage message) {
@@ -133,16 +141,19 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
 
-            // Fetch sender info
             db.collection("users").document(message.getSenderId()).get().addOnSuccessListener(userSnap -> {
                 User user = userSnap.toObject(User.class);
                 if (user != null) {
                     senderName.setText(user.getUsername());
-                    Glide.with(itemView.getContext()).load(user.getPhotoUrl()).placeholder(R.drawable.user_profile).circleCrop().into(senderImage);
+                    Glide.with(itemView.getContext())
+                            .load(user.getPhotoUrl())
+                            .placeholder(R.drawable.user_profile)
+                            .circleCrop()
+                            .into(senderImage);
                 }
             });
 
-            // Fetch set info
+            // Fetch and display set info
             if ("flashcard".equals(message.getSetType())) {
                 db.collection("flashcards").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
                     Flashcard flashcard = snapshot.toObject(Flashcard.class);
@@ -171,55 +182,67 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
             }
 
+            // Determine saved or owned state
             db.collection("users").document(currentUserId).get().addOnSuccessListener(userDoc -> {
-                if (userDoc.exists() && userDoc.contains("saved_sets")) {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
+                boolean alreadySaved = false;
+                boolean alreadyOwned = false;
 
-                    boolean alreadySaved = false;
-                    if (savedSets != null) {
-                        for (Map<String, Object> set : savedSets) {
-                            String id = (String) set.get("id");
-                            String type = (String) set.get("type");
-                            if (id != null && id.equals(message.getSetId()) && type.equals(message.getSetType())) {
-                                alreadySaved = true;
-                                break;
-                            }
+                List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
+                List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userDoc.get("owned_sets");
+
+                // Check saved sets
+                if (savedSets != null) {
+                    for (Map<String, Object> set : savedSets) {
+                        if (message.getSetId().equals(set.get("id")) && message.getSetType().equals(set.get("type"))) {
+                            alreadySaved = true;
+                            break;
                         }
                     }
+                }
 
-                    if (alreadySaved) {
-                        saveSetBtn.setImageResource(R.drawable.check_circle);
-                        saveSetBtn.setEnabled(false);
-                    } else {
-                        saveSetBtn.setImageResource(R.drawable.bookmark);
-                        saveSetBtn.setEnabled(true);
-                        saveSetBtn.setOnClickListener(v -> {
-
-                            v.setClickable(false);
-                            v.setFocusable(false);
-                            Map<String, Object> setData = new HashMap<>();
-                            setData.put("id", message.getSetId());
-                            setData.put("type", message.getSetType());
-
-                            db.collection("users").document(currentUserId)
-                                    .update("saved_sets", FieldValue.arrayUnion(setData))
-                                    .addOnSuccessListener(aVoid -> {
-                                        Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show();
-                                        saveSetBtn.setImageResource(R.drawable.check_circle);
-                                        saveSetBtn.setEnabled(false);
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        Toast.makeText(itemView.getContext(), "Failed to save set", Toast.LENGTH_SHORT).show();
-                                    });
-                        });
+                // Check owned sets
+                if (ownedSets != null) {
+                    for (Map<String, Object> set : ownedSets) {
+                        if (message.getSetId().equals(set.get("id")) && message.getSetType().equals(set.get("type"))) {
+                            alreadyOwned = true;
+                            break;
+                        }
                     }
+                }
+
+                if (alreadySaved || alreadyOwned) {
+                    saveSetBtn.setImageResource(R.drawable.bookmark_filled);
+                    savedIndicator.setVisibility(View.VISIBLE);
+                    saveSetBtn.setEnabled(false);
+                    saveSetBtn.setClickable(false);
+                } else {
+                    saveSetBtn.setImageResource(R.drawable.bookmark);
+                    savedIndicator.setVisibility(View.GONE);
+                    saveSetBtn.setEnabled(true);
+                    saveSetBtn.setClickable(true);
+
+                    saveSetBtn.setOnClickListener(v -> {
+                        v.setClickable(false);
+                        Map<String, Object> setData = new HashMap<>();
+                        setData.put("id", message.getSetId());
+                        setData.put("type", message.getSetType());
+
+                        db.collection("users").document(currentUserId)
+                                .update("saved_sets", FieldValue.arrayUnion(setData))
+                                .addOnSuccessListener(aVoid -> {
+                                    Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show();
+                                    saveSetBtn.setImageResource(R.drawable.bookmark_filled);
+                                    savedIndicator.setVisibility(View.VISIBLE);
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(itemView.getContext(), "Failed to save set", Toast.LENGTH_SHORT).show();
+                                    v.setClickable(true);
+                                });
+                    });
                 }
             });
 
-            itemView.setOnClickListener(v -> {
-                if (saveSetBtn.isPressed()) return;
-
+            btnViewSet.setOnClickListener(v -> {
                 Intent intent;
                 if ("flashcard".equals(message.getSetType())) {
                     intent = new Intent(itemView.getContext(), FlashcardPreviewActivity.class);
@@ -230,9 +253,11 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 }
                 itemView.getContext().startActivity(intent);
             });
-
         }
     }
+
+
+
 
     static class FileCurrentUserViewHolder extends RecyclerView.ViewHolder {
         TextView fileName, fileDetails, timestampText;
@@ -295,6 +320,8 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
     static class SharedSetCurrentUserViewHolder extends RecyclerView.ViewHolder {
         TextView sharedTitle, sharedType, sharedDescription, timestampText;
+        Button btnViewSet;
+        ImageView saveSetBtn, savedIndicator;
 
         public SharedSetCurrentUserViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -302,12 +329,25 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             sharedType = itemView.findViewById(R.id.sharedType);
             sharedDescription = itemView.findViewById(R.id.sharedDescription);
             timestampText = itemView.findViewById(R.id.timestampText);
+            btnViewSet = itemView.findViewById(R.id.btnViewSet);
+            saveSetBtn = itemView.findViewById(R.id.saveSetBtn);
+            savedIndicator = itemView.findViewById(R.id.savedIndicator);
+
+            itemView.setOnClickListener(v -> {
+                timestampText.setVisibility(
+                        timestampText.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
+                );
+            });
         }
 
         public void bind(ChatMessage message) {
             FirebaseFirestore db = FirebaseFirestore.getInstance();
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            String currentUserId = auth.getCurrentUser().getUid();
+
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
 
+            // Load set data
             if ("flashcard".equals(message.getSetType())) {
                 db.collection("flashcards").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
                     Flashcard flashcard = snapshot.toObject(Flashcard.class);
@@ -327,8 +367,85 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     }
                 });
             }
+
+            // Check if set is already owned or saved
+            db.collection("users").document(currentUserId).get().addOnSuccessListener(userDoc -> {
+                boolean alreadySaved = false;
+                boolean alreadyOwned = false;
+
+                List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
+                List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userDoc.get("owned_sets");
+
+                if (savedSets != null) {
+                    for (Map<String, Object> set : savedSets) {
+                        if (message.getSetId().equals(set.get("id")) && message.getSetType().equals(set.get("type"))) {
+                            alreadySaved = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (ownedSets != null) {
+                    for (Map<String, Object> set : ownedSets) {
+                        if (message.getSetId().equals(set.get("id")) && message.getSetType().equals(set.get("type"))) {
+                            alreadyOwned = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (alreadySaved || alreadyOwned) {
+                    saveSetBtn.setImageResource(R.drawable.bookmark_filled);
+                    saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.primary));
+                    saveSetBtn.setEnabled(false);
+                    saveSetBtn.setClickable(false);
+                    savedIndicator.setVisibility(View.VISIBLE);
+                } else {
+                    saveSetBtn.setImageResource(R.drawable.bookmark);
+                    saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.white));
+                    savedIndicator.setVisibility(View.GONE);
+                    saveSetBtn.setEnabled(true);
+                    saveSetBtn.setClickable(true);
+
+                    saveSetBtn.setOnClickListener(v -> {
+                        saveSetBtn.setClickable(false);
+                        Map<String, Object> setData = new HashMap<>();
+                        setData.put("id", message.getSetId());
+                        setData.put("type", message.getSetType());
+
+                        db.collection("users").document(currentUserId)
+                                .update("saved_sets", FieldValue.arrayUnion(setData))
+                                .addOnSuccessListener(aVoid -> {
+                                    Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show();
+                                    saveSetBtn.setImageResource(R.drawable.bookmark_filled);
+                                    saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.primary));
+                                    saveSetBtn.setEnabled(false);
+                                    savedIndicator.setVisibility(View.VISIBLE);
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(itemView.getContext(), "Failed to save set", Toast.LENGTH_SHORT).show();
+                                    saveSetBtn.setClickable(true);
+                                });
+                    });
+                }
+            });
+
+            btnViewSet.setOnClickListener(v -> {
+                Intent intent;
+                if ("flashcard".equals(message.getSetType())) {
+                    intent = new Intent(itemView.getContext(), FlashcardPreviewActivity.class);
+                    intent.putExtra("setId", message.getSetId());
+                } else {
+                    intent = new Intent(itemView.getContext(), QuizPreviewActivity.class);
+                    intent.putExtra("quizId", message.getSetId());
+                }
+                itemView.getContext().startActivity(intent);
+            });
         }
     }
+
+
+
 
     private static String readableFileSize(long size) {
         if (size <= 0) return "0 B";

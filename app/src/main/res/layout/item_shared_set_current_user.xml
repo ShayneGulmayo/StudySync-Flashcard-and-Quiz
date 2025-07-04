@@ -1,72 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="end"
     android:orientation="horizontal"
-    android:padding="3dp">
+    android:gravity="end"
+    android:padding="4dp"
+    android:descendantFocusability="afterDescendants">
+
+    <ImageView
+        android:id="@+id/savedIndicator"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="center"
+        android:src="@drawable/check"
+        app:tint="@color/primary"
+        android:layout_marginRight="10dp"
+        android:visibility="gone"/>
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="200dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_marginLeft="30dp">
+        android:layout_gravity="end"
+        android:background="@drawable/bg_message_current_user"
+        android:padding="12dp">
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/sharedTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:text="Study Guide: Chemistry"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/sharedType"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Flashcard Set"
+            android:textColor="@color/light_gray"
+            android:textSize="13sp"
+            app:layout_constraintTop_toBottomOf="@id/sharedTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/sharedDescription"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="12 cards | Created by username"
+            android:textColor="@color/light_gray"
+            android:textSize="12sp"
+            app:layout_constraintTop_toBottomOf="@id/sharedType"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="2dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp"
+            android:weightSum="2"
+            android:gravity="center">
 
 
-            <LinearLayout
-                android:id="@+id/sharedCardLayout"
-                android:layout_width="wrap_content"
+            <Button
+                android:id="@+id/btnViewSet"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/bg_message_current_user"
-                android:padding="12dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="4dp">
+                android:layout_weight="1.9"
+                android:text="View Set"
+                android:textColor="@color/primary"
+                android:textSize="12sp"
+                android:backgroundTint="@color/light_gray"
+                app:cornerRadius="10dp"/>
 
-                <TextView
-                    android:id="@+id/sharedTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Study Guide: Chemistry"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
-                    android:textStyle="bold"/>
-
-                <TextView
-                    android:id="@+id/sharedType"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Flashcard Set"
-                    android:textColor="@color/light_gray"
-                    android:textSize="13sp"
-                    android:layout_marginTop="2dp"/>
-
-                <TextView
-                    android:id="@+id/sharedDescription"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="12 cards | Created by username"
-                    android:textColor="@color/light_gray"
-                    android:textSize="12sp"
-                    android:layout_marginTop="1dp"/>
-
-
-            </LinearLayout>
-            <TextView
-                android:id="@+id/timestampText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="12:00 PM"
-                android:textColor="@color/text_gray"
-                android:textSize="10sp"
-                android:layout_gravity="right"/>
-
-
+            <ImageView
+                android:id="@+id/saveSetBtn"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/bookmark"
+                app:tint="@color/white"
+                android:layout_weight=".1"/>
         </LinearLayout>
+    <TextView
+        android:id="@+id/timestampText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="12:00 PM"
+        android:textColor="@color/text_gray"
+        android:textSize="10sp"
+        android:layout_marginTop="4dp"
+        android:layout_gravity="end"
+        android:paddingRight="10dp"
+        android:visibility="gone"/>
     </LinearLayout>
+
 </LinearLayout>
