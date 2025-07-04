@@ -1,5 +1,6 @@
 package com.labactivity.studysync;
 
+import android.annotation.SuppressLint;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -12,6 +13,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -21,6 +23,7 @@ import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.labactivity.studysync.adapters.PrivacyUserAdapter;
 import com.labactivity.studysync.utils.SupabaseUploader;
 import com.yalantis.ucrop.UCrop;
 import java.io.File;
@@ -40,11 +43,14 @@ public class CreateFlashcardActivity extends AppCompatActivity {
     private LinearLayout flashcardContainer;
     private FirebaseFirestore db;
     private FirebaseAuth auth;
-    private String username;
     private View currentFlashcardView;
     private ActivityResultLauncher<Intent> pickImageLauncher;
     private String setId = null;
+    private TextView roleTxt, privacyTxt;
+    private ImageView privacyIcon;
+    private boolean isPublic = true;
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,7 +58,9 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
         setNameEditText = findViewById(R.id.set_name);
         flashcardContainer = findViewById(R.id.flashcard_container);
-
+        roleTxt = findViewById(R.id.role_text);
+        privacyIcon = findViewById(R.id.icon_privacy);
+        privacyTxt = findViewById(R.id.privacy_text);
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
@@ -83,6 +91,59 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             addFlashcardView();
             addFlashcardView();
         }
+
+        roleTxt.setOnClickListener(v -> {
+            if (isPublic) {
+                androidx.appcompat.widget.PopupMenu roleMenu = new androidx.appcompat.widget.PopupMenu(this, roleTxt);
+                roleMenu.getMenu().add("View");
+                roleMenu.getMenu().add("Edit");
+
+                roleMenu.setOnMenuItemClickListener(item -> {
+                    roleTxt.setText(item.getTitle());
+                    return true;
+                });
+
+                roleMenu.show();
+            }
+        });
+
+        View.OnClickListener privacyMenuClickListener = v -> {
+            androidx.appcompat.widget.PopupMenu privacyMenu = new androidx.appcompat.widget.PopupMenu(this, privacyTxt);
+
+            if (isPublic) {
+                privacyMenu.getMenu().add("Private");
+            } else {
+                privacyMenu.getMenu().add("Public");
+            }
+
+            privacyMenu.setOnMenuItemClickListener(item -> {
+                String selectedPrivacy = item.getTitle().toString();
+
+                if (selectedPrivacy.equals("Private")) {
+                    isPublic = false;
+                    privacyTxt.setText("Private");
+                    roleTxt.setText("");
+                    Glide.with(this).load(R.drawable.lock).into(privacyIcon);
+
+                } else if (selectedPrivacy.equals("Public")) {
+                    isPublic = true;
+                    privacyTxt.setText("Public");
+                    if (TextUtils.isEmpty(roleTxt.getText())) roleTxt.setText("View");
+                    Glide.with(this).load(R.drawable.public_icon).into(privacyIcon);
+                }
+
+
+                return true;
+            });
+
+            privacyMenu.show();
+        };
+
+
+
+        privacyTxt.setOnClickListener(privacyMenuClickListener);
+        privacyIcon.setOnClickListener(privacyMenuClickListener);
+
     }
 
     private void fetchUsernameAndSaveFlashcardSet() {
@@ -223,6 +284,15 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         flashcardSet.put("owner_uid", auth.getCurrentUser().getUid());
         flashcardSet.put("terms", termsMap);
         flashcardSet.put("createdAt", getCurrentFormattedDateTime());
+
+// 👇 Add this:
+        if (isPublic) {
+            String role = roleTxt.getText().toString().trim();
+            flashcardSet.put("privacy", "public_" + (TextUtils.isEmpty(role) ? "View" : role));
+        } else {
+            flashcardSet.put("privacy", "private");
+        }
+
 
         if (setId != null) {
             db.collection("flashcards").document(setId)

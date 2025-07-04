@@ -3,17 +3,14 @@ package com.labactivity.studysync;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.*;
@@ -43,7 +40,6 @@ public class PrivacyActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_privacy);
 
-        // Initialize views
         backButton = findViewById(R.id.back_button);
         checkButton = findViewById(R.id.check_button);
         privacyIcon = findViewById(R.id.privacy_icon);
@@ -62,9 +58,8 @@ public class PrivacyActivity extends AppCompatActivity {
         }
 
         setType = getIntent().getStringExtra("setType");
-        if (setType == null) setType = "flashcards";  // fallback default
+        if (setType == null) setType = "flashcards";
 
-        // Setup RecyclerViews
         selectedRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         selectedAdapter = new PrivacyUserAdapter(
                 selectedUserList, selectedUserList, false, isPublic,
@@ -72,6 +67,7 @@ public class PrivacyActivity extends AppCompatActivity {
                     removeUser(user);
                     selectedAdapter.notifyDataSetChanged();
                 });
+
         selectedRecyclerView.setAdapter(selectedAdapter);
 
         searchResultsRecycler.setLayoutManager(new LinearLayoutManager(this));
@@ -85,9 +81,11 @@ public class PrivacyActivity extends AppCompatActivity {
                     } else {
                         removeUser(user);
                     }
+
                     selectedAdapter.notifyDataSetChanged();
                     searchAdapter.notifyDataSetChanged();
                 });
+
         searchResultsRecycler.setAdapter(searchAdapter);
 
         searchView.setEnabled(false);
@@ -116,7 +114,6 @@ public class PrivacyActivity extends AppCompatActivity {
         View.OnClickListener privacyMenuClickListener = v -> {
             androidx.appcompat.widget.PopupMenu privacyMenu = new androidx.appcompat.widget.PopupMenu(this, privacyTxt);
 
-            // Add only the other option
             if (isPublic) {
                 privacyMenu.getMenu().add("Private");
             } else {
@@ -141,7 +138,6 @@ public class PrivacyActivity extends AppCompatActivity {
                     ((TextView) findViewById(R.id.textView4)).setText("Anyone can view");
                 }
 
-                // update adapters
                 selectedAdapter.setIsPublic(isPublic);
                 searchAdapter.setIsPublic(isPublic);
 
@@ -151,13 +147,6 @@ public class PrivacyActivity extends AppCompatActivity {
             privacyMenu.show();
         };
 
-// Apply to the three views
-        privacyTxt.setOnClickListener(privacyMenuClickListener);
-        privacyIcon.setOnClickListener(privacyMenuClickListener);
-        findViewById(R.id.textView4).setOnClickListener(privacyMenuClickListener);
-
-
-// Apply to the three views
         privacyTxt.setOnClickListener(privacyMenuClickListener);
         privacyIcon.setOnClickListener(privacyMenuClickListener);
         findViewById(R.id.textView4).setOnClickListener(privacyMenuClickListener);
@@ -191,7 +180,6 @@ public class PrivacyActivity extends AppCompatActivity {
                     String privacy = doc.getString("privacy");
                     if (privacy != null && privacy.startsWith("public")) {
                         isPublic = true;
-                        // extract view/edit for roleTxt
                         String[] parts = privacy.split("_");
                         if (parts.length == 2) {
                             roleTxt.setText(capitalize(parts[1]));
@@ -200,7 +188,7 @@ public class PrivacyActivity extends AppCompatActivity {
                         }
                     } else {
                         isPublic = false;
-                        roleTxt.setText("View");  // default
+                        roleTxt.setText("View");
                     }
                     updatePrivacyUI();
                     selectedAdapter.setIsPublic(isPublic);
@@ -284,34 +272,6 @@ public class PrivacyActivity extends AppCompatActivity {
         searchResultsRecycler.setVisibility(searchResults.isEmpty() ? RecyclerView.GONE : RecyclerView.VISIBLE);
     }
 
-    private void togglePrivacyMode() {
-        isPublic = !isPublic;
-        updatePrivacyUI();
-        selectedAdapter.setIsPublic(isPublic);
-        searchAdapter.setIsPublic(isPublic);
-
-        if (isPublic) {
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("privacy", "public");
-
-            Map<String, String> updatedAccessUsers = new HashMap<>();
-            for (UserWithRole uwr : selectedUserList) {
-                updatedAccessUsers.put(uwr.getUser().getUid(), "View");
-                uwr.setRole("View");
-            }
-            updates.put("accessUsers", updatedAccessUsers);
-
-            db.collection(setType)
-                    .document(setId)
-                    .update(updates)
-                    .addOnSuccessListener(aVoid -> {
-                        selectedAdapter.notifyDataSetChanged();
-                        searchAdapter.notifyDataSetChanged();
-                    })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to update roles.", Toast.LENGTH_SHORT).show());
-        }
-    }
-
     private void updatePrivacyUI() {
         if (isPublic) {
             privacyTxt.setText("Public");
@@ -339,9 +299,9 @@ public class PrivacyActivity extends AppCompatActivity {
         for (UserWithRole uwr : selectedUserList) {
             String role;
             if (uwr.getUser().getUid().equals(currentUserId)) {
-                role = "Owner";  // 🔥 always Owner for the owner
+                role = "Owner";
             } else {
-                role = uwr.getRole();  // respect each member's assigned role, regardless of public/private
+                role = uwr.getRole();
             }
             accessMap.put(uwr.getUser().getUid(), role);
         }
@@ -356,8 +316,6 @@ public class PrivacyActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
-
-
 
     private boolean containsUser(User user) {
         for (UserWithRole u : selectedUserList) {
