@@ -20,15 +20,15 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="70dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:padding="16dp">
 
             <ImageView
                 android:id="@+id/back_button"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:src="@drawable/arrow_back" />
 
             <TextView
@@ -44,19 +44,11 @@
 
             <ImageView
                 android:id="@+id/more_button"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:src="@drawable/more_vert" />
         </LinearLayout>
     </com.google.android.material.navigation.NavigationView>
-
-    <!-- Title -->
-
-    <!-- Profile & Username -->
-
-    <!-- Privacy icon -->
-
-    <!-- Card container with fixed 400dp cards -->
 
     <LinearLayout
         android:id="@+id/linearLayout5"

@@ -14,7 +14,7 @@
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="match_parent"
-        android:layout_height="80dp"
+        android:layout_height="70dp"
         android:layout_alignParentTop="true"
         android:background="@color/white"
         app:layout_constraintEnd_toEndOf="parent"
@@ -44,7 +44,7 @@
             android:layout_gravity="center"
             android:text="@string/items"
             android:textColor="@color/black"
-            android:textSize="17sp"
+            android:textSize="16sp"
             android:textStyle="bold" />
     </com.google.android.material.navigation.NavigationView>
 
