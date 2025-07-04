@@ -220,7 +220,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         Map<String, Object> flashcardSet = new HashMap<>();
         flashcardSet.put("title", setName);
         flashcardSet.put("number_of_items", itemCount);
-        flashcardSet.put("owner_username", username); // <-- uses latest fetched username
         flashcardSet.put("owner_uid", auth.getCurrentUser().getUid());
         flashcardSet.put("terms", termsMap);
         flashcardSet.put("createdAt", getCurrentFormattedDateTime());

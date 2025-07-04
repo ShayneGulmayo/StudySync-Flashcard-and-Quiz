@@ -95,10 +95,6 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 PopupMenu popupMenu = new PopupMenu(holder.itemView.getContext(), viewHolder.txtRole);
                 popupMenu.getMenuInflater().inflate(R.menu.privacy_role_menu, popupMenu.getMenu());
 
-                if (isPublic) {
-                    popupMenu.getMenu().findItem(R.id.edit_role).setVisible(false);
-                }
-
                 popupMenu.setOnMenuItemClickListener(item -> {
                     if (item.getItemId() == R.id.view_role) {
                         uwr.setRole("View");

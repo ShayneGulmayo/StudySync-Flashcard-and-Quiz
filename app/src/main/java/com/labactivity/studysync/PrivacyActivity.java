@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.SearchView;
 import android.widget.TextView;
@@ -96,7 +97,72 @@ public class PrivacyActivity extends AppCompatActivity {
 
         backButton.setOnClickListener(v -> finish());
         checkButton.setOnClickListener(v -> savePrivacySettings());
-        findViewById(R.id.constraintLayout).setOnClickListener(v -> togglePrivacyMode());
+
+        roleTxt.setOnClickListener(v -> {
+            if (isPublic) {
+                androidx.appcompat.widget.PopupMenu roleMenu = new androidx.appcompat.widget.PopupMenu(this, roleTxt);
+                roleMenu.getMenu().add("View");
+                roleMenu.getMenu().add("Edit");
+
+                roleMenu.setOnMenuItemClickListener(item -> {
+                    roleTxt.setText(item.getTitle());
+                    return true;
+                });
+
+                roleMenu.show();
+            }
+        });
+
+        View.OnClickListener privacyMenuClickListener = v -> {
+            androidx.appcompat.widget.PopupMenu privacyMenu = new androidx.appcompat.widget.PopupMenu(this, privacyTxt);
+
+            // Add only the other option
+            if (isPublic) {
+                privacyMenu.getMenu().add("Private");
+            } else {
+                privacyMenu.getMenu().add("Public");
+            }
+
+            privacyMenu.setOnMenuItemClickListener(item -> {
+                String selectedPrivacy = item.getTitle().toString();
+
+                if (selectedPrivacy.equals("Private")) {
+                    isPublic = false;
+                    privacyTxt.setText("Private");
+                    roleTxt.setText("");
+                    Glide.with(this).load(R.drawable.lock).into(privacyIcon);
+                    ((TextView) findViewById(R.id.textView4)).setText("Only people with access can open the set");
+
+                } else if (selectedPrivacy.equals("Public")) {
+                    isPublic = true;
+                    privacyTxt.setText("Public");
+                    if (TextUtils.isEmpty(roleTxt.getText())) roleTxt.setText("View");
+                    Glide.with(this).load(R.drawable.public_icon).into(privacyIcon);
+                    ((TextView) findViewById(R.id.textView4)).setText("Anyone can view");
+                }
+
+                // update adapters
+                selectedAdapter.setIsPublic(isPublic);
+                searchAdapter.setIsPublic(isPublic);
+
+                return true;
+            });
+
+            privacyMenu.show();
+        };
+
+// Apply to the three views
+        privacyTxt.setOnClickListener(privacyMenuClickListener);
+        privacyIcon.setOnClickListener(privacyMenuClickListener);
+        findViewById(R.id.textView4).setOnClickListener(privacyMenuClickListener);
+
+
+// Apply to the three views
+        privacyTxt.setOnClickListener(privacyMenuClickListener);
+        privacyIcon.setOnClickListener(privacyMenuClickListener);
+        findViewById(R.id.textView4).setOnClickListener(privacyMenuClickListener);
+
+
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override public boolean onQueryTextSubmit(String query) {
@@ -123,12 +189,30 @@ public class PrivacyActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(doc -> {
                     String privacy = doc.getString("privacy");
-                    isPublic = "public".equalsIgnoreCase(privacy);
+                    if (privacy != null && privacy.startsWith("public")) {
+                        isPublic = true;
+                        // extract view/edit for roleTxt
+                        String[] parts = privacy.split("_");
+                        if (parts.length == 2) {
+                            roleTxt.setText(capitalize(parts[1]));
+                        } else {
+                            roleTxt.setText("View");
+                        }
+                    } else {
+                        isPublic = false;
+                        roleTxt.setText("View");  // default
+                    }
                     updatePrivacyUI();
                     selectedAdapter.setIsPublic(isPublic);
                     searchAdapter.setIsPublic(isPublic);
                 });
     }
+
+    private String capitalize(String str) {
+        if (str == null || str.isEmpty()) return str;
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
 
     private void loadOwnerAndUsers() {
         db.collection("users").document(currentUserId)
@@ -231,24 +315,34 @@ public class PrivacyActivity extends AppCompatActivity {
     private void updatePrivacyUI() {
         if (isPublic) {
             privacyTxt.setText("Public");
-            roleTxt.setText("View");
             Glide.with(this).load(R.drawable.public_icon).into(privacyIcon);
             ((TextView) findViewById(R.id.textView4)).setText("Anyone can view");
         } else {
             privacyTxt.setText("Private");
-            roleTxt.setText("View / Edit");
+            roleTxt.setText("");
             Glide.with(this).load(R.drawable.lock).into(privacyIcon);
-            ((TextView) findViewById(R.id.textView4)).setText("Selected people with roles");
+            ((TextView) findViewById(R.id.textView4)).setText("Only people with access can open the set");
         }
     }
 
     private void savePrivacySettings() {
         Map<String, Object> data = new HashMap<>();
-        data.put("privacy", isPublic ? "public" : "private");
+
+        if (isPublic) {
+            String roleSetting = roleTxt.getText().toString().toLowerCase();
+            data.put("privacy", "public_" + roleSetting);
+        } else {
+            data.put("privacy", "private");
+        }
 
         Map<String, String> accessMap = new HashMap<>();
         for (UserWithRole uwr : selectedUserList) {
-            String role = isPublic ? "View" : uwr.getRole();
+            String role;
+            if (uwr.getUser().getUid().equals(currentUserId)) {
+                role = "Owner";  // 🔥 always Owner for the owner
+            } else {
+                role = uwr.getRole();  // respect each member's assigned role, regardless of public/private
+            }
             accessMap.put(uwr.getUser().getUid(), role);
         }
         data.put("accessUsers", accessMap);
@@ -262,6 +356,8 @@ public class PrivacyActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
+
 
     private boolean containsUser(User user) {
         for (UserWithRole u : selectedUserList) {

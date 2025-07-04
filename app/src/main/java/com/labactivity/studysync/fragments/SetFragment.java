@@ -201,12 +201,15 @@ public class SetFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        Flashcard set = parseSet(doc);
-                        set.setType("flashcard");
-                        set.setPhotoUrl(currentUserPhotoUrl);
-                        set.setReminder(doc.getString("reminder"));
-                        allSets.add(set);
+                        if (!setAlreadyExists(doc.getId())) {
+                            Flashcard set = parseSet(doc);
+                            set.setType("flashcard");
+                            set.setPhotoUrl(currentUserPhotoUrl);
+                            set.setReminder(doc.getString("reminder"));
+                            allSets.add(set);
+                        }
                     }
+
                     collectionsLoaded++;
                     checkAndApplyInitialFilter();
                 })
@@ -220,12 +223,15 @@ public class SetFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        Flashcard set = parseSet(doc);
-                        set.setType("quiz");
-                        set.setPhotoUrl(currentUserPhotoUrl);
-                        set.setReminder(doc.getString("reminder"));
-                        allSets.add(set);
+                        if (!setAlreadyExists(doc.getId())) {
+                            Flashcard set = parseSet(doc);
+                            set.setType("quiz");
+                            set.setPhotoUrl(currentUserPhotoUrl);
+                            set.setReminder(doc.getString("reminder"));
+                            allSets.add(set);
+                        }
                     }
+
                     collectionsLoaded++;
                     checkAndApplyInitialFilter();
                 })
@@ -233,6 +239,15 @@ public class SetFragment extends Fragment {
                     collectionsLoaded++;
                     checkAndApplyInitialFilter();
                 });
+    }
+
+    private boolean setAlreadyExists(String id) {
+        for (Flashcard set : allSets) {
+            if (set.getId().equals(id)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Flashcard parseSet(DocumentSnapshot doc) {
@@ -358,13 +373,15 @@ public class SetFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
-                        Flashcard set = parseSet(doc);
-                        set.setType(type);
-                        set.setPhotoUrl(doc.getString("photoUrl"));
-                        set.setReminder(doc.getString("reminder"));
-                        allSets.add(set);
+                        if (!setAlreadyExists(doc.getId())) {
+                            Flashcard set = parseSet(doc);
+                            set.setType(type);
+                            set.setPhotoUrl(doc.getString("photoUrl"));
+                            set.setReminder(doc.getString("reminder"));
+                            allSets.add(set);
+                        }
                     }
-                    applyFilters();
+
                 });
     }
 
