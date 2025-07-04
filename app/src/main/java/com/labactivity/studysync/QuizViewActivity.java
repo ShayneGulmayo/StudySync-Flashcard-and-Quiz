@@ -378,6 +378,9 @@ public class QuizViewActivity extends AppCompatActivity {
         }
 
         if (choices != null && correctAnswer != null) {
+            if (shouldShuffle) {
+                Collections.shuffle(choices); // ✅ This will randomize the choices
+            }
             for (String optionText : choices) {
                 addOptionView(optionText, correctAnswer);
             }
