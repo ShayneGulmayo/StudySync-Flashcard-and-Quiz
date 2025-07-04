@@ -304,8 +304,11 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
 
         view.findViewById(R.id.sendToChat).setOnClickListener(v -> {
-            Toast.makeText(this, "Send to Chat clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
+            String setType = "quiz";
+            Intent intent = new Intent(this, ChatRoomPickerActivity.class);
+            intent.putExtra("setId", quizId);
+            intent.putExtra("setType", setType);
+            startActivity(intent);
         });
 
         view.findViewById(R.id.edit).setOnClickListener(v -> {

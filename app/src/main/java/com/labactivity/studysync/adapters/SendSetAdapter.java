@@ -107,7 +107,6 @@ public class SendSetAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 }
             }
         }
-        // No binding needed for EmptyViewHolder
     }
 
     public static class SetViewHolder extends RecyclerView.ViewHolder {

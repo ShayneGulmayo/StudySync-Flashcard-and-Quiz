@@ -143,8 +143,11 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
 
         view.findViewById(R.id.sendToChat).setOnClickListener(v -> {
-            Toast.makeText(this, "Send to Chat clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
+            String setType = "flashcard";
+            Intent intent = new Intent(this, ChatRoomPickerActivity.class);
+            intent.putExtra("setId", setId);
+            intent.putExtra("setType", setType);
+            startActivity(intent);
         });
 
         view.findViewById(R.id.edit).setOnClickListener(v -> {

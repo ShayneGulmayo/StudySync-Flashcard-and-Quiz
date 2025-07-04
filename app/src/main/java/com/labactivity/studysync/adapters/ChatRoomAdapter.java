@@ -100,7 +100,6 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
         holder.lastMessage.setTypeface(null, isUnread ? Typeface.BOLD : Typeface.NORMAL);
 
         holder.itemView.setOnClickListener(v -> {
-            // ✅ FIX: Use set() with merge to ensure document is created or updated
             Map<String, Object> update = new HashMap<>();
             update.put(room.getId(), Timestamp.now());
 

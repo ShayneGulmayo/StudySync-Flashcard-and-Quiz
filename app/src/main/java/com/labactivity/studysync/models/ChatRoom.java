@@ -3,9 +3,6 @@ package com.labactivity.studysync.models;
 import java.util.Date;
 import java.util.List;
 
-/**
- * Model class for representing a chat room in Firestore.
- */
 public class ChatRoom {
 
     private String id;
