@@ -185,20 +185,47 @@ public class CreateQuizActivity extends AppCompatActivity {
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to update quiz", Toast.LENGTH_SHORT).show());
         } else {
-            // ➕ Create new quiz
-            // ➕ Create new quiz
             String generatedQuizId = db.collection("quiz").document().getId();  // 🔑 generate ID first
             quizData.put("quizId", generatedQuizId);
 
             db.collection("quiz").document(generatedQuizId)
                     .set(quizData)
                     .addOnSuccessListener(unused -> {
-                        Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
-                        finish(); // ✅ only called after everything is saved
+                        // 🔹 Prepare the set object
+                        Map<String, Object> ownedSet = new HashMap<>();
+                        ownedSet.put("id", generatedQuizId);
+                        ownedSet.put("type", "quiz");
+
+                        // 🔹 Add to user's owned_sets safely
+                        DocumentReference userRef = db.collection("users").document(auth.getCurrentUser().getUid());
+                        userRef.update("owned_sets", FieldValue.arrayUnion(ownedSet))
+                                .addOnSuccessListener(userUpdate -> {
+                                    Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
+                                    finish();
+                                })
+                                .addOnFailureListener(e -> {
+                                    // If owned_sets doesn't exist, initialize it
+                                    Map<String, Object> initData = new HashMap<>();
+                                    List<Map<String, Object>> newList = new ArrayList<>();
+                                    newList.add(ownedSet);
+                                    initData.put("owned_sets", newList);
+
+                                    userRef.set(initData, SetOptions.merge())
+                                            .addOnSuccessListener(mergeSuccess -> {
+                                                Toast.makeText(this, "Quiz saved and owned set initialized!", Toast.LENGTH_SHORT).show();
+                                                finish();
+                                            })
+                                            .addOnFailureListener(err -> {
+                                                Toast.makeText(this, "Quiz saved but failed to register as owned", Toast.LENGTH_LONG).show();
+                                                finish();
+                                            });
+                                });
                     })
                     .addOnFailureListener(e -> {
                         Toast.makeText(this, "Failed to save quiz", Toast.LENGTH_SHORT).show();
                     });
+
+
 
 
         }

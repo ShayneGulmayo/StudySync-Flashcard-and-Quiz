@@ -354,21 +354,38 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     if (flashcard != null) {
                         sharedTitle.setText(flashcard.getTitle());
                         sharedType.setText("Flashcard Set");
-                        sharedDescription.setText(flashcard.getNumberOfItems() + " terms");
+
+                        db.collection("users").document(flashcard.getOwnerUid()).get().addOnSuccessListener(ownerDoc -> {
+                            User owner = ownerDoc.toObject(User.class);
+                            String desc = flashcard.getNumberOfItems() + " terms" +
+                                    (owner != null ? " · by " + owner.getUsername() : "");
+                            sharedDescription.setText(desc);
+                        }).addOnFailureListener(e -> {
+                            sharedDescription.setText(flashcard.getNumberOfItems() + " terms");
+                        });
                     }
                 });
-            } else if ("quiz".equals(message.getSetType())) {
+            }
+            else if ("quiz".equals(message.getSetType())) {
                 db.collection("quiz").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
                     Quiz quiz = snapshot.toObject(Quiz.class);
                     if (quiz != null) {
                         sharedTitle.setText(quiz.getTitle());
                         sharedType.setText("Quiz Set");
-                        sharedDescription.setText(quiz.getNumber_of_items() + " items");
+
+                        db.collection("users").document(quiz.getOwner_uid()).get().addOnSuccessListener(ownerDoc -> {
+                            User owner = ownerDoc.toObject(User.class);
+                            String desc = quiz.getNumber_of_items() + " items" +
+                                    (owner != null ? " · by " + owner.getUsername() : "");
+                            sharedDescription.setText(desc);
+                        }).addOnFailureListener(e -> {
+                            sharedDescription.setText(quiz.getNumber_of_items() + " items");
+                        });
                     }
                 });
             }
 
-            // Check if set is already owned or saved
+
             db.collection("users").document(currentUserId).get().addOnSuccessListener(userDoc -> {
                 boolean alreadySaved = false;
                 boolean alreadyOwned = false;
@@ -396,7 +413,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
                 if (alreadySaved || alreadyOwned) {
                     saveSetBtn.setImageResource(R.drawable.bookmark_filled);
-                    saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.primary));
+                    saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.white));
                     saveSetBtn.setEnabled(false);
                     saveSetBtn.setClickable(false);
                     savedIndicator.setVisibility(View.VISIBLE);

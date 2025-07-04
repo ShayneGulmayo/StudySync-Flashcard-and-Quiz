@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.utils.SupabaseUploader;
 import com.yalantis.ucrop.UCrop;
@@ -236,10 +237,35 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             db.collection("flashcards")
                     .add(flashcardSet)
                     .addOnSuccessListener(doc -> {
-                        Toast.makeText(this, "Flashcard set saved", Toast.LENGTH_SHORT).show();
-                        finish();
+                        String generatedSetId = doc.getId();  // 🔑 Get the new document ID
+
+                        // 🔹 Prepare owned_set object
+                        Map<String, Object> ownedSet = new HashMap<>();
+                        ownedSet.put("id", generatedSetId);
+                        ownedSet.put("type", "flashcard");
+
+                        DocumentReference userRef = db.collection("users").document(auth.getCurrentUser().getUid());
+                        userRef.update("owned_sets", com.google.firebase.firestore.FieldValue.arrayUnion(ownedSet))
+                                .addOnSuccessListener(unused -> {
+                                    Toast.makeText(this, "Flashcard set saved", Toast.LENGTH_SHORT).show();
+                                    finish();
+                                })
+                                .addOnFailureListener(e -> {
+                                    Map<String, Object> initData = new HashMap<>();
+                                    initData.put("owned_sets", java.util.Collections.singletonList(ownedSet));
+                                    userRef.set(initData, com.google.firebase.firestore.SetOptions.merge())
+                                            .addOnSuccessListener(aVoid -> {
+                                                Toast.makeText(this, "Flashcard set saved", Toast.LENGTH_SHORT).show();
+                                                finish();
+                                            })
+                                            .addOnFailureListener(innerErr -> {
+                                                Toast.makeText(this, "Saved set but failed to update owned_sets", Toast.LENGTH_LONG).show();
+                                                finish();
+                                            });
+                                });
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to save set", Toast.LENGTH_SHORT).show());
+
         }
     }
 
