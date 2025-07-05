@@ -93,7 +93,8 @@
     <string name="correct_answer">Correct Answer</string>
     <string name="selected_wrong_answer">Incorrect Answer</string>
     <string name="your_answer">Your answers</string>
-
+    <string name="no_access_text">You do not have access to view this flashcard set/quiz.</string>
 
 </resources>
+
 
