@@ -19,6 +19,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.adapters.CarouselAdapter;
 import com.labactivity.studysync.models.Flashcard;
@@ -28,6 +29,7 @@ import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -44,12 +46,15 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private String currentPrivacy, setId, currentReminder;
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private ListenerRegistration reminderListener;
+    private FirebaseAuth auth;
+
 
     @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_flashcard_preview);
+        auth = FirebaseAuth.getInstance();
 
         initializeViews();
         db = FirebaseFirestore.getInstance();
@@ -215,16 +220,28 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     db.collection("flashcards").document(setId)
                             .delete()
                             .addOnSuccessListener(aVoid -> {
-                                Toast.makeText(this, "Flashcard set and images deleted.", Toast.LENGTH_SHORT).show();
-                                finish();
+                                // Now remove it from the user's owned_sets
+                                db.collection("users").document(auth.getCurrentUser().getUid())
+                                        .update("owned_sets", com.google.firebase.firestore.FieldValue.arrayRemove(
+                                                // Remove by matching the owned_set object structure
+                                                new HashMap<String, Object>() {{
+                                                    put("id", setId);
+                                                    put("type", "flashcard");
+                                                }}
+                                        ))
+                                        .addOnSuccessListener(unused -> {
+                                            Toast.makeText(this, "Flashcard set deleted.", Toast.LENGTH_SHORT).show();
+                                            finish();
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Toast.makeText(this, "Deleted set but failed to update owned_sets.", Toast.LENGTH_LONG).show();
+                                            finish();
+                                        });
                             })
                             .addOnFailureListener(e -> {
                                 Toast.makeText(this, "Failed to delete flashcard set.", Toast.LENGTH_SHORT).show();
                             });
 
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to fetch flashcard set.", Toast.LENGTH_SHORT).show();
                 });
     }
 
