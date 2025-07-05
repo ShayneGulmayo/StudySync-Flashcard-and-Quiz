@@ -21,6 +21,7 @@ import androidx.appcompat.app.AlertDialog;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.bumptech.glide.Glide;
 import com.google.firebase.firestore.*;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -49,6 +50,10 @@ public class CreateQuizActivity extends AppCompatActivity {
     private int questionCount = 0;
     private final int MAX_QUESTIONS = 50;
     private String quizId = null;
+    private TextView roleTxt, privacyTxt;
+    private ImageView privacyIcon;
+    private boolean isPublic = true;
+
 
 
     @Override
@@ -64,6 +69,11 @@ public class CreateQuizActivity extends AppCompatActivity {
         backButton = findViewById(R.id.back_button);
         checkButton = findViewById(R.id.save_button);
         quizTitleInput = findViewById(R.id.quiz_name);
+        privacyTxt = findViewById(R.id.privacy_text);
+        privacyIcon = findViewById(R.id.icon_privacy);
+        roleTxt = findViewById(R.id.role_text);
+
+
 
 
 
@@ -118,6 +128,56 @@ public class CreateQuizActivity extends AppCompatActivity {
                 finish();
             }
         });
+        roleTxt.setOnClickListener(v -> {
+            if (isPublic) {
+                androidx.appcompat.widget.PopupMenu roleMenu = new androidx.appcompat.widget.PopupMenu(this, roleTxt);
+                roleMenu.getMenu().add("View");
+                roleMenu.getMenu().add("Edit");
+
+                roleMenu.setOnMenuItemClickListener(item -> {
+                    roleTxt.setText(item.getTitle());
+                    return true;
+                });
+
+                roleMenu.show();
+            }
+        });
+
+        View.OnClickListener privacyClickListener = v -> {
+            androidx.appcompat.widget.PopupMenu privacyMenu = new androidx.appcompat.widget.PopupMenu(this, privacyTxt);
+
+            if (isPublic) {
+                privacyMenu.getMenu().add("Private");
+            } else {
+                privacyMenu.getMenu().add("Public");
+            }
+
+            privacyMenu.setOnMenuItemClickListener(item -> {
+                String selected = item.getTitle().toString();
+
+                if (selected.equals("Private")) {
+                    isPublic = false;
+                    privacyTxt.setText("Private");
+                    roleTxt.setText("");
+                    Glide.with(this).load(R.drawable.lock).into(privacyIcon);
+                } else {
+                    isPublic = true;
+                    privacyTxt.setText("Public");
+                    if (roleTxt.getText().toString().trim().isEmpty()) {
+                        roleTxt.setText("View");
+                    }
+                    Glide.with(this).load(R.drawable.public_icon).into(privacyIcon);
+                }
+
+                return true;
+            });
+
+            privacyMenu.show();
+        };
+
+        privacyTxt.setOnClickListener(privacyClickListener);
+        privacyIcon.setOnClickListener(privacyClickListener);
+
     }
 
     private void saveQuizToFirebase() {
@@ -168,11 +228,17 @@ public class CreateQuizActivity extends AppCompatActivity {
         quizData.put("title", quizTitleInput.getText().toString().trim());
         quizData.put("owner_uid", auth.getCurrentUser().getUid());
         quizData.put("owner_username", username);
-        quizData.put("privacy", "public");
         quizData.put("number_of_items", questionCount);
         quizData.put("progress", 0);
         quizData.put("created_at", Timestamp.now());
         quizData.put("questions", questionList);
+        
+        if (isPublic) {
+            String role = roleTxt.getText().toString().trim();
+            quizData.put("privacy", "public_" + (role.isEmpty() ? "View" : role));
+        } else {
+            quizData.put("privacy", "private");
+        }
 
         if (quizId != null) {
             quizData.put("quizId", quizId);
@@ -234,12 +300,13 @@ public class CreateQuizActivity extends AppCompatActivity {
 
     private void showExitConfirmation() {
         new AlertDialog.Builder(this)
-                .setTitle("Leave Quiz?")
-                .setMessage("Are you sure you want to leave changes to this quiz?")
+                .setTitle("Leave without saving?")
+                .setMessage("Are you sure you want to leave? Any unsaved changes will be lost.")
                 .setPositiveButton("Yes", (dialog, which) -> finish())
-                .setNegativeButton("No", null)
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                 .show();
     }
+
 
     private void addQuizView() {
         View quizItem = LayoutInflater.from(this).inflate(R.layout.item_add_quiz, null);
@@ -657,8 +724,14 @@ public class CreateQuizActivity extends AppCompatActivity {
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {}
         };
+
     }
-
-
-
+    @Override
+    public void onBackPressed() {
+        if (questionCount > 0) {
+            showExitConfirmation();
+        } else {
+            super.onBackPressed();
+        }
+    }
 }
