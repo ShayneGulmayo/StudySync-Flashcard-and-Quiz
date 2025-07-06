@@ -17,11 +17,13 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+
 import com.labactivity.studysync.CreateFlashcardActivity;
 import com.labactivity.studysync.CreateQuizActivity;
 import com.labactivity.studysync.FlashcardPreviewActivity;
@@ -125,35 +127,13 @@ public class SetFragment extends Fragment {
         }
     }
 
-    @SuppressLint("MissingInflatedId")
-    private void showAddSet() {
-        View view = getLayoutInflater().inflate(R.layout.add_set_menu, null);
-
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(getContext())
-                .setView(view)
-                .create();
-
-        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-        dialog.show();
-
-        view.findViewById(R.id.add_flashcard).setOnClickListener(v -> {
-            dialog.dismiss();
-            showAddBottomSheetFlashcard();
-        });
-
-        view.findViewById(R.id.add_quiz).setOnClickListener(v -> {
-            dialog.dismiss();
-            showAddBottomSheetQuiz();
-        });
-    }
-
     private void loadAllSets() {
         String currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         progressBar.setVisibility(View.VISIBLE);
         allSets.clear();
         displayedSets.clear();
         collectionsLoaded = 0;
-        totalCollectionsToLoad = 4; // flashcards, quiz, owned_sets, saved_sets
+        totalCollectionsToLoad = 4;
 
         db.collection("users").document(currentUid)
                 .get()
@@ -161,25 +141,24 @@ public class SetFragment extends Fragment {
                     if (documentSnapshot.exists()) {
                         currentUserPhotoUrl = documentSnapshot.getString("photoUrl");
 
-                        // Load owned_sets
                         List<Map<String, Object>> owned = (List<Map<String, Object>>) documentSnapshot.get("owned_sets");
                         if (owned != null) {
                             for (Map<String, Object> entry : owned) {
-                                loadSingleSet(entry, false);
+                                loadSingleSet(entry);
                             }
                         }
                         collectionsLoaded++;
                         checkAndApplyInitialFilter();
 
-                        // Load saved_sets
                         List<Map<String, Object>> saved = (List<Map<String, Object>>) documentSnapshot.get("saved_sets");
                         if (saved != null) {
                             for (Map<String, Object> entry : saved) {
-                                loadSingleSet(entry, true);
+                                loadSingleSet(entry);
                             }
                         }
                         collectionsLoaded++;
                         checkAndApplyInitialFilter();
+
                     } else {
                         currentUserPhotoUrl = null;
                         collectionsLoaded += 2;
@@ -192,6 +171,32 @@ public class SetFragment extends Fragment {
                     collectionsLoaded += 2;
                     checkAndApplyInitialFilter();
                     loadFlashcardsAndQuizzes(currentUid);
+                });
+    }
+
+    private void loadSingleSet(Map<String, Object> entry) {
+        if (entry == null) return;
+
+        String id = (String) entry.get("id");
+        String type = (String) entry.get("type");
+        Long progress = entry.get("progress") != null ? ((Number) entry.get("progress")).longValue() : 0;
+
+        if (id == null || type == null) return;
+
+        db.collection(type.equals("quiz") ? "quiz" : "flashcards")
+                .document(id)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        if (!setAlreadyExists(doc.getId())) {
+                            Flashcard set = parseSet(doc);
+                            set.setType(type);
+                            set.setPhotoUrl(doc.getString("photoUrl"));
+                            set.setReminder(doc.getString("reminder"));
+                            set.setProgress(progress.intValue());
+                            allSets.add(set);
+                        }
+                    }
                 });
     }
 
@@ -209,7 +214,6 @@ public class SetFragment extends Fragment {
                             allSets.add(set);
                         }
                     }
-
                     collectionsLoaded++;
                     checkAndApplyInitialFilter();
                 })
@@ -231,7 +235,6 @@ public class SetFragment extends Fragment {
                             allSets.add(set);
                         }
                     }
-
                     collectionsLoaded++;
                     checkAndApplyInitialFilter();
                 })
@@ -254,11 +257,10 @@ public class SetFragment extends Fragment {
         String id = doc.getId();
         String title = doc.getString("title");
         long numberOfItems = doc.getLong("number_of_items") != null ? doc.getLong("number_of_items") : 0;
-        long progress = doc.getLong("progress") != null ? doc.getLong("progress") : 0;
         String ownerUsername = doc.getString("owner_username");
         String privacy = doc.getString("privacy");
 
-        Flashcard set = new Flashcard(id, title, (int) numberOfItems, ownerUsername, (int) progress, null);
+        Flashcard set = new Flashcard(id, title, (int) numberOfItems, ownerUsername, 0, null);
         set.setPrivacy(privacy);
         set.setOwnerUid(doc.getString("owner_uid"));
 
@@ -302,6 +304,34 @@ public class SetFragment extends Fragment {
 
         adapter.notifyDataSetChanged();
         noSetsText.setVisibility(displayedSets.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    private void onFlashcardSetClicked(Flashcard set) {
+        Intent intent = new Intent(getContext(), FlashcardPreviewActivity.class);
+        intent.putExtra("setId", set.getId());
+        intent.putExtra("setName", set.getTitle());
+        startActivity(intent);
+    }
+
+    private void showAddSet() {
+        View view = getLayoutInflater().inflate(R.layout.add_set_menu, null);
+
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(getContext())
+                .setView(view)
+                .create();
+
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        dialog.show();
+
+        view.findViewById(R.id.add_flashcard).setOnClickListener(v -> {
+            dialog.dismiss();
+            showAddBottomSheetFlashcard();
+        });
+
+        view.findViewById(R.id.add_quiz).setOnClickListener(v -> {
+            dialog.dismiss();
+            showAddBottomSheetQuiz();
+        });
     }
 
     private void showAddBottomSheetFlashcard() {
@@ -353,36 +383,4 @@ public class SetFragment extends Fragment {
             createFlashcardLauncher.launch(intent);
         });
     }
-
-    private void onFlashcardSetClicked(Flashcard set) {
-        Intent intent = new Intent(getContext(), FlashcardPreviewActivity.class);
-        intent.putExtra("setId", set.getId());
-        intent.putExtra("setName", set.getTitle());
-        startActivity(intent);
-    }
-    private void loadSingleSet(Map<String, Object> entry, boolean isSaved) {
-        if (entry == null) return;
-
-        String id = (String) entry.get("id");
-        String type = (String) entry.get("type");
-
-        if (id == null || type == null) return;
-
-        db.collection(type.equals("quiz") ? "quiz" : "flashcards")
-                .document(id)
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (doc.exists()) {
-                        if (!setAlreadyExists(doc.getId())) {
-                            Flashcard set = parseSet(doc);
-                            set.setType(type);
-                            set.setPhotoUrl(doc.getString("photoUrl"));
-                            set.setReminder(doc.getString("reminder"));
-                            allSets.add(set);
-                        }
-                    }
-
-                });
-    }
-
 }
