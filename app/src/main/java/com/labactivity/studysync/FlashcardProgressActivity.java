@@ -13,7 +13,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class FlashcardProgressActivity extends AppCompatActivity {
 
@@ -52,7 +58,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
         knowCount = getIntent().getIntExtra("knowCount", 0);
         stillLearningCount = getIntent().getIntExtra("stillLearningCount", 0);
-        totalItems = getIntent().getIntExtra("totalItems", 1); // avoid divide by zero
+        totalItems = getIntent().getIntExtra("totalItems", 1);
         setId = getIntent().getStringExtra("setId");
 
         int progressValue = (int) (((float) knowCount / totalItems) * 100);
@@ -92,14 +98,72 @@ public class FlashcardProgressActivity extends AppCompatActivity {
     private void updateProgressInFirestore(String setId, int progressValue) {
         if (setId == null) return;
 
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        // Get flashcard set to check owner
         db.collection("flashcards").document(setId)
-                .update("progress", progressValue)
-                .addOnSuccessListener(aVoid -> {
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) return;
+
+                    String collectionField;
+
+                    if (documentSnapshot.contains("owner_uid")) {
+                        String ownerId = documentSnapshot.getString("owner_uid");
+                        collectionField = ownerId != null && ownerId.equals(currentUserId) ? "owned_sets" : "saved_sets";
+                    } else {
+                        // fallback: if no ownerId — you decide how to handle this
+                        collectionField = "saved_sets";
+                    }
+
+                    // now proceed to fetch user's sets and update progress
+                    db.collection("users").document(currentUserId)
+                            .get()
+                            .addOnSuccessListener(userSnapshot -> {
+                                if (!userSnapshot.exists()) return;
+
+                                ArrayList<Map<String, Object>> setList = (ArrayList<Map<String, Object>>) userSnapshot.get(collectionField);
+                                if (setList == null) setList = new ArrayList<>();
+
+                                boolean found = false;
+
+                                for (Map<String, Object> item : setList) {
+                                    if (setId.equals(item.get("id"))) {
+                                        item.put("progress", progressValue);
+                                        found = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!found) {
+                                    Map<String, Object> newEntry = new HashMap<>();
+                                    newEntry.put("id", setId);
+                                    newEntry.put("type", "flashcard");
+                                    newEntry.put("progress", progressValue);
+                                    setList.add(newEntry);
+                                }
+
+                                db.collection("users").document(currentUserId)
+                                        .update(collectionField, setList)
+                                        .addOnSuccessListener(aVoid -> {
+                                            // success
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Toast.makeText(this, "Failed to save progress.", Toast.LENGTH_SHORT).show();
+                                        });
+
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to load user data.", Toast.LENGTH_SHORT).show();
+                            });
+
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to save progress", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Failed to fetch set owner.", Toast.LENGTH_SHORT).show();
                 });
+
     }
+
 
     private void loadFlashcardTitle(String setId) {
         if (setId == null) return;
@@ -110,7 +174,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                     if (documentSnapshot.exists()) {
                         String title = documentSnapshot.getString("title");
                         if (title != null && !title.isEmpty()) {
-                            // Limit title to 20 characters
                             if (title.length() > 20) {
                                 String shortTitle = title.substring(0, 20) + "...";
                                 flashcardTitleTxt.setText(shortTitle);

@@ -167,7 +167,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                             String photoUrl = (String) termEntry.get("photoUrl");
                             String photoPath = (String) termEntry.get("photoPath");
 
-
                             Flashcard card = new Flashcard(term, definition, photoUrl, photoPath);
 
                             if (isReviewingOnlyDontKnow) {
