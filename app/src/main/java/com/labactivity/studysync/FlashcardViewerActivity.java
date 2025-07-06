@@ -15,7 +15,6 @@ import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.models.Flashcard;
-
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -23,16 +22,15 @@ public class FlashcardViewerActivity extends AppCompatActivity {
 
     private String setId;
     private FirebaseFirestore db;
-    private ArrayList<Flashcard> flashcards;
-    private ArrayList<Flashcard> dontKnowFlashcards;
-    private boolean isReviewingOnlyDontKnow = false;
+    private ArrayList<Flashcard> flashcards, dontKnowFlashcards;
     private TextView frontCard, backCard, items;
-    private ImageView flashcardImage;
-    private ImageView backButton, moreButton, knowBtn, dontKnowBtn;
+    private ImageView backButton, moreButton, knowBtn, dontKnowBtn, flashcardImage;
     private View cardFront, cardBack;
+    private String cardOrientation = "term";
     private int knowCount;
     private int dontKnowCount;
     private int currentIndex = 0;
+    private boolean isReviewingOnlyDontKnow = false;
     private boolean showingFront = true;
 
     @Override
@@ -65,14 +63,15 @@ public class FlashcardViewerActivity extends AppCompatActivity {
 
         knowBtn.setOnClickListener(v -> {
             knowCount++;
-            animateCardSwipe(true);
+            animateCardSwipe();
         });
 
         dontKnowBtn.setOnClickListener(v -> {
             dontKnowCount++;
             dontKnowFlashcards.add(flashcards.get(currentIndex));
-            animateCardSwipe(false);
+            animateCardSwipe();
         });
+
     }
 
     @Override
@@ -99,6 +98,25 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             finish();
         });
 
+        TextView cardOrientationTxt = view.findViewById(R.id.card_orientation_txt);
+        TextView cardOrientationOption = view.findViewById(R.id.card_orientation_option);
+
+        cardOrientationTxt.setVisibility(View.VISIBLE);
+        cardOrientationOption.setVisibility(View.VISIBLE);
+
+        cardOrientationOption.setText(cardOrientation.equals("term") ? "Term First" : "Definition First");
+
+        cardOrientationOption.setOnClickListener(v -> {
+            if (cardOrientation.equals("term")) {
+                cardOrientation = "definition";
+                cardOrientationOption.setText("Definition First");
+            } else {
+                cardOrientation = "term";
+                cardOrientationOption.setText("Term First");
+            }
+            showCard(currentIndex);
+        });
+
         dialog.show();
     }
 
@@ -108,15 +126,24 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             return;
         }
 
-        java.util.Collections.shuffle(flashcards);
-        currentIndex = 0;
-        knowCount = 0;
-        dontKnowCount = 0;
-        dontKnowFlashcards.clear();
+        if (currentIndex >= flashcards.size() - 1) {
+            Toast.makeText(this, "No more flashcards to shuffle.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ArrayList<Flashcard> remainingFlashcards = new ArrayList<>(flashcards.subList(currentIndex, flashcards.size()));
+
+        java.util.Collections.shuffle(remainingFlashcards);
+
+        for (int i = currentIndex; i < flashcards.size(); i++) {
+            flashcards.set(i, remainingFlashcards.get(i - currentIndex));
+        }
+
         showCard(currentIndex);
 
-        Toast.makeText(this, "Flashcards shuffled!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Remaining flashcards shuffled!", Toast.LENGTH_SHORT).show();
     }
+
 
     private void loadFlashcards() {
         db.collection("flashcards").document(setId)
@@ -168,8 +195,14 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     private void showCard(int index) {
         if (index < flashcards.size()) {
             Flashcard card = flashcards.get(index);
-            frontCard.setText(card.getTerm());
-            backCard.setText(card.getDefinition());
+            if (cardOrientation.equals("term")) {
+                frontCard.setText(card.getTerm());
+                backCard.setText(card.getDefinition());
+            } else {
+                frontCard.setText(card.getDefinition());
+                backCard.setText(card.getTerm());
+            }
+
             items.setText((index + 1) + " / " + flashcards.size());
 
             if (card.getPhotoUrl() != null && !card.getPhotoUrl().isEmpty()) {
@@ -223,7 +256,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                 }).start();
     }
 
-    private void animateCardSwipe(boolean isRightSwipe) {
+    private void animateCardSwipe() {
         if (currentIndex == flashcards.size() - 1) {
             openFlashcardProgressActivity();
             return;
@@ -232,8 +265,8 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         View cardView = showingFront ? cardFront : cardBack;
         View hiddenCard = showingFront ? cardBack : cardFront;
 
-        float toX = isRightSwipe ? cardView.getWidth() * 1.5f : -cardView.getWidth() * 1.5f;
-        float rotation = isRightSwipe ? 15f : -15f;
+        float toX = cardView.getWidth() * 1.5f;
+        float rotation = 15f;
 
         cardView.animate()
                 .translationX(toX)
@@ -249,17 +282,18 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                     hiddenCard.setRotation(0f);
                     hiddenCard.setAlpha(1f);
 
-                    nextCard(isRightSwipe);
+                    nextCard();
                 }).start();
     }
 
-    private void nextCard(boolean previousWasRightSwipe) {
+
+    private void nextCard() {
         currentIndex++;
         if (currentIndex < flashcards.size()) {
             showCard(currentIndex);
 
             View newCardView = showingFront ? cardFront : cardBack;
-            float fromX = previousWasRightSwipe ? -newCardView.getWidth() * 1.5f : newCardView.getWidth() * 1.5f;
+            float fromX = -newCardView.getWidth() * 1.5f;
 
             newCardView.setTranslationX(fromX);
             newCardView.setAlpha(0f);
