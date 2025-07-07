@@ -52,6 +52,8 @@ public class SetFragment extends Fragment {
     private int collectionsLoaded = 0;
     private String currentUserPhotoUrl;
     private String currentSearchQuery = "";
+
+    private String defaultFilter = null;
     private boolean isReturningFromCreate = false;
 
     private final ActivityResultLauncher<Intent> createFlashcardLauncher = registerForActivityResult(
@@ -64,10 +66,21 @@ public class SetFragment extends Fragment {
 
     public SetFragment() {}
 
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            defaultFilter = getArguments().getString("defaultFilter");
+        }
+        Intent intent = requireActivity().getIntent();
+        if (intent != null && intent.hasExtra("defaultFilter")) {
+            defaultFilter = intent.getStringExtra("defaultFilter");
+        }
+    }
+
     @SuppressLint("MissingInflatedId")
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_set, container, false);
 
         recyclerView = view.findViewById(R.id.recycler_items);
@@ -127,6 +140,80 @@ public class SetFragment extends Fragment {
         }
     }
 
+    private void checkAndApplyInitialFilter() {
+        if (collectionsLoaded >= totalCollectionsToLoad) {
+            progressBar.setVisibility(View.GONE);
+            allSets.sort((s1, s2) -> Long.compare(s2.getLastAccessed(), s1.getLastAccessed()));
+
+            if (defaultFilter != null) {
+                if (defaultFilter.equalsIgnoreCase("flashcard")) {
+                    toggleGroup.check(R.id.btn_flashcards);
+                } else if (defaultFilter.equalsIgnoreCase("quiz")) {
+                    toggleGroup.check(R.id.btn_quizzes);
+                } else {
+                    toggleGroup.check(R.id.btn_all);
+                }
+                defaultFilter = null;
+            } else {
+                int checkedId = toggleGroup.getCheckedButtonId();
+                if (checkedId == -1) {
+                    toggleGroup.check(R.id.btn_all);
+                } else {
+                    applyFilters();
+                }
+            }
+        }
+    }
+
+    private void onFlashcardSetClicked(Flashcard set) {
+        updateLastAccessed(set);
+        Intent intent = new Intent(getContext(), FlashcardPreviewActivity.class);
+        intent.putExtra("setId", set.getId());
+        intent.putExtra("setName", set.getTitle());
+        startActivity(intent);
+    }
+
+    private void updateLastAccessed(Flashcard set) {
+        String currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        String setId = set.getId();
+        String type = set.getType();
+        long timestamp = System.currentTimeMillis();
+
+        db.collection("users").document(currentUid).get().addOnSuccessListener(documentSnapshot -> {
+            if (documentSnapshot.exists()) {
+                List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) documentSnapshot.get("owned_sets");
+                List<Map<String, Object>> savedSets = (List<Map<String, Object>>) documentSnapshot.get("saved_sets");
+
+                boolean found = false;
+
+                if (ownedSets != null) {
+                    for (Map<String, Object> item : ownedSets) {
+                        if (setId.equals(item.get("id")) && type.equals(item.get("type"))) {
+                            item.put("lastAccessed", timestamp);
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!found && savedSets != null) {
+                    for (Map<String, Object> item : savedSets) {
+                        if (setId.equals(item.get("id")) && type.equals(item.get("type"))) {
+                            item.put("lastAccessed", timestamp);
+                            break;
+                        }
+                    }
+                }
+
+                Map<String, Object> updates = new HashMap<>();
+                if (ownedSets != null) updates.put("owned_sets", ownedSets);
+                if (savedSets != null) updates.put("saved_sets", savedSets);
+
+                db.collection("users").document(currentUid).update(updates);
+            }
+        });
+    }
+
     private void loadAllSets() {
         String currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         progressBar.setVisibility(View.VISIBLE);
@@ -180,6 +267,7 @@ public class SetFragment extends Fragment {
         String id = (String) entry.get("id");
         String type = (String) entry.get("type");
         Long progress = entry.get("progress") != null ? ((Number) entry.get("progress")).longValue() : 0;
+        Long lastAccessed = entry.get("lastAccessed") != null ? ((Number) entry.get("lastAccessed")).longValue() : 0;
 
         if (id == null || type == null) return;
 
@@ -194,13 +282,16 @@ public class SetFragment extends Fragment {
                             set.setPhotoUrl(doc.getString("photoUrl"));
                             set.setReminder(doc.getString("reminder"));
                             set.setProgress(progress.intValue());
+                            set.setLastAccessed(lastAccessed);
                             allSets.add(set);
                         }
                     }
                 });
     }
 
-    private void loadFlashcardsAndQuizzes(String currentUid) {
+
+
+        private void loadFlashcardsAndQuizzes(String currentUid) {
         db.collection("flashcards")
                 .whereEqualTo("owner_uid", currentUid)
                 .get()
@@ -267,18 +358,6 @@ public class SetFragment extends Fragment {
         return set;
     }
 
-    private void checkAndApplyInitialFilter() {
-        if (collectionsLoaded >= totalCollectionsToLoad) {
-            progressBar.setVisibility(View.GONE);
-            int checkedId = toggleGroup.getCheckedButtonId();
-            if (checkedId == -1) {
-                toggleGroup.check(R.id.btn_all);
-            } else {
-                applyFilters();
-            }
-        }
-    }
-
     private void applyFilters() {
         int checkedId = toggleGroup.getCheckedButtonId();
         String typeFilter;
@@ -306,12 +385,6 @@ public class SetFragment extends Fragment {
         noSetsText.setVisibility(displayedSets.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
-    private void onFlashcardSetClicked(Flashcard set) {
-        Intent intent = new Intent(getContext(), FlashcardPreviewActivity.class);
-        intent.putExtra("setId", set.getId());
-        intent.putExtra("setName", set.getTitle());
-        startActivity(intent);
-    }
 
     private void showAddSet() {
         View view = getLayoutInflater().inflate(R.layout.add_set_menu, null);

@@ -16,6 +16,8 @@ public class Flashcard {
     private String privacy;
     private String reminder;
     private String ownerUid;
+    private long lastAccessed;
+
 
     public Flashcard() {}
 
@@ -74,4 +76,11 @@ public class Flashcard {
 
     public String getReminder() { return reminder; }
     public void setReminder(String reminder) { this.reminder = reminder; }
+    public long getLastAccessed() {
+        return lastAccessed;
+    }
+
+    public void setLastAccessed(long lastAccessed) {
+        this.lastAccessed = lastAccessed;
+    }
 }

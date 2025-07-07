@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.labactivity.studysync.fragments.HomeFragment"
+        android:label="Home" />
+
+    <fragment
+        android:id="@+id/setFragment"
+        android:name="com.labactivity.studysync.fragments.SetFragment"
+        android:label="Sets">
+        <argument
+            android:name="defaultFilter"
+            app:argType="string"
+            android:defaultValue="all" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/userProfileFragment"
+        android:name="com.labactivity.studysync.fragments.UserProfileFragment"
+        android:label="User Profile" />
+
+    <fragment
+        android:id="@+id/chatRoomFragment"
+        android:name="com.labactivity.studysync.fragments.ChatFragment"
+        android:label="Chat Rooms" />
+
+    <!-- Actions -->
+    <action
+        android:id="@+id/action_home_to_setFragment"
+        app:destination="@id/setFragment" />
+    <action
+        android:id="@+id/action_home_to_userProfileFragment"
+        app:destination="@id/userProfileFragment" />
+    <action
+        android:id="@+id/action_home_to_chatRoomFragment"
+        app:destination="@id/chatRoomFragment" />
+</navigation>

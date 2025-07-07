@@ -63,6 +63,9 @@ dependencies {
     implementation ("com.firebaseui:firebase-ui-firestore:8.0.2")
     implementation ("com.tbuonomo:dotsindicator:5.0")
     implementation ("com.github.chrisbanes:PhotoView:2.3.0")
+    implementation ("androidx.navigation:navigation-fragment-ktx:2.7.7")
+    implementation ("androidx.navigation:navigation-ui-ktx:2.7.7")
+
 
 
 
