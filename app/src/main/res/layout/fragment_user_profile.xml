@@ -56,7 +56,9 @@
             android:text="Loading..."
             android:textColor="@color/black"
             android:textSize="20sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:ellipsize="end"
+            android:maxLines="1"/>
 
         <TextView
             android:id="@+id/usernameTxt"
@@ -65,7 +67,9 @@
             android:layout_marginTop="8dp"
             android:text="loading..."
             android:textColor="@color/black"
-            android:textSize="15sp" />
+            android:textSize="15sp"
+            android:ellipsize="end"
+            android:maxLines="1"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/settingsBtn"

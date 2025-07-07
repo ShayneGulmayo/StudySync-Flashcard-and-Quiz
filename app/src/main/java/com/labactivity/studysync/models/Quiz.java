@@ -71,6 +71,10 @@ public class Quiz {
     public Date getCreated_at() {
         return created_at;
     }
+    public boolean isPublic() {
+        return "public".equalsIgnoreCase(privacy);
+    }
+
 
     public void setCreated_at(Date created_at) {
         this.created_at = created_at;

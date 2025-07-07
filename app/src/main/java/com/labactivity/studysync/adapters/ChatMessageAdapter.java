@@ -25,6 +25,7 @@ import com.labactivity.studysync.FlashcardPreviewActivity;
 import com.labactivity.studysync.ImageViewerActivity;
 import com.labactivity.studysync.QuizPreviewActivity;
 import com.labactivity.studysync.R;
+import com.labactivity.studysync.UserProfileActivity;
 import com.labactivity.studysync.models.ChatMessage;
 import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.models.Quiz;
@@ -133,6 +134,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             itemView.setOnClickListener(v -> {
                 timestampText.setVisibility(timestampText.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
             });
+
         }
 
         public void bind(ChatMessage message) {
@@ -151,6 +153,12 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                             .placeholder(R.drawable.user_profile)
                             .circleCrop()
                             .into(senderImage);
+
+                    senderImage.setOnClickListener(view ->{
+                        Intent intent = new Intent(itemView.getContext(), UserProfileActivity.class);
+                        intent.putExtra("userId", message.getSenderId());
+                        itemView.getContext().startActivity(intent);
+                    });
                 }
             });
 
@@ -324,6 +332,13 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     .placeholder(R.drawable.user_profile)
                     .circleCrop()
                     .into(senderImage);
+
+            senderImage.setOnClickListener(v -> {
+                Intent intent = new Intent(itemView.getContext(), UserProfileActivity.class);
+                intent.putExtra("userId", message.getSenderId());
+                itemView.getContext().startActivity(intent);
+            });
+
 
             saveFileButton.setOnClickListener(v -> {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -596,6 +611,12 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                         .load(message.getSenderPhotoUrl())
                         .circleCrop()
                         .into(senderImage);
+                senderImage.setOnClickListener(v -> {
+                    Intent intent = new Intent(itemView.getContext(), UserProfileActivity.class);
+                    intent.putExtra("userId", message.getSenderId());
+                    itemView.getContext().startActivity(intent);
+                });
+
             }
 
             itemView.setOnClickListener(v -> {

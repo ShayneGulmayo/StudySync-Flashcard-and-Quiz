@@ -75,6 +75,10 @@ public class Flashcard {
     public void setPrivacy(String privacy) { this.privacy = privacy; }
 
     public String getReminder() { return reminder; }
+    public boolean isPublic() {
+        return "public".equalsIgnoreCase(privacy);
+    }
+
     public void setReminder(String reminder) { this.reminder = reminder; }
     public long getLastAccessed() {
         return lastAccessed;
@@ -84,3 +88,4 @@ public class Flashcard {
         this.lastAccessed = lastAccessed;
     }
 }
+
