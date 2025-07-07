@@ -18,7 +18,6 @@ import com.bumptech.glide.Glide;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.FlashcardPreviewActivity;
@@ -170,7 +169,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                         sharedType.setText("Flashcard Set");
                         db.collection("users").document(flashcard.getOwnerUid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
-                            String desc = flashcard.getNumberOfItems() + " terms" +
+                            String desc = flashcard.getNumber_Of_Items() + " terms" +
                                     (owner != null ? " · by " + owner.getUsername() : "");
                             sharedDescription.setText(desc);
                         });
@@ -383,11 +382,11 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                         sharedType.setText("Flashcard Set");
                         db.collection("users").document(flashcard.getOwnerUid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
-                            String desc = flashcard.getNumberOfItems() + " terms" +
+                            String desc = flashcard.getNumber_Of_Items() + " terms" +
                                     (owner != null ? " · by " + owner.getUsername() : "");
                             sharedDescription.setText(desc);
                         }).addOnFailureListener(e -> {
-                            sharedDescription.setText(flashcard.getNumberOfItems() + " terms");
+                            sharedDescription.setText(flashcard.getNumber_Of_Items() + " terms");
                         });
                     }
                 });

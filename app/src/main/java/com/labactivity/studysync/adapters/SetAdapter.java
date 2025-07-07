@@ -12,14 +12,12 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.RequestOptions;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.QuizPreviewActivity;
 import com.labactivity.studysync.R;
@@ -78,7 +76,7 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
         String title = set.getTitle();
         if (title.length() > 20) title = title.substring(0, 17) + "...";
         holder.setNameText.setText(title);
-        holder.setItemText.setText(set.getNumberOfItems() + " items");
+        holder.setItemText.setText(set.getNumber_Of_Items() + " items");
 
         String ownerUid = set.getOwnerUid();
         holder.flashcardOwner.setText("Loading...");

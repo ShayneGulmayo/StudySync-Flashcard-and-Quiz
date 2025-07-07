@@ -30,21 +30,6 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <TextView
-            android:id="@+id/txtView_username"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="User Profile"
-            android:textColor="@color/black"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
-            android:gravity="center"/>
-
     </androidx.constraintlayout.widget.ConstraintLayout>
     <LinearLayout
         android:id="@+id/linearLayout"
@@ -93,7 +78,6 @@
         android:maxLines="1"/>
     </LinearLayout>
 
-
         <TextView
             android:id="@+id/publicSetsTxt"
             android:layout_width="match_parent"
@@ -102,8 +86,10 @@
             android:textColor="@color/black"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textAlignment="center"
+            android:textAlignment="textStart"
             android:layout_marginTop="30dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/linearLayout"/>
@@ -112,9 +98,24 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginStart="20dp"
         app:layout_constraintTop_toBottomOf="@id/publicSetsTxt"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
+    <TextView
+        android:id="@+id/noSetsText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No public sets yet."
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/publicSetsTxt"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="20dp" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

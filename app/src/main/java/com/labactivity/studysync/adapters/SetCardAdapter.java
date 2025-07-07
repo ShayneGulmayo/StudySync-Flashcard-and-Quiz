@@ -2,11 +2,11 @@ package com.labactivity.studysync.adapters;
 
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
@@ -50,14 +50,20 @@ public class SetCardAdapter extends RecyclerView.Adapter<SetCardAdapter.SetViewH
             Flashcard flashcard = (Flashcard) item;
             holder.setTitle.setText(flashcard.getTitle());
 
-            String base = "Flashcard set · " + flashcard.getNumberOfItems() + " terms";
+            String base = "Flashcard set · " + flashcard.getNumber_Of_Items() + " terms";
             holder.setDescription.setText(base);
 
             holder.itemView.setOnClickListener(v -> {
-                Intent intent = new Intent(context, FlashcardPreviewActivity.class);
-                intent.putExtra("setId", flashcard.getId());
-                context.startActivity(intent);
+                String flashcardId = flashcard.getId();
+                if (flashcardId != null && !flashcardId.isEmpty()) {
+                    Intent intent = new Intent(context, FlashcardPreviewActivity.class);
+                    intent.putExtra("setId", flashcardId);
+                    context.startActivity(intent);
+                } else {
+                    Toast.makeText(context, "Flashcard ID is missing", Toast.LENGTH_SHORT).show();
+                }
             });
+
 
             loadUsernameAndAppend(ownerUid(flashcard), base, holder);
 

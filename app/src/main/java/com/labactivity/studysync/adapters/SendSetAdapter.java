@@ -68,7 +68,7 @@ public class SendSetAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 Flashcard flashcard = (Flashcard) item;
                 setHolder.setTitle.setText(flashcard.getTitle());
 
-                String desc = "Flashcard set · " + flashcard.getNumberOfItems() + " terms";
+                String desc = "Flashcard set · " + flashcard.getNumber_Of_Items() + " terms";
                 setHolder.setDescription.setText(desc);
                 setHolder.cardView.setOnClickListener(v -> listener.onSetClick(flashcard));
 

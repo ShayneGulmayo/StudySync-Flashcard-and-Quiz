@@ -2,6 +2,7 @@ package com.labactivity.studysync;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -83,7 +84,11 @@ public class UserProfileActivity extends AppCompatActivity {
     private void loadPublicOwnedSets(String userId) {
         db.collection("users").document(userId).get().addOnSuccessListener(snapshot -> {
             List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) snapshot.get("owned_sets");
-            if (ownedSets == null) return;
+            if (ownedSets == null || ownedSets.isEmpty()) return;
+
+            List<Object> combinedSets = new ArrayList<>();
+            int totalSets = ownedSets.size();
+            final int[] loadedCount = {0}; // counter
 
             for (Map<String, Object> map : ownedSets) {
                 String id = (String) map.get("id");
@@ -92,32 +97,47 @@ public class UserProfileActivity extends AppCompatActivity {
                 if ("flashcard".equals(type)) {
                     db.collection("flashcards").document(id).get().addOnSuccessListener(doc -> {
                         Flashcard flashcard = doc.toObject(Flashcard.class);
-                        if (flashcard != null && flashcard.isPublic()) {
-                            flashcardList.add(flashcard);
-                            adapter.notifyDataSetChanged();
+                        if (flashcard != null && "public".equals(flashcard.getPrivacy())) {
+                            flashcard.setId(doc.getId());
+                            combinedSets.add(flashcard);
+                        }
+                        loadedCount[0]++;
+                        if (loadedCount[0] == totalSets) {
+                            setupRecyclerView(combinedSets);
                         }
                     });
                 } else if ("quiz".equals(type)) {
                     db.collection("quiz").document(id).get().addOnSuccessListener(doc -> {
                         Quiz quiz = doc.toObject(Quiz.class);
-                        if (quiz != null && quiz.isPublic()) {
-                            quizList.add(quiz);
-                            adapter.notifyDataSetChanged();
+                        if (quiz != null && "public".equals(quiz.getPrivacy())) {
+                            quiz.setQuizId(doc.getId());
+                            combinedSets.add(quiz);
+                        }
+                        loadedCount[0]++;
+                        if (loadedCount[0] == totalSets) {
+                            setupRecyclerView(combinedSets);
                         }
                     });
+                } else {
+                    loadedCount[0]++;
+                    if (loadedCount[0] == totalSets) {
+                        setupRecyclerView(combinedSets);
+                    }
                 }
             }
-
-            List<Object> combinedSets = new ArrayList<>();
-            for (Flashcard f : flashcardList) {
-                if ("public".equals(f.getPrivacy())) combinedSets.add(f);
-            }
-            for (Quiz q : quizList) {
-                if ("public".equals(q.getPrivacy())) combinedSets.add(q);
-            }
-            adapter = new SetCardAdapter(this, combinedSets);
-            recyclerView.setLayoutManager(new LinearLayoutManager(this));
-            recyclerView.setAdapter(adapter);
         });
     }
+
+    private void setupRecyclerView(List<Object> combinedSets) {
+        if (combinedSets.isEmpty()) {
+            findViewById(R.id.recyclerView).setVisibility(View.GONE);
+            findViewById(R.id.noSetsText).setVisibility(View.VISIBLE);
+            return;
+        }
+
+        adapter = new SetCardAdapter(this, combinedSets);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(adapter);
+    }
+
 }

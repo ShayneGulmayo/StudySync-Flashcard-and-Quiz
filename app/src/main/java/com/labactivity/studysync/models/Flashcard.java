@@ -9,7 +9,7 @@ public class Flashcard {
     private String photoPath;
     private String id;
     private String title;
-    private int numberOfItems;
+    private int number_Of_Items;
     private String ownerUsername;
     private int progress;
     private String type;
@@ -31,7 +31,7 @@ public class Flashcard {
     public Flashcard(String id, String title, int numberOfItems, String ownerUsername, int progress, String photoUrl) {
         this.id = id;
         this.title = title;
-        this.numberOfItems = numberOfItems;
+        this.number_Of_Items = numberOfItems;
         this.ownerUsername = ownerUsername;
         this.progress = progress;
         this.photoUrl = photoUrl;
@@ -53,8 +53,16 @@ public class Flashcard {
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
-    public int getNumberOfItems() { return numberOfItems; }
-    public void setNumberOfItems(int numberOfItems) { this.numberOfItems = numberOfItems; }
+    @PropertyName("number_of_items")
+    public int getNumber_Of_Items() {
+        return number_Of_Items;
+    }
+
+    @PropertyName("number_of_items")
+    public void set_Number_Of_Items(int number_Of_Items) {
+        this.number_Of_Items = number_Of_Items;
+    }
+
 
     @PropertyName("owner_username")
     public String getOwnerUsername() { return ownerUsername; }
