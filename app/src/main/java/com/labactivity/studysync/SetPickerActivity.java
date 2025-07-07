@@ -114,24 +114,44 @@ public class SetPickerActivity extends AppCompatActivity {
         } else {
             return;
         }
-        ChatMessage message = new ChatMessage();
-        message.setSenderId(currentUser.getUid());
-        message.setTimestamp(new Date());
-        message.setType("set");
-        message.setSetId(setId);
-        message.setSetType(setType);
 
-        db.collection("chat_rooms")
-                .document(chatRoomId)
-                .collection("messages")
-                .add(message)
-                .addOnSuccessListener(ref -> {
-                    Toast.makeText(this, "Set sent!", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to send set: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        db.collection("users").document(currentUser.getUid())
+                .get()
+                .addOnSuccessListener(userDoc -> {
+                    String senderName = userDoc.getString("firstName") + " " + userDoc.getString("lastName");
+                    String photoUrl = userDoc.getString("photoUrl");
+
+                    ChatMessage message = new ChatMessage();
+                    message.setSenderId(currentUser.getUid());
+                    message.setSenderName(senderName);
+                    message.setSenderPhotoUrl(photoUrl);
+                    message.setTimestamp(new Date());
+                    message.setType("set");
+                    message.setSetId(setId);
+                    message.setSetType(setType);
+
+                    db.collection("chat_rooms")
+                            .document(chatRoomId)
+                            .collection("messages")
+                            .add(message)
+                            .addOnSuccessListener(ref -> {
+                                // Update last message in chat_rooms
+                                db.collection("chat_rooms")
+                                        .document(chatRoomId)
+                                        .update(
+                                                "lastMessage", "Shared a set",
+                                                "lastMessageSender", senderName,
+                                                "type", "set"
+                                        );
+
+                                Toast.makeText(this, "Set sent!", Toast.LENGTH_SHORT).show();
+                                finish();
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to send set: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
                 });
     }
+
 
 }

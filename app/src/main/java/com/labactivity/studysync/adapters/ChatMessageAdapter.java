@@ -472,10 +472,10 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         private void updateBookmarkIcon(boolean isSaved) {
             if (isSaved) {
                 saveSetBtn.setImageResource(R.drawable.bookmark_filled);
-                saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.primary));
+                saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.white));
             } else {
                 saveSetBtn.setImageResource(R.drawable.bookmark);
-                saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.primary));
+                saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.white));
             }
         }
     }

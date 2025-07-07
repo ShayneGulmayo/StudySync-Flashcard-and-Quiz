@@ -77,14 +77,38 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
     @Override
     public void onBindViewHolder(@NonNull ChatRoomViewHolder holder, int position) {
         ChatRoom room = filteredList.get(position);
-
         holder.groupName.setText(room.getChatRoomName());
 
-        String lastMsg = (room.getLastMessageSender() != null && room.getLastMessage() != null)
-                ? room.getLastMessageSender() + ": " + room.getLastMessage()
-                : "No messages yet";
-        holder.lastMessage.setText(lastMsg);
+        String type = room.getLastMessageType() != null ? room.getLastMessageType() : "text";
+        String preview;
 
+        switch (type) {
+            case "file":
+                preview = "Sent a file";
+                break;
+            case "image":
+                preview = "Sent an image";
+                break;
+            case "set":
+                preview = "Shared a set";
+                break;
+            case "system":
+                preview = room.getLastMessage() != null ? room.getLastMessage() : "System update";
+                break;
+            case "text":
+            default:
+                preview = room.getLastMessage() != null ? room.getLastMessage() : "No messages yet";
+                break;
+        }
+
+        // Prefix with sender's name if not system
+        if (!"system".equals(type) && room.getLastMessageSender() != null) {
+            preview = room.getLastMessageSender() + ": " + preview;
+        }
+
+        holder.lastMessage.setText(preview);
+
+        // Load photo
         if (room.getPhotoUrl() != null && !room.getPhotoUrl().isEmpty()) {
             Glide.with(context)
                     .load(room.getPhotoUrl())
@@ -97,7 +121,8 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
 
         boolean isUnread = room.isUnread();
         holder.groupName.setTypeface(null, isUnread ? Typeface.BOLD : Typeface.NORMAL);
-        holder.lastMessage.setTypeface(null, isUnread ? Typeface.BOLD : Typeface.NORMAL);
+        holder.lastMessage.setTypeface(null,
+                "system".equals(type) ? Typeface.ITALIC : (isUnread ? Typeface.BOLD : Typeface.NORMAL));
 
         holder.itemView.setOnClickListener(v -> {
             Map<String, Object> update = new HashMap<>();
@@ -113,6 +138,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
             context.startActivity(intent);
         });
     }
+
 
     @Override
     public int getItemCount() {

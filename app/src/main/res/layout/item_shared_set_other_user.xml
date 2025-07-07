@@ -7,7 +7,6 @@
     android:padding="3dp"
     android:descendantFocusability="afterDescendants">
 
-    <!-- Sender Image -->
     <ImageView
         android:id="@+id/senderImage"
         android:layout_width="36dp"

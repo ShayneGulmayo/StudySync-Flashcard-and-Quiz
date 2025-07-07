@@ -83,29 +83,53 @@ public class ChatRoomPickerAdapter extends RecyclerView.Adapter<ChatRoomPickerAd
             holder.sendIcon.setEnabled(false);
             holder.sendIcon.setAlpha(0.4f);
 
-            ChatMessage message = new ChatMessage();
-            message.setSenderId(currentUserId);
-            message.setTimestamp(new Date());
-            message.setType("set");
-            message.setSetId(setId);
-            message.setSetType(setType);
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-            FirebaseFirestore.getInstance()
-                    .collection("chat_rooms")
-                    .document(room.getId())
-                    .collection("messages")
-                    .add(message)
-                    .addOnSuccessListener(doc -> {
-                        Toast.makeText(context, "Sent to " + room.getChatRoomName(), Toast.LENGTH_SHORT).show();
-                        sentChatRoomIds.add(room.getId());
-                        notifyItemChanged(holder.getAdapterPosition());
+            db.collection("users").document(currentUserId)
+                    .get()
+                    .addOnSuccessListener(userDoc -> {
+                        String senderName = userDoc.getString("firstName") + " " + userDoc.getString("lastName");
+                        String photoUrl = userDoc.getString("photoUrl");
+
+                        ChatMessage message = new ChatMessage();
+                        message.setSenderId(currentUserId);
+                        message.setSenderName(senderName);
+                        message.setSenderPhotoUrl(photoUrl);
+                        message.setTimestamp(new Date());
+                        message.setType("set");
+                        message.setSetId(setId);
+                        message.setSetType(setType);
+
+                        db.collection("chat_rooms")
+                                .document(room.getId())
+                                .collection("messages")
+                                .add(message)
+                                .addOnSuccessListener(doc -> {
+                                    db.collection("chat_rooms")
+                                            .document(room.getId())
+                                            .update(
+                                                    "lastMessage", "Shared a set",
+                                                    "lastMessageSender", senderName,
+                                                    "type", "set"
+                                            );
+
+                                    Toast.makeText(context, "Sent to " + room.getChatRoomName(), Toast.LENGTH_SHORT).show();
+                                    sentChatRoomIds.add(room.getId());
+                                    notifyItemChanged(holder.getAdapterPosition());
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(context, "Send failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                    holder.sendIcon.setEnabled(true);
+                                    holder.sendIcon.setAlpha(1.0f);
+                                });
                     })
                     .addOnFailureListener(e -> {
-                        Toast.makeText(context, "Send failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, "Failed to load user info: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         holder.sendIcon.setEnabled(true);
                         holder.sendIcon.setAlpha(1.0f);
                     });
         });
+
     }
 
     @Override
