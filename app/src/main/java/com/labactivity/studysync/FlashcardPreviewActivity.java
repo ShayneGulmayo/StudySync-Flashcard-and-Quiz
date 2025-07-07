@@ -8,6 +8,7 @@ import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -30,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -38,7 +40,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
     private TextView titleTextView, ownerTextView, createdAtTextView, numberOfItemsTextView, privacyText, reminderTextView;
-    private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, reminderIcon;
+    private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, reminderIcon, saveSetBtn;
     private ViewPager2 carouselViewPager;
     private SpringDotsIndicator dotsIndicator;
     private Button startFlashcardBtn;
@@ -47,6 +49,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private ListenerRegistration reminderListener;
     private FirebaseAuth auth;
+    private boolean isSaved = false;
 
 
     @SuppressLint("MissingInflatedId")
@@ -101,6 +104,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         privacyText = findViewById(R.id.privacy_txt);
         reminderTextView = findViewById(R.id.reminder_txt);
         reminderIcon = findViewById(R.id.reminder_icon);
+        saveSetBtn = findViewById(R.id.saveSetBtn);
 
         boolean fromNotification = getIntent().getBooleanExtra("fromNotification", false);
 
@@ -342,29 +346,16 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
                     titleTextView.setText(title != null ? title : "Untitled");
 
-                    String privacy = documentSnapshot.getString("privacy");
-                    currentPrivacy = privacy != null ? privacy : "Public";
+                    currentPrivacy = documentSnapshot.getString("privacy") != null ? documentSnapshot.getString("privacy") : "Public";
+                    currentReminder = documentSnapshot.getString("reminder");
 
-                    String reminder = documentSnapshot.getString("reminder");
-                    currentReminder = (reminder != null && !reminder.isEmpty()) ? reminder : null;
-
-                    if (ownerUid != null) {
-                        db.collection("users").document(ownerUid)
-                                .get()
-                                .addOnSuccessListener(userDoc -> {
-                                    if (userDoc.exists()) {
-                                        String latestUsername = userDoc.getString("username");
-                                        ownerTextView.setText(latestUsername != null ? latestUsername : "Unknown");
-                                    } else {
-                                        ownerTextView.setText("Unknown");
-                                    }
-                                })
-                                .addOnFailureListener(e -> ownerTextView.setText("Unknown"));
+                    if (numberOfItems != null) {
+                        numberOfItemsTextView.setText(numberOfItems + (numberOfItems == 1 ? " item" : " items"));
                     } else {
-                        ownerTextView.setText("Unknown");
+                        numberOfItemsTextView.setText("0 items");
                     }
 
-                    if (currentReminder != null) {
+                    if (currentReminder != null && !currentReminder.isEmpty()) {
                         reminderTextView.setText("Reminder: " + currentReminder);
                         reminderIcon.setImageResource(R.drawable.notifications);
                     } else {
@@ -378,35 +369,68 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     } else {
                         privacyIcon.setImageResource(R.drawable.public_icon);
                         privacyText.setText("Public");
-
                     }
 
-                    if (numberOfItems != null) {
-                        String label = numberOfItems == 1 ? " item" : " items";
-                        numberOfItemsTextView.setText(numberOfItems + label);
+                    if (ownerUid != null) {
+                        db.collection("users").document(ownerUid)
+                                .get()
+                                .addOnSuccessListener(userDoc -> {
+                                    if (userDoc.exists()) {
+                                        String username = userDoc.getString("username");
+                                        ownerTextView.setText(username != null ? username : "Unknown");
+                                    } else {
+                                        ownerTextView.setText("Unknown");
+                                    }
+                                });
                     } else {
-                        numberOfItemsTextView.setText("0 items");
+                        ownerTextView.setText("Unknown");
+                    }
+
+                    loadOwnerProfile(ownerUid);
+
+                    String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    if (ownerUid != null && ownerUid.equals(currentUserId)) {
+                        saveSetBtn.setVisibility(View.GONE); // Hide save button if user owns set
+                    } else {
+                        checkIfSetIsSaved(currentUserId);
                     }
 
                     Object createdAtObj = documentSnapshot.get("createdAt");
-
                     if (createdAtObj instanceof Timestamp) {
                         Timestamp createdAtTimestamp = (Timestamp) createdAtObj;
-                        String formattedDate = new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault())
-                                .format(createdAtTimestamp.toDate());
+                        String formattedDate = new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault()).format(createdAtTimestamp.toDate());
                         createdAtTextView.setText(formattedDate);
                     } else if (createdAtObj instanceof String) {
-                        // Optional: handle if stored as string
                         createdAtTextView.setText((String) createdAtObj);
                     } else {
                         createdAtTextView.setText("Unknown");
-                        Log.w("FlashcardPreview", "createdAt is not a Timestamp: " + createdAtObj);
                     }
-                    loadOwnerProfile(ownerUid);
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to load flashcard", Toast.LENGTH_SHORT).show();
                     finish();
+                });
+    }
+
+    private void checkIfSetIsSaved(String currentUserId) {
+        db.collection("users").document(currentUserId).get()
+                .addOnSuccessListener(userDoc -> {
+                    List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
+
+                    isSaved = false;
+                    if (savedSets != null) {
+                        for (Map<String, Object> set : savedSets) {
+                            if (setId.equals(set.get("id")) && "flashcard".equals(set.get("type"))) {
+                                isSaved = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    updateSaveIcon();
+
+                    saveSetBtn.setVisibility(View.VISIBLE);
+                    saveSetBtn.setOnClickListener(v -> toggleSaveState());
                 });
     }
 
@@ -490,4 +514,40 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         carouselViewPager.setAdapter(carouselAdapter);
         dotsIndicator.setViewPager2(carouselViewPager);
     }
+    private void updateSaveIcon() {
+        if (isSaved) {
+            saveSetBtn.setImageResource(R.drawable.bookmark_filled);
+        } else {
+            saveSetBtn.setImageResource(R.drawable.bookmark);
+        }
+    }
+
+    private void toggleSaveState() {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        Map<String, Object> setData = new HashMap<>();
+        setData.put("id", setId);
+        setData.put("type", "flashcard");
+
+        if (isSaved) {
+            db.collection("users").document(userId)
+                    .update("saved_sets", com.google.firebase.firestore.FieldValue.arrayRemove(setData))
+                    .addOnSuccessListener(unused -> {
+                        isSaved = false;
+                        updateSaveIcon();
+                        Toast.makeText(this, "Set unsaved.", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to unsave.", Toast.LENGTH_SHORT).show());
+        } else {
+            db.collection("users").document(userId)
+                    .update("saved_sets", com.google.firebase.firestore.FieldValue.arrayUnion(setData))
+                    .addOnSuccessListener(unused -> {
+                        isSaved = true;
+                        updateSaveIcon();
+                        Toast.makeText(this, "Set saved!", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to save.", Toast.LENGTH_SHORT).show());
+        }
+    }
+
+
 }

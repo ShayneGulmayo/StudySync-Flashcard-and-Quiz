@@ -34,6 +34,7 @@ import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, RecyclerView.ViewHolder> {
 
@@ -153,7 +154,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 }
             });
 
-            // Fetch and display set info
             if ("flashcard".equals(message.getSetType())) {
                 db.collection("flashcards").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
                     Flashcard flashcard = snapshot.toObject(Flashcard.class);
@@ -162,7 +162,8 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                         sharedType.setText("Flashcard Set");
                         db.collection("users").document(flashcard.getOwnerUid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
-                            String desc = flashcard.getNumberOfItems() + " terms" + (owner != null ? " · by " + owner.getUsername() : "");
+                            String desc = flashcard.getNumberOfItems() + " terms" +
+                                    (owner != null ? " · by " + owner.getUsername() : "");
                             sharedDescription.setText(desc);
                         });
                     }
@@ -175,69 +176,72 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                         sharedType.setText("Quiz Set");
                         db.collection("users").document(quiz.getOwner_uid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
-                            String desc = quiz.getNumber_of_items() + " items" + (owner != null ? " · by " + owner.getUsername() : "");
+                            String desc = quiz.getNumber_of_items() + " items" +
+                                    (owner != null ? " · by " + owner.getUsername() : "");
                             sharedDescription.setText(desc);
                         });
                     }
                 });
             }
 
-            // Determine saved or owned state
             db.collection("users").document(currentUserId).get().addOnSuccessListener(userDoc -> {
-                boolean alreadySaved = false;
-                boolean alreadyOwned = false;
+                AtomicBoolean isSaved = new AtomicBoolean(false);
+                boolean isOwned = false;
 
                 List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
                 List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userDoc.get("owned_sets");
 
-                // Check saved sets
                 if (savedSets != null) {
                     for (Map<String, Object> set : savedSets) {
                         if (message.getSetId().equals(set.get("id")) && message.getSetType().equals(set.get("type"))) {
-                            alreadySaved = true;
+                            isSaved.set(true);
                             break;
                         }
                     }
                 }
 
-                // Check owned sets
                 if (ownedSets != null) {
                     for (Map<String, Object> set : ownedSets) {
                         if (message.getSetId().equals(set.get("id")) && message.getSetType().equals(set.get("type"))) {
-                            alreadyOwned = true;
+                            isOwned = true;
                             break;
                         }
                     }
                 }
 
-                if (alreadySaved || alreadyOwned) {
-                    saveSetBtn.setImageResource(R.drawable.bookmark_filled);
-                    savedIndicator.setVisibility(View.VISIBLE);
+                if (isOwned) {
+                    updateBookmarkIcon(true);
                     saveSetBtn.setEnabled(false);
                     saveSetBtn.setClickable(false);
+                    savedIndicator.setVisibility(View.VISIBLE);
                 } else {
-                    saveSetBtn.setImageResource(R.drawable.bookmark);
-                    savedIndicator.setVisibility(View.GONE);
-                    saveSetBtn.setEnabled(true);
-                    saveSetBtn.setClickable(true);
+                    updateBookmarkIcon(isSaved.get());
+                    savedIndicator.setVisibility(isSaved.get() ? View.VISIBLE : View.GONE);
 
                     saveSetBtn.setOnClickListener(v -> {
-                        v.setClickable(false);
                         Map<String, Object> setData = new HashMap<>();
                         setData.put("id", message.getSetId());
                         setData.put("type", message.getSetType());
 
-                        db.collection("users").document(currentUserId)
-                                .update("saved_sets", FieldValue.arrayUnion(setData))
-                                .addOnSuccessListener(aVoid -> {
-                                    Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show();
-                                    saveSetBtn.setImageResource(R.drawable.bookmark_filled);
-                                    savedIndicator.setVisibility(View.VISIBLE);
-                                })
-                                .addOnFailureListener(e -> {
-                                    Toast.makeText(itemView.getContext(), "Failed to save set", Toast.LENGTH_SHORT).show();
-                                    v.setClickable(true);
-                                });
+                        if (isSaved.get()) {
+                            db.collection("users").document(currentUserId)
+                                    .update("saved_sets", FieldValue.arrayRemove(setData))
+                                    .addOnSuccessListener(unused -> {
+                                        Toast.makeText(itemView.getContext(), "Set unsaved", Toast.LENGTH_SHORT).show();
+                                        isSaved.set(false);
+                                        updateBookmarkIcon(false);
+                                        savedIndicator.setVisibility(View.GONE);
+                                    });
+                        } else {
+                            db.collection("users").document(currentUserId)
+                                    .update("saved_sets", FieldValue.arrayUnion(setData))
+                                    .addOnSuccessListener(unused -> {
+                                        Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show();
+                                        isSaved.set(true);
+                                        updateBookmarkIcon(true);
+                                        savedIndicator.setVisibility(View.VISIBLE);
+                                    });
+                        }
                     });
                 }
             });
@@ -254,7 +258,18 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 itemView.getContext().startActivity(intent);
             });
         }
+
+        private void updateBookmarkIcon(boolean isSaved) {
+            if (isSaved) {
+                saveSetBtn.setImageResource(R.drawable.bookmark_filled);
+                saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.primary));
+            } else {
+                saveSetBtn.setImageResource(R.drawable.bookmark);
+                saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.primary));
+            }
+        }
     }
+
 
 
 
@@ -334,9 +349,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             savedIndicator = itemView.findViewById(R.id.savedIndicator);
 
             itemView.setOnClickListener(v -> {
-                timestampText.setVisibility(
-                        timestampText.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
-                );
+                timestampText.setVisibility(timestampText.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
             });
         }
 
@@ -347,14 +360,12 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
 
-            // Load set data
             if ("flashcard".equals(message.getSetType())) {
                 db.collection("flashcards").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
                     Flashcard flashcard = snapshot.toObject(Flashcard.class);
                     if (flashcard != null) {
                         sharedTitle.setText(flashcard.getTitle());
                         sharedType.setText("Flashcard Set");
-
                         db.collection("users").document(flashcard.getOwnerUid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
                             String desc = flashcard.getNumberOfItems() + " terms" +
@@ -365,14 +376,12 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                         });
                     }
                 });
-            }
-            else if ("quiz".equals(message.getSetType())) {
+            } else if ("quiz".equals(message.getSetType())) {
                 db.collection("quiz").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
                     Quiz quiz = snapshot.toObject(Quiz.class);
                     if (quiz != null) {
                         sharedTitle.setText(quiz.getTitle());
                         sharedType.setText("Quiz Set");
-
                         db.collection("users").document(quiz.getOwner_uid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
                             String desc = quiz.getNumber_of_items() + " items" +
@@ -385,10 +394,9 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
             }
 
-
             db.collection("users").document(currentUserId).get().addOnSuccessListener(userDoc -> {
-                boolean alreadySaved = false;
-                boolean alreadyOwned = false;
+                AtomicBoolean isSaved = new AtomicBoolean(false);
+                boolean isOwned = false;
 
                 List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
                 List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userDoc.get("owned_sets");
@@ -396,7 +404,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 if (savedSets != null) {
                     for (Map<String, Object> set : savedSets) {
                         if (message.getSetId().equals(set.get("id")) && message.getSetType().equals(set.get("type"))) {
-                            alreadySaved = true;
+                            isSaved.set(true);
                             break;
                         }
                     }
@@ -405,44 +413,45 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 if (ownedSets != null) {
                     for (Map<String, Object> set : ownedSets) {
                         if (message.getSetId().equals(set.get("id")) && message.getSetType().equals(set.get("type"))) {
-                            alreadyOwned = true;
+                            isOwned = true;
                             break;
                         }
                     }
                 }
 
-                if (alreadySaved || alreadyOwned) {
-                    saveSetBtn.setImageResource(R.drawable.bookmark_filled);
-                    saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.white));
+                if (isOwned) {
+                    updateBookmarkIcon(true);
                     saveSetBtn.setEnabled(false);
                     saveSetBtn.setClickable(false);
                     savedIndicator.setVisibility(View.VISIBLE);
                 } else {
-                    saveSetBtn.setImageResource(R.drawable.bookmark);
-                    saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.white));
-                    savedIndicator.setVisibility(View.GONE);
-                    saveSetBtn.setEnabled(true);
-                    saveSetBtn.setClickable(true);
+                    updateBookmarkIcon(isSaved.get());
+                    savedIndicator.setVisibility(isSaved.get() ? View.VISIBLE : View.GONE);
 
                     saveSetBtn.setOnClickListener(v -> {
-                        saveSetBtn.setClickable(false);
                         Map<String, Object> setData = new HashMap<>();
                         setData.put("id", message.getSetId());
                         setData.put("type", message.getSetType());
 
-                        db.collection("users").document(currentUserId)
-                                .update("saved_sets", FieldValue.arrayUnion(setData))
-                                .addOnSuccessListener(aVoid -> {
-                                    Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show();
-                                    saveSetBtn.setImageResource(R.drawable.bookmark_filled);
-                                    saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.primary));
-                                    saveSetBtn.setEnabled(false);
-                                    savedIndicator.setVisibility(View.VISIBLE);
-                                })
-                                .addOnFailureListener(e -> {
-                                    Toast.makeText(itemView.getContext(), "Failed to save set", Toast.LENGTH_SHORT).show();
-                                    saveSetBtn.setClickable(true);
-                                });
+                        if (isSaved.get()) {
+                            db.collection("users").document(currentUserId)
+                                    .update("saved_sets", FieldValue.arrayRemove(setData))
+                                    .addOnSuccessListener(unused -> {
+                                        Toast.makeText(itemView.getContext(), "Set unsaved", Toast.LENGTH_SHORT).show();
+                                        isSaved.set(false);
+                                        updateBookmarkIcon(false);
+                                        savedIndicator.setVisibility(View.GONE);
+                                    });
+                        } else {
+                            db.collection("users").document(currentUserId)
+                                    .update("saved_sets", FieldValue.arrayUnion(setData))
+                                    .addOnSuccessListener(unused -> {
+                                        Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show();
+                                        isSaved.set(true);
+                                        updateBookmarkIcon(true);
+                                        savedIndicator.setVisibility(View.VISIBLE);
+                                    });
+                        }
                     });
                 }
             });
@@ -459,7 +468,18 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 itemView.getContext().startActivity(intent);
             });
         }
+
+        private void updateBookmarkIcon(boolean isSaved) {
+            if (isSaved) {
+                saveSetBtn.setImageResource(R.drawable.bookmark_filled);
+                saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.primary));
+            } else {
+                saveSetBtn.setImageResource(R.drawable.bookmark);
+                saveSetBtn.setColorFilter(itemView.getContext().getResources().getColor(R.color.primary));
+            }
+        }
     }
+
 
 
 
