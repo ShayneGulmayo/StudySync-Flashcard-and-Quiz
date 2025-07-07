@@ -58,7 +58,6 @@ public class ChatRoomPickerAdapter extends RecyclerView.Adapter<ChatRoomPickerAd
         ChatRoom room = chatRooms.get(position);
         holder.groupName.setText(room.getChatRoomName());
 
-        // Load group photo if exists
         if (room.getPhotoUrl() != null && !room.getPhotoUrl().isEmpty()) {
             Glide.with(context)
                     .load(room.getPhotoUrl())

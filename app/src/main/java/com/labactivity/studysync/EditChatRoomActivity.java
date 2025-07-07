@@ -5,7 +5,11 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,17 +25,20 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
+import com.labactivity.studysync.models.ChatMessage;
 import com.labactivity.studysync.models.ChatRoom;
+import com.labactivity.studysync.models.User;
 import com.labactivity.studysync.utils.SupabaseUploader;
 import com.yalantis.ucrop.UCrop;
 
 import java.io.File;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 public class EditChatRoomActivity extends AppCompatActivity {
 
-    private ImageView backButton, chatroomPhoto;
+    private ImageView backButton, chatroomPhoto, moreBtn;
     private TextView chatroomNameTextView;
 
     private FirebaseFirestore db;
@@ -42,6 +49,8 @@ public class EditChatRoomActivity extends AppCompatActivity {
     private List<String> admins;
     private String ownerId;
     private String previousFilePath;
+
+    private User currentUserModel;
 
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -63,17 +72,24 @@ public class EditChatRoomActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
         currentUser = FirebaseAuth.getInstance().getCurrentUser();
-
         backButton = findViewById(R.id.back_button);
         chatroomPhoto = findViewById(R.id.chatroom_photo);
         chatroomNameTextView = findViewById(R.id.chatroom_name);
+        moreBtn = findViewById(R.id.more_button);
 
         roomId = getIntent().getStringExtra("roomId");
+
+        if (currentUser != null) {
+            db.collection("users").document(currentUser.getUid()).get().addOnSuccessListener(snapshot -> {
+                currentUserModel = snapshot.toObject(User.class);
+            });
+        }
 
         loadChatRoom();
 
         backButton.setOnClickListener(v -> onBackPressed());
         chatroomPhoto.setOnClickListener(v -> openImagePicker());
+        moreBtn.setOnClickListener(this::showPopupMenu);
         findViewById(R.id.delete_chatroom_btn).setOnClickListener(v -> attemptDeleteChatRoom());
         findViewById(R.id.leave_chatroom_btn).setOnClickListener(v -> attemptLeaveChatRoom());
         findViewById(R.id.see_members_btn).setOnClickListener(v -> {
@@ -81,7 +97,48 @@ public class EditChatRoomActivity extends AppCompatActivity {
             intent.putExtra("chatRoomId", roomId);
             startActivity(intent);
         });
+    }
 
+    private void showPopupMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(this, anchor);
+        popup.getMenuInflater().inflate(R.menu.chat_room_settings_menu, popup.getMenu());
+        popup.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.editChatPhoto) {
+                openImagePicker();
+                return true;
+            } else if (id == R.id.editChatName) {
+                showEditNameDialog();
+                return true;
+            } else if (id == R.id.leaveChat) {
+                attemptLeaveChatRoom();
+                return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
+
+    private void showEditNameDialog() {
+        EditText input = new EditText(this);
+        input.setText(chatroomNameTextView.getText());
+
+        new AlertDialog.Builder(this)
+                .setTitle("Edit Chat Room Name")
+                .setView(input)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String newName = input.getText().toString().trim();
+                    if (!newName.isEmpty()) {
+                        db.collection("chat_rooms").document(roomId)
+                                .update("chatRoomName", newName)
+                                .addOnSuccessListener(unused -> {
+                                    chatroomNameTextView.setText(newName);
+                                    sendSystemMessage(currentUserModel.getFirstName() + " changed the chat room name to \"" + newName + "\"");
+                                });
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void openImagePicker() {
@@ -142,6 +199,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
                         progressDialog.dismiss();
                         if (success) {
                             updateChatRoomPhoto(publicUrl, filename);
+                            sendSystemMessage(currentUserModel.getFirstName() + " updated the chat room photo.");
                         } else {
                             Toast.makeText(this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
                         }
@@ -166,6 +224,21 @@ public class EditChatRoomActivity extends AppCompatActivity {
                     previousFilePath = path;
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Update failed", Toast.LENGTH_SHORT).show());
+    }
+
+    private void sendSystemMessage(String messageText) {
+        if (currentUser == null || currentUserModel == null) return;
+        ChatMessage systemMessage = new ChatMessage();
+        systemMessage.setSenderId(currentUser.getUid());
+        systemMessage.setSenderName("System");
+        systemMessage.setType("system");
+        systemMessage.setText(messageText);
+        systemMessage.setTimestamp(new Date());
+
+        db.collection("chat_rooms")
+                .document(roomId)
+                .collection("messages")
+                .add(systemMessage);
     }
 
     private void attemptDeleteChatRoom() {
@@ -243,15 +316,15 @@ public class EditChatRoomActivity extends AppCompatActivity {
                 });
     }
 
-
     private void attemptLeaveChatRoom() {
-        if (currentRoom == null || currentUser == null) return;
+        if (currentRoom == null || currentUser == null || currentUserModel == null) return;
 
         String uid = currentUser.getUid();
         List<String> members = currentRoom.getMembers();
         if (!members.contains(uid)) return;
 
         boolean isOwner = uid.equals(ownerId);
+        String displayName = currentUserModel.getFirstName();
 
         if (isOwner) {
             String newOwnerId = null;
@@ -276,22 +349,38 @@ public class EditChatRoomActivity extends AppCompatActivity {
 
             if (newOwnerId != null) {
                 db.collection("chat_rooms").document(roomId)
-                        .update("ownerId", newOwnerId,
-                                "members", FieldValue.arrayRemove(uid))
+                        .update(
+                                "ownerId", newOwnerId,
+                                "members", FieldValue.arrayRemove(uid),
+                                "admins", FieldValue.arrayRemove(uid)
+                        )
                         .addOnSuccessListener(unused -> {
+                            sendSystemMessage(displayName + " left the chat room. Ownership transferred.");
                             Toast.makeText(this, "You left the chat room. Ownership transferred.", Toast.LENGTH_SHORT).show();
-                            finish();
+                            goToChatFragment();
                         });
             } else {
                 Toast.makeText(this, "You're the last member. Please delete the chat room instead.", Toast.LENGTH_SHORT).show();
             }
         } else {
             db.collection("chat_rooms").document(roomId)
-                    .update("members", FieldValue.arrayRemove(uid))
+                    .update(
+                            "members", FieldValue.arrayRemove(uid),
+                            "admins", FieldValue.arrayRemove(uid)
+                    )
                     .addOnSuccessListener(unused -> {
+                        sendSystemMessage(displayName + " left the chat room.");
                         Toast.makeText(this, "Left chat room.", Toast.LENGTH_SHORT).show();
-                        finish();
+                        goToChatFragment();
                     });
         }
+    }
+
+    private void goToChatFragment() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra("navigateTo", "chat");
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
     }
 }

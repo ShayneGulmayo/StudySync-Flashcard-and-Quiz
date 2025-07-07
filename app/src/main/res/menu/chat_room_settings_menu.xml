@@ -1,0 +1,8 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/editChatPhoto"
+        android:title="Change chat room photo"/>
+    <item android:id="@+id/editChatName"
+        android:title="Edit chat name"/>
+    <item android:id="@+id/leaveChat"
+        android:title="Leave chat room" />
+</menu>
