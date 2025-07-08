@@ -321,27 +321,26 @@ public class QuizPreviewActivity extends AppCompatActivity {
     }
 
     private void deleteQuiz() {
-        db.collection("quiz_attempts").document(quizId)
-                .collection("users")
+        db.collection("quiz")
+                .document(quizId)
+                .collection("quiz_attempt")
                 .get()
                 .addOnSuccessListener(userAttempts -> {
+                    // Delete all user attempts under quiz_attempt
                     for (DocumentSnapshot userAttempt : userAttempts.getDocuments()) {
                         userAttempt.getReference().delete();
                     }
 
-                    db.collection("quiz_attempts").document(quizId)
+                    // Delete the quiz document itself
+                    db.collection("quiz").document(quizId)
                             .delete()
-                            .addOnSuccessListener(aVoid1 -> {
-                                db.collection("quiz").document(quizId)
-                                        .delete()
-                                        .addOnSuccessListener(aVoid2 -> {
-                                            Toast.makeText(this, "Quiz deleted.", Toast.LENGTH_SHORT).show();
-                                            finish();
-                                        })
-                                        .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete quiz.", Toast.LENGTH_SHORT).show());
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, "Quiz deleted.", Toast.LENGTH_SHORT).show();
+                                finish();
                             })
-                            .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete attempts record.", Toast.LENGTH_SHORT).show());
+                            .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete quiz.", Toast.LENGTH_SHORT).show());
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to fetch user attempts.", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to fetch quiz attempts.", Toast.LENGTH_SHORT).show());
     }
+
 }

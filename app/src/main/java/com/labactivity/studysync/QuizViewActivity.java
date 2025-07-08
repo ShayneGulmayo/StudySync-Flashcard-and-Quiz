@@ -1,5 +1,8 @@
 package com.labactivity.studysync;
 
+import static androidx.core.util.TypedValueCompat.dpToPx;
+
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -107,8 +110,20 @@ public class QuizViewActivity extends AppCompatActivity {
         Button btnCheck = findViewById(R.id.btn_check_answer);
         btnCheck.setOnClickListener(v -> handleAnswerCheck());
 
+        View rootView = findViewById(android.R.id.content);
+        rootView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            int heightDiff = rootView.getRootView().getHeight() - rootView.getHeight();
+            if (heightDiff > dpToPx(200)) {
+                btnCheck.setVisibility(View.GONE);
+            } else {
+                btnCheck.setVisibility(View.VISIBLE);
+            }
+        });
+
+
         // Back button behavior
-        back_button.setOnClickListener(v -> onBackPressed());
+        back_button.setOnClickListener(v -> showExitConfirmationDialog());
+
 
         // Determine mode (default is normal)
         mode = getIntent().getStringExtra("mode");
@@ -309,6 +324,8 @@ public class QuizViewActivity extends AppCompatActivity {
 
     private void displayNextValidQuestion() {
         hasAnswered = false;
+        correctAnswer = null;
+        selectedAnswer = null;
 
         // Check if all questions have been shown first
         if (currentQuestionIndex >= questions.size()) {
@@ -414,16 +431,22 @@ public class QuizViewActivity extends AppCompatActivity {
         if (answers != null) {
             for (int i = 0; i < answers.size(); i++) {
                 View blankView = LayoutInflater.from(this)
-                        .inflate(R.layout.item_quiz_enumeration_blanks, linearLayoutOptions, false); // ✅ Inflates your card
+                        .inflate(R.layout.item_quiz_enumeration_blanks, linearLayoutOptions, false);
 
-                EditText input = blankView.findViewById(R.id.enum_answer_input); // ✅ Finds EditText
-                input.setHint("Answer " + (i + 1)); // ✅ Sets hint
-                linearLayoutOptions.addView(blankView); // ✅ Adds to layout
+                EditText input = blankView.findViewById(R.id.enum_answer_input);
+                input.setHint("Answer " + (i + 1));
+
+                if (i == 0) {
+                    input.requestFocus(); // ✅ This makes the first blank get focus
+                }
+
+                linearLayoutOptions.addView(blankView);
             }
         } else {
             Toast.makeText(this, "Missing enumeration answers", Toast.LENGTH_SHORT).show();
         }
     }
+
 
 
 
@@ -497,9 +520,9 @@ public class QuizViewActivity extends AppCompatActivity {
         loadQuizMetaInfo();
 
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        db.collection("quiz_attempts")
+        db.collection("quiz")
                 .document(quizId)
-                .collection("users")
+                .collection("quiz_attempt")
                 .document(userId)
                 .get()
                 .addOnSuccessListener(doc -> {
@@ -740,52 +763,57 @@ public class QuizViewActivity extends AppCompatActivity {
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : "anonymous";
 
-        db.collection("quiz_attempts")
+        // Count how many answers are correct
+        int finalScore = 0;
+        for (Map<String, Object> answer : newAnswers) {
+            Boolean isCorrect = (Boolean) answer.get("isCorrect");
+            if (isCorrect != null && isCorrect) finalScore++;
+        }
+
+        // Prepare result data to fully overwrite old attempt
+        Map<String, Object> resultData = new HashMap<>();
+        resultData.put("quizId", quizId);
+        resultData.put("userId", userId);
+        resultData.put("score", finalScore);
+        resultData.put("total", originalQuestionCount);
+        resultData.put("answeredQuestions", newAnswers); // ✅ full overwrite
+        resultData.put("timestamp", FieldValue.serverTimestamp());
+
+        // Save new attempt (overwrite the document)
+        db.collection("quiz")
                 .document(quizId)
-                .collection("users")
+                .collection("quiz_attempt")
                 .document(userId)
-                .get()
-                .addOnSuccessListener(doc -> {
-                    Map<String, Map<String, Object>> mergedAnswers = new HashMap<>();
-
-                    // 1. Load previous answers if they exist
-                    List<Map<String, Object>> previousAnswers = (List<Map<String, Object>>) doc.get("answeredQuestions");
-                    if (previousAnswers != null) {
-                        for (Map<String, Object> prev : previousAnswers) {
-                            String question = prev.get("question").toString();
-                            mergedAnswers.put(question, prev);
-                        }
-                    }
-
-                    // 2. Overwrite with new answers (fixes incorrect ones)
-                    for (Map<String, Object> current : newAnswers) {
-                        String question = current.get("question").toString();
-                        mergedAnswers.put(question, current);
-                    }
-
-                    // 3. Count how many are now correct
-                    int finalScore = 0;
-                    for (Map<String, Object> answer : mergedAnswers.values()) {
-                        Boolean isCorrect = (Boolean) answer.get("isCorrect");
-                        if (isCorrect != null && isCorrect) finalScore++;
-                    }
-
-                    // 4. Final save
-                    Map<String, Object> resultData = new HashMap<>();
-                    resultData.put("quizId", quizId);
-                    resultData.put("userId", userId);
-                    resultData.put("score", finalScore);
-                    resultData.put("total", originalQuestionCount);
-                    resultData.put("answeredQuestions", new ArrayList<>(mergedAnswers.values()));
-                    resultData.put("timestamp", FieldValue.serverTimestamp());
-
-                    db.collection("quiz_attempts")
-                            .document(quizId)
-                            .collection("users")
-                            .document(userId)
-                            .set(resultData);
-                });
+                .set(resultData);
     }
 
 
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+
+    @SuppressLint("MissingSuperCall")
+    @Override
+    public void onBackPressed() {
+        showExitConfirmationDialog();
+    }
+
+
+    private void showExitConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Exit Quiz")
+                .setMessage("Are you sure you want to exit the quiz?\nYour progress will not be saved.")
+                .setPositiveButton("Yes, Exit", (dialog, which) -> {
+                    // Call super to allow actual back navigation
+                    QuizViewActivity.super.onBackPressed();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
 }
+
+
+
+

@@ -68,8 +68,9 @@
                     <EditText
                         android:id="@+id/quiz_question_input"
                         android:layout_width="match_parent"
-                        android:layout_height="96dp"
-                        android:gravity="top"
+                        android:layout_height="wrap_content"
+                        android:gravity="top|start"
+                        android:maxLines="10"
                         android:minHeight="96dp"
                         android:padding="12dp"
                         android:textColor="@color/black"

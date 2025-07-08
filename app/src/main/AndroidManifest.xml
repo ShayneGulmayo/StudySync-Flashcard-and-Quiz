@@ -53,6 +53,7 @@
             android:exported="false" />
         <activity
             android:name=".QuizViewActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false" />
         <activity
             android:name=".QuizProgressActivity"

@@ -32,7 +32,6 @@ public class QuizProgressActivity extends AppCompatActivity {
     private FirebaseFirestore db;
 
     private ImageView back_button;
-    private ImageView more_button;
     private Button review_questions_btn;
     private TextView retake_quiz_btn;
 
@@ -51,7 +50,6 @@ public class QuizProgressActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         back_button = findViewById(R.id.back_button);
-        more_button = findViewById(R.id.more_button);
         review_questions_btn = findViewById(R.id.review_questions_btn);
         retake_quiz_btn = findViewById(R.id.retake_quiz_btn);
 
@@ -99,9 +97,9 @@ public class QuizProgressActivity extends AppCompatActivity {
 
         review_questions_btn.setOnClickListener(v -> {
             String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            db.collection("quiz_attempts")
+            db.collection("quiz")
                     .document(quizId)
-                    .collection("users")
+                    .collection("quiz_attempt")
                     .document(userId)
                     .get()
                     .addOnSuccessListener(attemptDoc -> {
@@ -118,91 +116,6 @@ public class QuizProgressActivity extends AppCompatActivity {
                     });
         });
 
-        more_button.setOnClickListener(v -> showMoreBottomSheet());
-    }
-
-    private void showMoreBottomSheet() {
-        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_preview, null);
-        bottomSheetDialog.setContentView(view);
-
-        TextView privacyOption = view.findViewById(R.id.privacy);
-
-        db.collection("quiz").document(quizId).get().addOnSuccessListener(doc -> {
-            String currentPrivacy = doc.getString("privacy");
-            if ("private".equalsIgnoreCase(currentPrivacy)) {
-                privacyOption.setText("Set as Public");
-            } else {
-                privacyOption.setText("Set as Private");
-            }
-        });
-
-        view.findViewById(R.id.download).setOnClickListener(v -> {
-            Toast.makeText(this, "Download clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        privacyOption.setOnClickListener(v -> {
-            db.collection("quiz").document(quizId).get().addOnSuccessListener(doc -> {
-                String currentPrivacy = doc.getString("privacy");
-                if (currentPrivacy == null) currentPrivacy = "private";
-
-                String newPrivacy = currentPrivacy.equalsIgnoreCase("private") ? "public" : "private";
-
-                db.collection("quiz").document(quizId)
-                        .update("privacy", newPrivacy)
-                        .addOnSuccessListener(aVoid -> {
-                            Toast.makeText(this, "Quiz set to " + newPrivacy, Toast.LENGTH_SHORT).show();
-                        })
-                        .addOnFailureListener(e -> {
-                            Toast.makeText(this, "Failed to update privacy", Toast.LENGTH_SHORT).show();
-                        });
-            });
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.reminder).setOnClickListener(v -> {
-            Toast.makeText(this, "Reminder clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.sendToChat).setOnClickListener(v -> {
-            Toast.makeText(this, "Send to Chat clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.edit).setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-            Intent intent = new Intent(this, CreateQuizActivity.class);
-            intent.putExtra("quizId", quizId);
-            startActivity(intent);
-        });
-
-        view.findViewById(R.id.delete).setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-            showDeleteConfirmationDialog();
-        });
-
-        bottomSheetDialog.show();
-    }
-
-    private void showDeleteConfirmationDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete Quiz")
-                .setMessage("Are you sure you want to delete this quiz? This action cannot be undone.")
-                .setPositiveButton("Yes", (dialog, which) -> deleteQuiz())
-                .setNegativeButton("No", null)
-                .show();
-    }
-
-    private void deleteQuiz() {
-        db.collection("quiz").document(quizId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Quiz deleted.", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete quiz.", Toast.LENGTH_SHORT).show());
     }
 
     private void displayQuizProgress(DocumentSnapshot doc) {
@@ -215,9 +128,9 @@ public class QuizProgressActivity extends AppCompatActivity {
 
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        db.collection("quiz_attempts")
+        db.collection("quiz")
                 .document(quizId)
-                .collection("users")
+                .collection("quiz_attempt")
                 .document(userId)
                 .get()
                 .addOnSuccessListener(attemptDoc -> {
@@ -265,9 +178,9 @@ public class QuizProgressActivity extends AppCompatActivity {
         LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
         LayoutInflater inflater = LayoutInflater.from(this);
 
-        db.collection("quiz_attempts")
+        db.collection("quiz")
                 .document(quizId)
-                .collection("users")
+                .collection("quiz_attempt")
                 .document(userId)
                 .get()
                 .addOnSuccessListener(doc -> {

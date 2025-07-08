@@ -39,10 +39,12 @@
                 android:gravity="center"
                 android:lineSpacingExtra="4dp"
                 android:padding="24dp"
+                android:maxLines="6"
+                android:ellipsize="end"
                 android:text="Question?"
                 android:textAlignment="center"
                 android:textColor="@color/black"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
         </androidx.cardview.widget.CardView>
 
@@ -64,10 +66,12 @@
                 android:background="@color/ic_launcher_background"
                 android:gravity="center"
                 android:lineSpacingExtra="4dp"
+                android:maxLines="6"
+                android:ellipsize="end"
                 android:text="Answer"
                 android:textAlignment="center"
                 android:textColor="@color/black"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
         </androidx.cardview.widget.CardView>
 
