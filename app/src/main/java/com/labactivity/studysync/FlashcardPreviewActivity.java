@@ -50,6 +50,11 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private ListenerRegistration reminderListener;
     private FirebaseAuth auth;
     private boolean isSaved = false;
+    private BottomSheetDialog bottomSheetDialog;
+    private AlertDialog deleteConfirmationDialog;
+    private DatePickerDialog datePickerDialog;
+    private TimePickerDialog timePickerDialog;
+
 
 
     @SuppressLint("MissingInflatedId")
@@ -84,10 +89,13 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (reminderListener != null) {
-            reminderListener.remove();
-        }
+        if (reminderListener != null) reminderListener.remove();
+        if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) bottomSheetDialog.dismiss();
+        if (deleteConfirmationDialog != null && deleteConfirmationDialog.isShowing()) deleteConfirmationDialog.dismiss();
+        if (datePickerDialog != null && datePickerDialog.isShowing()) datePickerDialog.dismiss();
+        if (timePickerDialog != null && timePickerDialog.isShowing()) timePickerDialog.dismiss();
     }
+
 
     private void initializeViews() {
         backButton = findViewById(R.id.back_button);
@@ -129,7 +137,9 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     }
 
     private void showMoreBottomSheet() {
-        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
+        if (isFinishing() || isDestroyed()) return;
+
+        bottomSheetDialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_preview, null);
         bottomSheetDialog.setContentView(view);
 
@@ -140,30 +150,36 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         view.findViewById(R.id.privacy).setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            Intent intent = new Intent(this, PrivacyActivity.class);
-            intent.putExtra("setId", setId);
-            startActivity(intent);
+            if (!isFinishing() && !isDestroyed()) {
+                Intent intent = new Intent(this, PrivacyActivity.class);
+                intent.putExtra("setId", setId);
+                startActivity(intent);
+            }
         });
 
         view.findViewById(R.id.reminder).setOnClickListener(v -> {
-            showReminderDialog();
             bottomSheetDialog.dismiss();
+            showReminderDialog();
         });
 
-
         view.findViewById(R.id.sendToChat).setOnClickListener(v -> {
-            String setType = "flashcard";
-            Intent intent = new Intent(this, ChatRoomPickerActivity.class);
-            intent.putExtra("setId", setId);
-            intent.putExtra("setType", setType);
-            startActivity(intent);
+            bottomSheetDialog.dismiss();
+            if (!isFinishing() && !isDestroyed()) {
+                String setType = "flashcard";
+                Intent intent = new Intent(this, ChatRoomPickerActivity.class);
+                intent.putExtra("setId", setId);
+                intent.putExtra("setType", setType);
+                startActivity(intent);
+            }
         });
 
         view.findViewById(R.id.edit).setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            Intent intent = new Intent(this, CreateFlashcardActivity.class);
-            intent.putExtra("setId", setId);
-            startActivity(intent);
+            if (!isFinishing() && !isDestroyed()) {
+                Intent intent = new Intent(this, CreateFlashcardActivity.class);
+                intent.putExtra("setId", setId);
+                startActivity(intent);
+            }
         });
 
         view.findViewById(R.id.delete).setOnClickListener(v -> {
@@ -174,14 +190,20 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         bottomSheetDialog.show();
     }
 
+
     private void showDeleteConfirmationDialog() {
-        new AlertDialog.Builder(this)
+        if (isFinishing() || isDestroyed()) return;
+
+        deleteConfirmationDialog = new AlertDialog.Builder(this)
                 .setTitle("Delete Flashcard Set")
                 .setMessage("Are you sure you want to delete this flashcard set? This action cannot be undone.")
                 .setPositiveButton("Yes", (dialog, which) -> deleteFlashcardSet())
                 .setNegativeButton("No", null)
-                .show();
+                .create();
+
+        deleteConfirmationDialog.show();
     }
+
 
     private void deleteFlashcardSet() {
         db.collection("flashcards").document(setId)
@@ -250,14 +272,16 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     }
 
     private void showReminderDialog() {
+        if (isFinishing() || isDestroyed()) return;
+
         Calendar calendar = Calendar.getInstance();
 
-        @SuppressLint("ResourceType") DatePickerDialog datePickerDialog = new DatePickerDialog(this, R.style.DialogTheme, (view, year, month, dayOfMonth) -> {
+        datePickerDialog = new DatePickerDialog(this, R.style.DialogTheme, (view, year, month, dayOfMonth) -> {
             calendar.set(Calendar.YEAR, year);
             calendar.set(Calendar.MONTH, month);
             calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
 
-            TimePickerDialog timePickerDialog = new TimePickerDialog(this, R.style.DialogTheme, (timeView, hourOfDay, minute) -> {
+            timePickerDialog = new TimePickerDialog(this, R.style.DialogTheme, (timeView, hourOfDay, minute) -> {
                 calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
                 calendar.set(Calendar.MINUTE, minute);
                 calendar.set(Calendar.SECOND, 0);
@@ -266,12 +290,13 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
             }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
 
-            timePickerDialog.show();
+            if (!isFinishing() && !isDestroyed()) timePickerDialog.show();
 
         }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
 
-        datePickerDialog.show();
+        if (!isFinishing() && !isDestroyed()) datePickerDialog.show();
     }
+
 
     private void listenToReminderUpdates() {
         if (setId == null) return;

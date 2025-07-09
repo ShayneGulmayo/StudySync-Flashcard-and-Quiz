@@ -13,10 +13,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,9 +22,8 @@ import java.util.Map;
 public class FlashcardProgressActivity extends AppCompatActivity {
 
     ProgressBar backgroundProgressBar, statsProgressBar;
-    TextView progressPercentage, knowItems, stillLearningItems, flashcardTitleTxt;
+    TextView progressPercentage, knowItems, stillLearningItems, flashcardTitleTxt, retakeFlashcardBtn;
     Button reviewQuestionsBtn;
-    TextView retakeFlashcardBtn;
     ImageView backButton;
     int knowCount, stillLearningCount, totalItems;
     String setId;
@@ -81,7 +78,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
         retakeFlashcardBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, FlashcardViewerActivity.class);
-            intent.putExtra("setId", setId);  // only setId
+            intent.putExtra("setId", setId);
             startActivity(intent);
             finish();
         });
@@ -100,7 +97,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        // Get flashcard set to check owner
         db.collection("flashcards").document(setId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -112,11 +108,9 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                         String ownerId = documentSnapshot.getString("owner_uid");
                         collectionField = ownerId != null && ownerId.equals(currentUserId) ? "owned_sets" : "saved_sets";
                     } else {
-                        // fallback: if no ownerId — you decide how to handle this
                         collectionField = "saved_sets";
                     }
 
-                    // now proceed to fetch user's sets and update progress
                     db.collection("users").document(currentUserId)
                             .get()
                             .addOnSuccessListener(userSnapshot -> {
@@ -151,19 +145,15 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                                         .addOnFailureListener(e -> {
                                             Toast.makeText(this, "Failed to save progress.", Toast.LENGTH_SHORT).show();
                                         });
-
                             })
                             .addOnFailureListener(e -> {
                                 Toast.makeText(this, "Failed to load user data.", Toast.LENGTH_SHORT).show();
                             });
-
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to fetch set owner.", Toast.LENGTH_SHORT).show();
                 });
-
     }
-
 
     private void loadFlashcardTitle(String setId) {
         if (setId == null) return;

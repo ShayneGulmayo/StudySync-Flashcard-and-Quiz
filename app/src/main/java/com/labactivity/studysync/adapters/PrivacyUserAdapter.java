@@ -1,6 +1,6 @@
 package com.labactivity.studysync.adapters;
 
-import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,23 +16,27 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.models.User;
 import com.labactivity.studysync.models.UserWithRole;
+import java.lang.ref.WeakReference;
 import java.util.List;
 
 public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private static final int TYPE_SELECTABLE = 0;
-    private static final int TYPE_SELECTED = 1;
+    private static final int TYPE_SELECTED = 0;
+    private static final int TYPE_SELECTABLE = 1;
+
     private final List<?> userList;
     private final List<UserWithRole> selectedUsers;
     private final boolean isSelectionList;
     private boolean isPublic;
     private final OnUserSelectedListener listener;
+    private final WeakReference<Activity> activityRef;
 
     public interface OnUserSelectedListener {
         void onUserSelected(User user, boolean selected, int position);
     }
 
-    public PrivacyUserAdapter(List<?> userList, List<UserWithRole> selectedUsers, boolean isSelectionList, boolean isPublic, OnUserSelectedListener listener) {
+    public PrivacyUserAdapter(Activity activity, List<?> userList, List<UserWithRole> selectedUsers, boolean isSelectionList, boolean isPublic, OnUserSelectedListener listener) {
+        this.activityRef = new WeakReference<>(activity);
         this.userList = userList;
         this.selectedUsers = selectedUsers;
         this.isSelectionList = isSelectionList;
@@ -62,10 +66,9 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         }
     }
 
-    @SuppressLint("NonConstantResourceId")
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        if (holder.getItemViewType() == TYPE_SELECTED) {
+        if (getItemViewType(position) == TYPE_SELECTED) {
             UserWithRole uwr = (UserWithRole) userList.get(position);
             User user = uwr.getUser();
             SelectedViewHolder viewHolder = (SelectedViewHolder) holder;
@@ -92,7 +95,10 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 int adapterPos = holder.getAdapterPosition();
                 if (adapterPos == RecyclerView.NO_POSITION) return;
 
-                PopupMenu popupMenu = new PopupMenu(holder.itemView.getContext(), viewHolder.txtRole);
+                Activity activity = activityRef.get();
+                if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+
+                PopupMenu popupMenu = new PopupMenu(activity, viewHolder.txtRole);
                 popupMenu.getMenuInflater().inflate(R.menu.privacy_role_menu, popupMenu.getMenu());
 
                 popupMenu.setOnMenuItemClickListener(item -> {
