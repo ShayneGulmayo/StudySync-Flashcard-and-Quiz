@@ -54,6 +54,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private AlertDialog deleteConfirmationDialog;
     private DatePickerDialog datePickerDialog;
     private TimePickerDialog timePickerDialog;
+    private String accessLevel = "none";
 
 
 
@@ -126,69 +127,160 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         });
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
         startFlashcardBtn.setOnClickListener(v -> {
-            if (setId != null && !setId.isEmpty()) {
+            if ("owner".equals(accessLevel) || "edit".equals(accessLevel) || "view".equals(accessLevel)) {
                 Intent intent = new Intent(FlashcardPreviewActivity.this, FlashcardViewerActivity.class);
                 intent.putExtra("setId", setId);
                 startActivity(intent);
             } else {
-                Toast.makeText(this, "Unable to start flashcards.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "You don't have access to start this flashcard set.", Toast.LENGTH_SHORT).show();
             }
         });
+
     }
 
     private void showMoreBottomSheet() {
+        if (isFinishing() || isDestroyed()) return;
+
+        String currentUserId = auth.getCurrentUser().getUid();
+
+        db.collection("flashcards").document(setId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        Toast.makeText(this, "Set not found.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    String ownerUid = doc.getString("owner_uid");
+                    String privacy = doc.getString("privacy");
+                    String privacyRole = doc.getString("privacyRole");
+
+                    if (ownerUid != null && ownerUid.equals(currentUserId)) {
+                        // This is the owner
+                        openBottomSheetWithAccess(null, null, false);
+                    } else {
+                        // Check if it's in saved_sets
+                        db.collection("users").document(currentUserId)
+                                .get()
+                                .addOnSuccessListener(userDoc -> {
+                                    List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
+                                    boolean isSavedSet = false;
+
+                                    if (savedSets != null) {
+                                        for (Map<String, Object> set : savedSets) {
+                                            if (setId.equals(set.get("id")) && "flashcard".equals(set.get("type"))) {
+                                                isSavedSet = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    if (isSavedSet) {
+                                        openBottomSheetWithAccess(privacy, privacyRole, true);
+                                    } else {
+                                        // Neither owner nor saved set — handle public access
+                                        openBottomSheetWithAccess(privacy, privacyRole, false);
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to fetch set info.", Toast.LENGTH_SHORT).show());
+    }
+
+
+    private void openBottomSheetWithAccess(String privacy, String privacyRole, boolean isSavedSet) {
         if (isFinishing() || isDestroyed()) return;
 
         bottomSheetDialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_preview, null);
         bottomSheetDialog.setContentView(view);
 
-        view.findViewById(R.id.download).setOnClickListener(v -> {
+        TextView downloadBtn = view.findViewById(R.id.download);
+        TextView copyBtn = view.findViewById(R.id.copy);
+        TextView privacyBtn = view.findViewById(R.id.privacy);
+        TextView reminderBtn = view.findViewById(R.id.reminder);
+        TextView sendToChatBtn = view.findViewById(R.id.sendToChat);
+        TextView editBtn = view.findViewById(R.id.edit);
+        TextView deleteBtn = view.findViewById(R.id.delete);
+        TextView reqAccessBtn = view.findViewById(R.id.reqAccess);
+
+        if (privacy == null && privacyRole == null && !isSavedSet) {
+            // Owner — show all
+        }
+        else if ("public".equals(privacy) && "view".equalsIgnoreCase(privacyRole)) {
+            // View only — Download + Copy
+            privacyBtn.setVisibility(View.GONE);
+            reminderBtn.setVisibility(View.GONE);
+            sendToChatBtn.setVisibility(View.GONE);
+            editBtn.setVisibility(View.GONE);
+            deleteBtn.setVisibility(View.GONE);
+            copyBtn.setVisibility(View.VISIBLE);
+        }
+        else if ("public".equals(privacy) && "edit".equalsIgnoreCase(privacyRole)) {
+            // Editor — Download + Copy + Edit
+            privacyBtn.setVisibility(View.GONE);
+            reminderBtn.setVisibility(View.GONE);
+            sendToChatBtn.setVisibility(View.GONE);
+            deleteBtn.setVisibility(View.GONE);
+            copyBtn.setVisibility(View.VISIBLE);
+            editBtn.setVisibility(View.VISIBLE);
+        }
+        else {
+            // Not owner, not saved set, no public access — deny
+            privacyBtn.setVisibility(View.GONE);
+            reminderBtn.setVisibility(View.GONE);
+            sendToChatBtn.setVisibility(View.GONE);
+            editBtn.setVisibility(View.GONE);
+            deleteBtn.setVisibility(View.GONE);
+            downloadBtn.setVisibility(View.GONE);
+            reqAccessBtn.setVisibility(View.VISIBLE);
+        }
+
+
+        // Listeners
+        downloadBtn.setOnClickListener(v -> {
             Toast.makeText(this, "Download clicked", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
         });
 
-        view.findViewById(R.id.privacy).setOnClickListener(v -> {
+        copyBtn.setOnClickListener(v -> {
+            Toast.makeText(this, "Copy clicked", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
-            if (!isFinishing() && !isDestroyed()) {
-                Intent intent = new Intent(this, PrivacyActivity.class);
-                intent.putExtra("setId", setId);
-                startActivity(intent);
-            }
         });
 
-        view.findViewById(R.id.reminder).setOnClickListener(v -> {
+        privacyBtn.setOnClickListener(v -> {
+            bottomSheetDialog.dismiss();
+            startActivity(new Intent(this, PrivacyActivity.class).putExtra("setId", setId));
+        });
+
+        reminderBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
             showReminderDialog();
         });
 
-        view.findViewById(R.id.sendToChat).setOnClickListener(v -> {
+        sendToChatBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            if (!isFinishing() && !isDestroyed()) {
-                String setType = "flashcard";
-                Intent intent = new Intent(this, ChatRoomPickerActivity.class);
-                intent.putExtra("setId", setId);
-                intent.putExtra("setType", setType);
-                startActivity(intent);
-            }
+            Intent intent = new Intent(this, ChatRoomPickerActivity.class);
+            intent.putExtra("setId", setId);
+            intent.putExtra("setType", "flashcard");
+            startActivity(intent);
         });
 
-        view.findViewById(R.id.edit).setOnClickListener(v -> {
+        editBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            if (!isFinishing() && !isDestroyed()) {
-                Intent intent = new Intent(this, CreateFlashcardActivity.class);
-                intent.putExtra("setId", setId);
-                startActivity(intent);
-            }
+            Intent intent = new Intent(this, CreateFlashcardActivity.class);
+            intent.putExtra("setId", setId);
+            startActivity(intent);
         });
 
-        view.findViewById(R.id.delete).setOnClickListener(v -> {
+        deleteBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
             showDeleteConfirmationDialog();
         });
 
         bottomSheetDialog.show();
     }
+
 
 
     private void showDeleteConfirmationDialog() {
@@ -413,12 +505,20 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
                     loadOwnerProfile(ownerUid);
 
-                    String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    String currentUserId = auth.getCurrentUser().getUid();
+
                     if (ownerUid != null && ownerUid.equals(currentUserId)) {
-                        saveSetBtn.setVisibility(View.GONE); // Hide save button if user owns set
+                        accessLevel = "owner";
+                    } else if ("public".equals(currentPrivacy)) {
+                        if ("edit".equalsIgnoreCase(documentSnapshot.getString("privacyRole"))) {
+                            accessLevel = "edit";
+                        } else if ("view".equalsIgnoreCase(documentSnapshot.getString("privacyRole"))) {
+                            accessLevel = "view";
+                        }
                     } else {
-                        checkIfSetIsSaved(currentUserId);
+                        accessLevel = "none";
                     }
+
 
                     Object createdAtObj = documentSnapshot.get("createdAt");
                     if (createdAtObj instanceof Timestamp) {

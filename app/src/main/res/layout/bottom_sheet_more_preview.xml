@@ -7,6 +7,20 @@
     android:padding="16dp">
 
     <TextView
+        android:id="@+id/reqAccess"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/lock"
+        android:drawablePadding="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:text="@string/request_access"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <TextView
         android:id="@+id/download"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
