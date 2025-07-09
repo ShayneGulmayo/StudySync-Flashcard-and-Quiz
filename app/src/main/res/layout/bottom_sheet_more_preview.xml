@@ -20,6 +20,20 @@
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/copy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/copy_resized"
+        android:drawablePadding="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:text="@string/copy"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <TextView
         android:id="@+id/privacy"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

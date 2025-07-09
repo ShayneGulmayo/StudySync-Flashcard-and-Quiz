@@ -168,19 +168,21 @@ public class PrivacyActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(doc -> {
                     String privacy = doc.getString("privacy");
-                    if (privacy != null && privacy.startsWith("public")) {
-                        isPublic = true;
-                        String[] parts = privacy.split("_");
-                        roleTxt.setText(parts.length == 2 ? capitalize(parts[1]) : "View");
+                    String privacyRole = doc.getString("privacyRole");
+
+                    isPublic = "public".equals(privacy);
+                    if (isPublic) {
+                        roleTxt.setText(!TextUtils.isEmpty(privacyRole) ? capitalize(privacyRole) : "View");
                     } else {
-                        isPublic = false;
-                        roleTxt.setText("View");
+                        roleTxt.setText("");
                     }
+
                     updatePrivacyUI();
                     selectedAdapter.setIsPublic(isPublic);
                     searchAdapter.setIsPublic(isPublic);
                 });
     }
+
 
     private void loadOwnerAndUsers() {
         db.collection("users").document(currentUserId).get().addOnSuccessListener(ownerDoc -> {
@@ -250,7 +252,8 @@ public class PrivacyActivity extends AppCompatActivity {
 
     private void savePrivacySettings() {
         Map<String, Object> data = new HashMap<>();
-        data.put("privacy", isPublic ? "public_" + roleTxt.getText().toString().toLowerCase() : "private");
+        data.put("privacy", isPublic ? "public" : "private");
+        data.put("privacyRole", isPublic ? roleTxt.getText().toString().toLowerCase() : null);
 
         Map<String, String> accessMap = new HashMap<>();
         for (UserWithRole uwr : selectedUserList) {
@@ -266,6 +269,7 @@ public class PrivacyActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
 
     private boolean containsUser(User user) {
         for (UserWithRole u : selectedUserList)
