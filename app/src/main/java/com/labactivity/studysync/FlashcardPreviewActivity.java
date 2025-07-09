@@ -6,10 +6,8 @@ import android.app.DatePickerDialog;
 import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import android.content.Intent;
-import android.opengl.Visibility;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -37,27 +35,24 @@ import java.util.Locale;
 import java.util.Map;
 import com.google.firebase.firestore.ListenerRegistration;
 
-
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
     private TextView titleTextView, ownerTextView, createdAtTextView, numberOfItemsTextView, privacyText, reminderTextView;
     private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, reminderIcon, saveSetBtn;
-    private ViewPager2 carouselViewPager;
-    private SpringDotsIndicator dotsIndicator;
     private Button startFlashcardBtn;
-    private FirebaseFirestore db;
+    private ViewPager2 carouselViewPager;
     private String currentPrivacy, setId, currentReminder;
-    private final ArrayList<Flashcard> flashcards = new ArrayList<>();
+    private String accessLevel = "none";
+    private SpringDotsIndicator dotsIndicator;
     private ListenerRegistration reminderListener;
+    private FirebaseFirestore db;
     private FirebaseAuth auth;
-    private boolean isSaved = false;
     private BottomSheetDialog bottomSheetDialog;
     private AlertDialog deleteConfirmationDialog;
     private DatePickerDialog datePickerDialog;
     private TimePickerDialog timePickerDialog;
-    private String accessLevel = "none";
-
-
+    private final ArrayList<Flashcard> flashcards = new ArrayList<>();
+    private boolean isSaved = false;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -73,7 +68,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             setId = getIntent().getStringExtra("setId");
             loadFlashcardSet();
             loadFlashcards();
-            listenToReminderUpdates(); // <-- added here
+            listenToReminderUpdates();
         } else {
             Toast.makeText(this, "No Flashcard ID provided", Toast.LENGTH_SHORT).show();
             finish();
@@ -95,7 +90,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         if (datePickerDialog != null && datePickerDialog.isShowing()) datePickerDialog.dismiss();
         if (timePickerDialog != null && timePickerDialog.isShowing()) timePickerDialog.dismiss();
     }
-
 
     private void initializeViews() {
         backButton = findViewById(R.id.back_button);
@@ -124,7 +118,9 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             }
             finish();
         });
+
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
+
         startFlashcardBtn.setOnClickListener(v -> {
             if ("owner".equals(accessLevel) || "edit".equals(accessLevel) || "view".equals(accessLevel)) {
                 Intent intent = new Intent(FlashcardPreviewActivity.this, FlashcardViewerActivity.class);
@@ -154,10 +150,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         TextView reqAccessBtn = view.findViewById(R.id.reqAccess);
         TextView reqEditBtn = view.findViewById(R.id.reqEdit);
 
-        // ✅ Show/hide buttons based on access level
         switch (accessLevel) {
             case "owner":
-                // Owner sees everything
                 break;
 
             case "edit":
@@ -184,7 +178,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 break;
 
             default:
-                // No access, allow only Request Access
                 privacyBtn.setVisibility(View.GONE);
                 reminderBtn.setVisibility(View.GONE);
                 sendToChatBtn.setVisibility(View.GONE);
@@ -196,16 +189,16 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 break;
         }
 
-        // ✅ Click listeners
         downloadBtn.setOnClickListener(v -> {
             Toast.makeText(this, "Download clicked", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
         });
 
         copyBtn.setOnClickListener(v -> {
-            Toast.makeText(this, "Copy clicked", Toast.LENGTH_SHORT).show();
+            makeCopy();
             bottomSheetDialog.dismiss();
         });
+
 
         privacyBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
@@ -253,7 +246,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         deleteConfirmationDialog.show();
     }
 
-
     private void deleteFlashcardSet() {
         db.collection("flashcards").document(setId)
                 .get()
@@ -268,13 +260,11 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         Object termsObj = data.get("terms");
                         if (termsObj instanceof Map) {
                             Map<String, Object> terms = (Map<String, Object>) termsObj;
-
                             for (Map.Entry<String, Object> entry : terms.entrySet()) {
                                 Object value = entry.getValue();
                                 if (value instanceof Map) {
                                     Map<String, Object> termEntry = (Map<String, Object>) value;
                                     String photoPath = termEntry.get("photoPath") != null ? termEntry.get("photoPath").toString() : null;
-
                                     if (photoPath != null && !photoPath.isEmpty()) {
                                         SupabaseUploader.deleteFile("flashcard-images", photoPath, new SupabaseUploader.UploadCallback() {
                                             @Override
@@ -295,28 +285,118 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     db.collection("flashcards").document(setId)
                             .delete()
                             .addOnSuccessListener(aVoid -> {
-                                // Now remove it from the user's owned_sets
-                                db.collection("users").document(auth.getCurrentUser().getUid())
-                                        .update("owned_sets", com.google.firebase.firestore.FieldValue.arrayRemove(
-                                                // Remove by matching the owned_set object structure
-                                                new HashMap<String, Object>() {{
-                                                    put("id", setId);
-                                                    put("type", "flashcard");
-                                                }}
-                                        ))
+                                String userId = auth.getCurrentUser().getUid();
+                                Map<String, Object> ownedSetData = new HashMap<>();
+                                ownedSetData.put("id", setId);
+                                ownedSetData.put("type", "flashcard");
+
+                                // Remove from owned_sets, saved_sets, copied_sets if present
+                                db.collection("users").document(userId)
+                                        .update(
+                                                "owned_sets", com.google.firebase.firestore.FieldValue.arrayRemove(ownedSetData),
+                                                "saved_sets", com.google.firebase.firestore.FieldValue.arrayRemove(ownedSetData),
+                                                "copied_sets", com.google.firebase.firestore.FieldValue.arrayRemove(setId)
+                                        )
                                         .addOnSuccessListener(unused -> {
                                             Toast.makeText(this, "Flashcard set deleted.", Toast.LENGTH_SHORT).show();
                                             finish();
                                         })
                                         .addOnFailureListener(e -> {
-                                            Toast.makeText(this, "Deleted set but failed to update owned_sets.", Toast.LENGTH_LONG).show();
+                                            Toast.makeText(this, "Deleted set but failed to clean user records.", Toast.LENGTH_LONG).show();
                                             finish();
                                         });
+
+                                // Check if this set is a copied set (has copiedFrom)
+                                Object copiedFromObj = data.get("copiedFrom");
+                                if (copiedFromObj != null) {
+                                    String copiedFromId = copiedFromObj.toString();
+
+                                    db.collection("users").document(auth.getCurrentUser().getUid())
+                                            .update("copied_sets", com.google.firebase.firestore.FieldValue.arrayRemove(copiedFromId))
+                                            .addOnSuccessListener(unused -> {
+                                                Log.d("DeleteFlashcard", "Removed copiedFrom setId from copied_sets array.");
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                Log.e("DeleteFlashcard", "Failed to remove copiedFrom setId from copied_sets.", e);
+                                            });
+                                }
+
                             })
                             .addOnFailureListener(e -> {
                                 Toast.makeText(this, "Failed to delete flashcard set.", Toast.LENGTH_SHORT).show();
                             });
 
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error fetching flashcard set.", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void makeCopy() {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        db.collection("users").document(userId)
+                .get()
+                .addOnSuccessListener(userSnapshot -> {
+                    if (!userSnapshot.exists()) return;
+
+                    List<String> copiedSets = (List<String>) userSnapshot.get("copied_sets");
+                    if (copiedSets != null && copiedSets.contains(setId)) {
+                        Toast.makeText(this, "You already copied this set.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    db.collection("flashcards").document(setId)
+                            .get()
+                            .addOnSuccessListener(documentSnapshot -> {
+                                if (!documentSnapshot.exists()) {
+                                    Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+
+                                Map<String, Object> originalData = documentSnapshot.getData();
+                                if (originalData == null) {
+                                    Toast.makeText(this, "No data to copy.", Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+
+                                Map<String, Object> copyData = new HashMap<>(originalData);
+                                copyData.remove("reminder");
+                                copyData.put("owner_uid", userId);
+                                copyData.put("createdAt", Timestamp.now());
+                                copyData.put("privacy", "private");
+                                copyData.put("privacyRole", "view");
+                                copyData.put("accessUsers", new HashMap<String, Object>());
+                                copyData.put("copiedFrom", setId);
+
+                                db.collection("flashcards").add(copyData)
+                                        .addOnSuccessListener(newDocRef -> {
+                                            Map<String, Object> ownedSetData = new HashMap<>();
+                                            ownedSetData.put("id", newDocRef.getId());
+                                            ownedSetData.put("type", "flashcard");
+
+                                            db.collection("users").document(userId)
+                                                    .update(
+                                                            "owned_sets", com.google.firebase.firestore.FieldValue.arrayUnion(ownedSetData),
+                                                            "copied_sets", com.google.firebase.firestore.FieldValue.arrayUnion(setId)
+                                                    )
+                                                    .addOnSuccessListener(unused -> {
+                                                        Toast.makeText(this, "Flashcard set copied successfully!", Toast.LENGTH_SHORT).show();
+                                                    })
+                                                    .addOnFailureListener(e -> {
+                                                        Toast.makeText(this, "Copy succeeded but failed to update owned sets.", Toast.LENGTH_SHORT).show();
+                                                    });
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Toast.makeText(this, "Failed to copy flashcard set.", Toast.LENGTH_SHORT).show();
+                                        });
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Error fetching original flashcard set.", Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to check copied sets.", Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -345,7 +425,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         if (!isFinishing() && !isDestroyed()) datePickerDialog.show();
     }
-
 
     private void listenToReminderUpdates() {
         if (setId == null) return;
@@ -464,7 +543,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
                     String currentUserId = auth.getCurrentUser().getUid();
 
-                    // ✅ Determine access level
                     if (ownerUid != null && ownerUid.equals(currentUserId)) {
                         accessLevel = "owner";
                     } else if ("public".equals(currentPrivacy)) {
@@ -477,7 +555,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                             accessLevel = "none";
                         }
                     } else {
-                        // ✅ Private: check accessUsers map
                         Map<String, String> accessUsers = (Map<String, String>) documentSnapshot.get("accessUsers");
                         if (accessUsers != null && accessUsers.containsKey(currentUserId)) {
                             String userRole = accessUsers.get(currentUserId);
@@ -493,7 +570,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         }
                     }
 
-                    // 🚨 Redirect if no access
                     if ("none".equals(accessLevel)) {
                         Intent intent = new Intent(this, NoAccessActivity.class);
                         intent.putExtra("setId", setId);
@@ -502,7 +578,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // ✅ Load flashcards if access granted
                     loadFlashcards();
 
                     Object createdAtObj = documentSnapshot.get("createdAt");
@@ -521,8 +596,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     finish();
                 });
     }
-
-
 
     private void loadOwnerProfile(String ownerUid) {
         if (ownerUid == null) {
@@ -638,6 +711,4 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to save.", Toast.LENGTH_SHORT).show());
         }
     }
-
-
 }
