@@ -519,6 +519,11 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         accessLevel = "none";
                     }
 
+                    if ("none".equals(accessLevel)) {
+                        startFlashcardBtn.setVisibility(View.GONE);
+                    }
+
+
 
                     Object createdAtObj = documentSnapshot.get("createdAt");
                     if (createdAtObj instanceof Timestamp) {
@@ -534,28 +539,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to load flashcard", Toast.LENGTH_SHORT).show();
                     finish();
-                });
-    }
-
-    private void checkIfSetIsSaved(String currentUserId) {
-        db.collection("users").document(currentUserId).get()
-                .addOnSuccessListener(userDoc -> {
-                    List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
-
-                    isSaved = false;
-                    if (savedSets != null) {
-                        for (Map<String, Object> set : savedSets) {
-                            if (setId.equals(set.get("id")) && "flashcard".equals(set.get("type"))) {
-                                isSaved = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    updateSaveIcon();
-
-                    saveSetBtn.setVisibility(View.VISIBLE);
-                    saveSetBtn.setOnClickListener(v -> toggleSaveState());
                 });
     }
 
@@ -594,6 +577,14 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
                         return;
                     }
+
+                    if ("none".equals(accessLevel)) {
+                        carouselViewPager.setVisibility(View.GONE);
+                        dotsIndicator.setVisibility(View.GONE);
+                        Toast.makeText(this, "This flashcard set is private. Request access to view.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
 
                     Map<String, Object> data = snapshot.getData();
                     if (data != null && data.containsKey("terms")) {
