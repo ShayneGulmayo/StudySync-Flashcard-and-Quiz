@@ -17,7 +17,6 @@ import com.google.firebase.firestore.*;
 import com.labactivity.studysync.adapters.PrivacyUserAdapter;
 import com.labactivity.studysync.models.User;
 import com.labactivity.studysync.models.UserWithRole;
-
 import java.util.*;
 
 @SuppressLint("MissingInflatedId")
@@ -183,7 +182,6 @@ public class PrivacyActivity extends AppCompatActivity {
                 });
     }
 
-
     private void loadOwnerAndUsers() {
         db.collection("users").document(currentUserId).get().addOnSuccessListener(ownerDoc -> {
             if (ownerDoc.exists()) {
@@ -269,7 +267,6 @@ public class PrivacyActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
-
 
     private boolean containsUser(User user) {
         for (UserWithRole u : selectedUserList)

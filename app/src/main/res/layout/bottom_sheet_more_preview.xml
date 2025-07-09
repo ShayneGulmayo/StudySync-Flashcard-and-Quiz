@@ -48,6 +48,20 @@
         android:visibility="gone" />
 
     <TextView
+        android:id="@+id/reqEdit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/lock"
+        android:drawablePadding="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:text="@string/request_edit"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <TextView
         android:id="@+id/privacy"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

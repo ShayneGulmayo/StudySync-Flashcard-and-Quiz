@@ -6,6 +6,7 @@ import android.app.DatePickerDialog;
 import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.opengl.Visibility;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.TypedValue;
@@ -82,9 +83,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (setId != null && !setId.isEmpty()) {
-            loadFlashcardSet();
-        }
+
     }
 
     @Override
@@ -141,56 +140,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private void showMoreBottomSheet() {
         if (isFinishing() || isDestroyed()) return;
 
-        String currentUserId = auth.getCurrentUser().getUid();
-
-        db.collection("flashcards").document(setId)
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (!doc.exists()) {
-                        Toast.makeText(this, "Set not found.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    String ownerUid = doc.getString("owner_uid");
-                    String privacy = doc.getString("privacy");
-                    String privacyRole = doc.getString("privacyRole");
-
-                    if (ownerUid != null && ownerUid.equals(currentUserId)) {
-                        // This is the owner
-                        openBottomSheetWithAccess(null, null, false);
-                    } else {
-                        // Check if it's in saved_sets
-                        db.collection("users").document(currentUserId)
-                                .get()
-                                .addOnSuccessListener(userDoc -> {
-                                    List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
-                                    boolean isSavedSet = false;
-
-                                    if (savedSets != null) {
-                                        for (Map<String, Object> set : savedSets) {
-                                            if (setId.equals(set.get("id")) && "flashcard".equals(set.get("type"))) {
-                                                isSavedSet = true;
-                                                break;
-                                            }
-                                        }
-                                    }
-
-                                    if (isSavedSet) {
-                                        openBottomSheetWithAccess(privacy, privacyRole, true);
-                                    } else {
-                                        // Neither owner nor saved set — handle public access
-                                        openBottomSheetWithAccess(privacy, privacyRole, false);
-                                    }
-                                });
-                    }
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to fetch set info.", Toast.LENGTH_SHORT).show());
-    }
-
-
-    private void openBottomSheetWithAccess(String privacy, String privacyRole, boolean isSavedSet) {
-        if (isFinishing() || isDestroyed()) return;
-
         bottomSheetDialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_preview, null);
         bottomSheetDialog.setContentView(view);
@@ -203,41 +152,51 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         TextView editBtn = view.findViewById(R.id.edit);
         TextView deleteBtn = view.findViewById(R.id.delete);
         TextView reqAccessBtn = view.findViewById(R.id.reqAccess);
+        TextView reqEditBtn = view.findViewById(R.id.reqEdit);
 
-        if (privacy == null && privacyRole == null && !isSavedSet) {
-            // Owner — show all
-        }
-        else if ("public".equals(privacy) && "view".equalsIgnoreCase(privacyRole)) {
-            // View only — Download + Copy
-            privacyBtn.setVisibility(View.GONE);
-            reminderBtn.setVisibility(View.GONE);
-            sendToChatBtn.setVisibility(View.GONE);
-            editBtn.setVisibility(View.GONE);
-            deleteBtn.setVisibility(View.GONE);
-            copyBtn.setVisibility(View.VISIBLE);
-        }
-        else if ("public".equals(privacy) && "edit".equalsIgnoreCase(privacyRole)) {
-            // Editor — Download + Copy + Edit
-            privacyBtn.setVisibility(View.GONE);
-            reminderBtn.setVisibility(View.GONE);
-            sendToChatBtn.setVisibility(View.GONE);
-            deleteBtn.setVisibility(View.GONE);
-            copyBtn.setVisibility(View.VISIBLE);
-            editBtn.setVisibility(View.VISIBLE);
-        }
-        else {
-            // Not owner, not saved set, no public access — deny
-            privacyBtn.setVisibility(View.GONE);
-            reminderBtn.setVisibility(View.GONE);
-            sendToChatBtn.setVisibility(View.GONE);
-            editBtn.setVisibility(View.GONE);
-            deleteBtn.setVisibility(View.GONE);
-            downloadBtn.setVisibility(View.GONE);
-            reqAccessBtn.setVisibility(View.VISIBLE);
+        // ✅ Show/hide buttons based on access level
+        switch (accessLevel) {
+            case "owner":
+                // Owner sees everything
+                break;
+
+            case "edit":
+                privacyBtn.setVisibility(View.GONE);
+                reminderBtn.setVisibility(View.GONE);
+                sendToChatBtn.setVisibility(View.GONE);
+                deleteBtn.setVisibility(View.GONE);
+                reqAccessBtn.setVisibility(View.GONE);
+                copyBtn.setVisibility(View.VISIBLE);
+                downloadBtn.setVisibility(View.VISIBLE);
+                editBtn.setVisibility(View.VISIBLE);
+                break;
+
+            case "view":
+                privacyBtn.setVisibility(View.GONE);
+                reminderBtn.setVisibility(View.GONE);
+                sendToChatBtn.setVisibility(View.GONE);
+                deleteBtn.setVisibility(View.GONE);
+                editBtn.setVisibility(View.GONE);
+                downloadBtn.setVisibility(View.VISIBLE);
+                reqAccessBtn.setVisibility(View.GONE);
+                copyBtn.setVisibility(View.VISIBLE);
+                reqEditBtn.setVisibility(View.VISIBLE);
+                break;
+
+            default:
+                // No access, allow only Request Access
+                privacyBtn.setVisibility(View.GONE);
+                reminderBtn.setVisibility(View.GONE);
+                sendToChatBtn.setVisibility(View.GONE);
+                editBtn.setVisibility(View.GONE);
+                deleteBtn.setVisibility(View.GONE);
+                downloadBtn.setVisibility(View.GONE);
+                copyBtn.setVisibility(View.GONE);
+                reqAccessBtn.setVisibility(View.VISIBLE);
+                break;
         }
 
-
-        // Listeners
+        // ✅ Click listeners
         downloadBtn.setOnClickListener(v -> {
             Toast.makeText(this, "Download clicked", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
@@ -280,8 +239,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         bottomSheetDialog.show();
     }
-
-
 
     private void showDeleteConfirmationDialog() {
         if (isFinishing() || isDestroyed()) return;
@@ -507,23 +464,46 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
                     String currentUserId = auth.getCurrentUser().getUid();
 
+                    // ✅ Determine access level
                     if (ownerUid != null && ownerUid.equals(currentUserId)) {
                         accessLevel = "owner";
                     } else if ("public".equals(currentPrivacy)) {
-                        if ("edit".equalsIgnoreCase(documentSnapshot.getString("privacyRole"))) {
+                        String privacyRole = documentSnapshot.getString("privacyRole");
+                        if ("edit".equalsIgnoreCase(privacyRole)) {
                             accessLevel = "edit";
-                        } else if ("view".equalsIgnoreCase(documentSnapshot.getString("privacyRole"))) {
+                        } else if ("view".equalsIgnoreCase(privacyRole)) {
                             accessLevel = "view";
+                        } else {
+                            accessLevel = "none";
                         }
                     } else {
-                        accessLevel = "none";
+                        // ✅ Private: check accessUsers map
+                        Map<String, String> accessUsers = (Map<String, String>) documentSnapshot.get("accessUsers");
+                        if (accessUsers != null && accessUsers.containsKey(currentUserId)) {
+                            String userRole = accessUsers.get(currentUserId);
+                            if ("edit".equalsIgnoreCase(userRole)) {
+                                accessLevel = "edit";
+                            } else if ("view".equalsIgnoreCase(userRole)) {
+                                accessLevel = "view";
+                            } else {
+                                accessLevel = "none";
+                            }
+                        } else {
+                            accessLevel = "none";
+                        }
                     }
 
+                    // 🚨 Redirect if no access
                     if ("none".equals(accessLevel)) {
-                        startFlashcardBtn.setVisibility(View.GONE);
+                        Intent intent = new Intent(this, NoAccessActivity.class);
+                        intent.putExtra("setId", setId);
+                        startActivity(intent);
+                        finish();
+                        return;
                     }
 
-
+                    // ✅ Load flashcards if access granted
+                    loadFlashcards();
 
                     Object createdAtObj = documentSnapshot.get("createdAt");
                     if (createdAtObj instanceof Timestamp) {
@@ -541,6 +521,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     finish();
                 });
     }
+
+
 
     private void loadOwnerProfile(String ownerUid) {
         if (ownerUid == null) {
@@ -577,14 +559,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
                         return;
                     }
-
-                    if ("none".equals(accessLevel)) {
-                        carouselViewPager.setVisibility(View.GONE);
-                        dotsIndicator.setVisibility(View.GONE);
-                        Toast.makeText(this, "This flashcard set is private. Request access to view.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
 
                     Map<String, Object> data = snapshot.getData();
                     if (data != null && data.containsKey("terms")) {
