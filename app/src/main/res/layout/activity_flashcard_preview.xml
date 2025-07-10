@@ -57,16 +57,23 @@
 
     <TextView
         android:id="@+id/flashcard_title"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginTop="32dp"
         android:text="@string/flashcard_name"
         android:textColor="@color/black"
         android:textSize="20sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:textAlignment="center"
+        app:layout_constraintTop_toBottomOf="@+id/navigationView"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/navigationView" />
+        app:layout_constraintEnd_toEndOf="parent" />
+
 
     <ImageView
         android:id="@+id/owner_profile"
@@ -216,17 +223,19 @@
 
     <Button
         android:id="@+id/start_flashcard_btn"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_margin="16dp"
         android:layout_marginBottom="16dp"
+        android:height="62dp"
+        android:maxWidth="350dp"
         android:text="@string/start_flashcard"
         android:textColor="@color/white"
         android:textSize="16sp"
+        app:cornerRadius="15dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.456"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/reminder_txt" />
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
