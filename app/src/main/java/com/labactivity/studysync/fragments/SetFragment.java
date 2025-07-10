@@ -3,9 +3,12 @@ package com.labactivity.studysync.fragments;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -291,7 +294,7 @@ public class SetFragment extends Fragment {
 
 
 
-        private void loadFlashcardsAndQuizzes(String currentUid) {
+    private void loadFlashcardsAndQuizzes(String currentUid) {
         db.collection("flashcards")
                 .whereEqualTo("owner_uid", currentUid)
                 .get()
@@ -396,6 +399,20 @@ public class SetFragment extends Fragment {
         dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         dialog.show();
 
+        // ✅ Set size and position
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            window.setBackgroundDrawableResource(android.R.color.transparent); // Keep your background styling
+
+            // Customize position
+            WindowManager.LayoutParams params = window.getAttributes();
+            params.gravity = Gravity.TOP | Gravity.START;  // Anchor to top-left as a base
+            params.x = 25;  // ← horizontal offset from the left (in pixels)
+            params.y = 895;  // ← vertical offset from the top (in pixels)
+            window.setAttributes(params);
+        }
+
         view.findViewById(R.id.add_flashcard).setOnClickListener(v -> {
             dialog.dismiss();
             showAddBottomSheetFlashcard();
@@ -407,13 +424,27 @@ public class SetFragment extends Fragment {
         });
     }
 
+
+
     private void showAddBottomSheetFlashcard() {
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_add, null);
         androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(getContext())
                 .setView(view)
                 .create();
-        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+
         dialog.show();
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            window.setBackgroundDrawableResource(android.R.color.transparent);
+
+            WindowManager.LayoutParams params = window.getAttributes();
+            params.gravity = Gravity.TOP | Gravity.START;
+            params.x = 25;
+            params.y = 910;
+            window.setAttributes(params);
+        }
 
         view.findViewById(R.id.generate_from_image).setOnClickListener(v -> {
             dialog.dismiss();
@@ -432,13 +463,26 @@ public class SetFragment extends Fragment {
         });
     }
 
+
     private void showAddBottomSheetQuiz() {
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_add, null);
         androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(getContext())
                 .setView(view)
                 .create();
-        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+
         dialog.show();
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            window.setBackgroundDrawableResource(android.R.color.transparent);
+
+            WindowManager.LayoutParams params = window.getAttributes();
+            params.gravity = Gravity.TOP | Gravity.START;
+            params.x = 25;
+            params.y = 910;
+            window.setAttributes(params);
+        }
 
         view.findViewById(R.id.generate_from_image).setOnClickListener(v -> {
             dialog.dismiss();
@@ -456,4 +500,5 @@ public class SetFragment extends Fragment {
             createFlashcardLauncher.launch(intent);
         });
     }
+
 }
