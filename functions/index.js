@@ -20,6 +20,10 @@ export const sendChatRoomMessageNotification = onDocumentCreated(
 
     const message = snapshot.data();
 
+    if (message.type === "system") {
+      return;
+    }
+
     const chatRoomDoc = await db.collection("chat_rooms").doc(chatRoomId).get();
     if (!chatRoomDoc.exists) {
       logger.warn(`Chat room ${chatRoomId} not found.`);
@@ -28,9 +32,35 @@ export const sendChatRoomMessageNotification = onDocumentCreated(
 
     const chatRoom = chatRoomDoc.data();
     const members = chatRoom.members || [];
+    const senderId = message.senderId;
+
+    let senderFirstName = "Someone";
+    if (senderId) {
+      const senderDoc = await db.collection("users").doc(senderId).get();
+      if (senderDoc.exists) {
+        senderFirstName = senderDoc.data().firstName || senderFirstName;
+      }
+    }
+
+    let messageBody = "";
+    switch (message.type) {
+      case "image":
+        messageBody = `${senderFirstName} sent an image.`;
+        break;
+      case "file":
+        messageBody = `${senderFirstName} shared a file.`;
+        break;
+      case "set":
+        messageBody = `${senderFirstName} shared a set.`;
+        break;
+      case "text":
+      default:
+        messageBody = `${senderFirstName}: ${message.text || "sent a message."}`;
+        break;
+    }
 
     const notifications = members.map(async (memberId) => {
-      if (memberId === message.senderId) return;
+      if (memberId === senderId) return;
 
       const userDoc = await db.collection("users").doc(memberId).get();
       if (!userDoc.exists) return;
@@ -44,10 +74,11 @@ export const sendChatRoomMessageNotification = onDocumentCreated(
       const payload = {
         notification: {
           title: chatRoom.chatRoomName || "New Message",
-          body: message.text || "You have a new message",
+          body: messageBody,
         },
         data: {
           chatRoomId,
+          type: message.type,
         },
         token: fcmToken,
       };
