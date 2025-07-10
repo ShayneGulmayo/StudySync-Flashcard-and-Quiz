@@ -11,15 +11,16 @@
         android:id="@+id/card_container"
         android:layout_width="0dp"
         android:layout_height="230dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
         android:background="@android:color/transparent"
         android:clickable="true"
-        android:focusable="true"
         android:clipChildren="false"
-        android:foreground="?attr/selectableItemBackground"
-        app:layout_constraintTop_toTopOf="parent"
+        android:focusable="true"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toTopOf="parent">
 
         <!-- Front of card -->
         <androidx.cardview.widget.CardView
@@ -27,20 +28,20 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:cardCornerRadius="16dp"
-            app:cardElevation="13dp"
-            app:cardPreventCornerOverlap="false"
-            app:cardUseCompatPadding="true">
+            app:cardElevation="0dp"
+            app:cardPreventCornerOverlap="true"
+            app:cardUseCompatPadding="false">
 
             <TextView
                 android:id="@+id/question_text"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/ic_launcher_background"
+                android:background="@drawable/card_background"
+                android:ellipsize="end"
                 android:gravity="center"
                 android:lineSpacingExtra="4dp"
-                android:padding="24dp"
                 android:maxLines="6"
-                android:ellipsize="end"
+                android:padding="24dp"
                 android:text="Question?"
                 android:textAlignment="center"
                 android:textColor="@color/black"
@@ -55,19 +56,20 @@
             android:layout_height="match_parent"
             android:visibility="gone"
             app:cardCornerRadius="16dp"
-            app:cardElevation="10dp"
-            app:cardUseCompatPadding="true"
-            app:cardPreventCornerOverlap="false">
+            app:cardElevation="0dp"
+            app:cardPreventCornerOverlap="true"
+            app:cardUseCompatPadding="false">
+
 
             <TextView
                 android:id="@+id/answer_text"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/ic_launcher_background"
+                android:background="@drawable/card_background"
+                android:ellipsize="end"
                 android:gravity="center"
                 android:lineSpacingExtra="4dp"
                 android:maxLines="6"
-                android:ellipsize="end"
                 android:text="Answer"
                 android:textAlignment="center"
                 android:textColor="@color/black"

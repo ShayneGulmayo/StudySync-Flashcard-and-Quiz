@@ -34,42 +34,9 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
         Quiz.Question question = questions.get(position);
         holder.questionText.setText(question.getQuestion());
 
-        StringBuilder answerBuilder = new StringBuilder();
-
-        //DONT DELETE
-        //List<String> choices = question.getChoices();
-
-        /*if (choices != null && !choices.isEmpty()) {
-            answerBuilder.append("Choices:\n");
-            for (String choice : choices) {
-                answerBuilder.append("• ").append(choice).append("\n");
-            }
-            answerBuilder.append("\n");
-        }
-
-        String correctAnswer = question.getCorrectAnswer();
-        if (correctAnswer != null && !correctAnswer.trim().isEmpty()) {
-            answerBuilder.append("Correct Answer:\n").append(correctAnswer);
-        } else {
-            answerBuilder.append("Correct Answer:\nN/A");
-        }
-        */
-
         String correctAnswer = question.getCorrectAnswerAsString();
-        if (!correctAnswer.isEmpty()) {
-            answerBuilder.append(correctAnswer);
-        } else {
-            answerBuilder.append("N/A");
-        }
+        holder.answerText.setText(correctAnswer.isEmpty() ? "N/A" : correctAnswer);
 
-
-
-        holder.answerText.setText(answerBuilder.toString().trim());
-
-
-        holder.answerText.setText(answerBuilder.toString().trim());
-
-        // Flip logic (already working)
         float scale = holder.itemView.getContext().getResources().getDisplayMetrics().density;
         holder.cardFront.setCameraDistance(8000 * scale);
         holder.cardBack.setCameraDistance(8000 * scale);
@@ -85,9 +52,14 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
                         .withEndAction(() -> {
                             holder.cardFront.setVisibility(View.GONE);
                             holder.cardFront.setRotationY(0f);
+
                             holder.cardBack.setRotationY(-90f);
                             holder.cardBack.setVisibility(View.VISIBLE);
-                            holder.cardBack.animate().rotationY(0f).setDuration(150).start();
+
+                            holder.cardBack.animate()
+                                    .rotationY(0f)
+                                    .setDuration(150)
+                                    .start();
                         }).start();
             } else {
                 holder.cardBack.animate()
@@ -96,13 +68,19 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
                         .withEndAction(() -> {
                             holder.cardBack.setVisibility(View.GONE);
                             holder.cardBack.setRotationY(0f);
+
                             holder.cardFront.setRotationY(-90f);
                             holder.cardFront.setVisibility(View.VISIBLE);
-                            holder.cardFront.animate().rotationY(0f).setDuration(150).start();
+
+                            holder.cardFront.animate()
+                                    .rotationY(0f)
+                                    .setDuration(150)
+                                    .start();
                         }).start();
             }
         });
     }
+
 
 
     @Override
