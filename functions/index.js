@@ -20,10 +20,6 @@ export const sendChatRoomMessageNotification = onDocumentCreated(
 
     const message = snapshot.data();
 
-    if (message.type === "system") {
-      return;
-    }
-
     const chatRoomDoc = await db.collection("chat_rooms").doc(chatRoomId).get();
     if (!chatRoomDoc.exists) {
       logger.warn(`Chat room ${chatRoomId} not found.`);
@@ -32,35 +28,28 @@ export const sendChatRoomMessageNotification = onDocumentCreated(
 
     const chatRoom = chatRoomDoc.data();
     const members = chatRoom.members || [];
-    const senderId = message.senderId;
+    const chatRoomName = chatRoom.chatRoomName || "New Message";
 
     let senderFirstName = "Someone";
-    if (senderId) {
-      const senderDoc = await db.collection("users").doc(senderId).get();
+    if (message.senderId && message.senderId !== "system") {
+      const senderDoc = await db.collection("users").doc(message.senderId).get();
       if (senderDoc.exists) {
-        senderFirstName = senderDoc.data().firstName || senderFirstName;
+        const senderData = senderDoc.data();
+        senderFirstName = senderData.firstName || senderData.username || "Someone";
       }
+    } else if (message.senderName) {
+      senderFirstName = message.senderName;
     }
 
-    let messageBody = "";
-    switch (message.type) {
-      case "image":
-        messageBody = `${senderFirstName} sent an image.`;
-        break;
-      case "file":
-        messageBody = `${senderFirstName} shared a file.`;
-        break;
-      case "set":
-        messageBody = `${senderFirstName} shared a set.`;
-        break;
-      case "text":
-      default:
-        messageBody = `${senderFirstName}: ${message.text || "sent a message."}`;
-        break;
-    }
+    const messageBody = message.text || (
+      message.type === 'image' ? 'Sent a photo' :
+      message.type === 'file' ? 'Sent a file' :
+      message.type === 'set' ? 'Shared a set' :
+      'You have a new message'
+    );
 
     const notifications = members.map(async (memberId) => {
-      if (memberId === senderId) return;
+      if (memberId === message.senderId) return;
 
       const userDoc = await db.collection("users").doc(memberId).get();
       if (!userDoc.exists) return;
@@ -73,12 +62,13 @@ export const sendChatRoomMessageNotification = onDocumentCreated(
 
       const payload = {
         notification: {
-          title: chatRoom.chatRoomName || "New Message",
-          body: messageBody,
+          title: chatRoomName,
+          body: `${senderFirstName}: ${messageBody}`,
         },
         data: {
-          chatRoomId,
-          type: message.type,
+          chatRoomId: chatRoomId,
+          senderFirstName: senderFirstName,
+          messageBody: messageBody,
         },
         token: fcmToken,
       };
