@@ -235,7 +235,7 @@ public class CreateQuizActivity extends AppCompatActivity {
         
         if (isPublic) {
             String role = roleTxt.getText().toString().trim();
-            quizData.put("privacy", "public_" + (role.isEmpty() ? "View" : role));
+            quizData.put("privacy", "public");
         } else {
             quizData.put("privacy", "private");
         }
