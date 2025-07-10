@@ -208,7 +208,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             bottomSheetDialog.dismiss();
         });
 
-
         privacyBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
             startActivity(new Intent(this, PrivacyActivity.class).putExtra("setId", setId));
@@ -237,6 +236,15 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         deleteBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
             showDeleteConfirmationDialog();
+        });
+
+        reqEditBtn.setOnClickListener(v -> {
+            Toast.makeText(this, "Requst Edit clicked", Toast.LENGTH_SHORT).show();
+            bottomSheetDialog.dismiss();        });
+
+        reqAccessBtn.setOnClickListener(v -> {
+            Toast.makeText(this, "Request Access clicked", Toast.LENGTH_SHORT).show();
+            bottomSheetDialog.dismiss();
         });
 
         bottomSheetDialog.show();
@@ -424,6 +432,11 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 calendar.set(Calendar.MINUTE, minute);
                 calendar.set(Calendar.SECOND, 0);
 
+                if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
+                    Toast.makeText(this, "Please select a future time.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 setReminder(calendar);
 
             }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
@@ -460,6 +473,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private void setReminder(Calendar calendar) {
         String formattedDateTime = formatDateTime(calendar);
 
+        // Save reminder date/time to Firestore
         db.collection("flashcards").document(setId)
                 .update("reminder", formattedDateTime)
                 .addOnSuccessListener(aVoid -> {
@@ -469,6 +483,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to set reminder.", Toast.LENGTH_SHORT).show();
                 });
 
+        // Cancel existing alarm (if any)
         Intent intent = new Intent(this, ReminderReceiver.class);
         intent.putExtra("setId", setId);
 
@@ -479,6 +494,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
         if (alarmManager != null) {
+            alarmManager.cancel(pendingIntent); // cancel any existing alarm
+
             alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     calendar.getTimeInMillis(),
@@ -491,6 +508,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy | hh:mm a", Locale.getDefault());
         return dateFormat.format(calendar.getTime());
     }
+
 
     private void loadFlashcardSet() {
         db.collection("flashcards").document(setId)
@@ -695,7 +713,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
     }
 
-
     private void toggleSaveState() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DocumentReference userRef = db.collection("users").document(userId);
@@ -711,7 +728,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             setData.put("type", "flashcard");
 
             if (isSaved) {
-                // Remove matching set by id
                 Iterator<Map<String, Object>> iterator = savedSets.iterator();
                 while (iterator.hasNext()) {
                     Map<String, Object> item = iterator.next();
@@ -730,7 +746,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         .addOnFailureListener(e -> Toast.makeText(this, "Failed to unsave.", Toast.LENGTH_SHORT).show());
 
             } else {
-                // Check if already saved (to avoid duplicates)
                 boolean alreadySaved = false;
                 for (Map<String, Object> item : savedSets) {
                     if (setId.equals(item.get("id"))) {
@@ -754,7 +769,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         });
     }
 
-
     private void checkIfSaved() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
@@ -774,5 +788,4 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     updateSaveIcon();
                 });
     }
-
 }
