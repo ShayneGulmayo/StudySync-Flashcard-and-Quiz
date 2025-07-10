@@ -18,7 +18,11 @@ import android.widget.Toast;
 import android.content.DialogInterface;
 import android.widget.*;
 import androidx.appcompat.app.AlertDialog;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 import com.bumptech.glide.Glide;
@@ -230,15 +234,25 @@ public class CreateQuizActivity extends AppCompatActivity {
         quizData.put("owner_username", username);
         quizData.put("number_of_items", questionCount);
         quizData.put("progress", 0);
-        quizData.put("created_at", Timestamp.now());
         quizData.put("questions", questionList);
-        
+        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault());
+        String formattedDate = sdf.format(new Date());
+        quizData.put("createdAt", formattedDate);
+
+
+        Map<String, Object> accessUsers = new HashMap<>();
+        accessUsers.put(auth.getCurrentUser().getUid(), "Owner");
+        quizData.put("accessUsers", accessUsers);
+
         if (isPublic) {
-            String role = roleTxt.getText().toString().trim();
             quizData.put("privacy", "public");
+            String role = roleTxt.getText().toString().trim().toLowerCase();
+            quizData.put("privacyRole", role.isEmpty() ? "view" : role);
         } else {
             quizData.put("privacy", "private");
+            quizData.put("privacyRole", "");
         }
+
 
         if (quizId != null) {
             quizData.put("quizId", quizId);
