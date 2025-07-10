@@ -20,6 +20,7 @@ import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.adapters.CarouselAdapter;
 import com.labactivity.studysync.models.Flashcard;
@@ -30,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -73,6 +75,9 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             Toast.makeText(this, "No Flashcard ID provided", Toast.LENGTH_SHORT).show();
             finish();
         }
+
+        checkIfSaved();
+
     }
 
     @Override
@@ -117,6 +122,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 startActivity(intent);
             }
             finish();
+        });
+
+        saveSetBtn.setOnClickListener(view -> {
+            toggleSaveState();
         });
 
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
@@ -677,6 +686,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         carouselViewPager.setAdapter(carouselAdapter);
         dotsIndicator.setViewPager2(carouselViewPager);
     }
+
     private void updateSaveIcon() {
         if (isSaved) {
             saveSetBtn.setImageResource(R.drawable.bookmark_filled);
@@ -685,30 +695,84 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
     }
 
+
     private void toggleSaveState() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        Map<String, Object> setData = new HashMap<>();
-        setData.put("id", setId);
-        setData.put("type", "flashcard");
+        DocumentReference userRef = db.collection("users").document(userId);
 
-        if (isSaved) {
-            db.collection("users").document(userId)
-                    .update("saved_sets", com.google.firebase.firestore.FieldValue.arrayRemove(setData))
-                    .addOnSuccessListener(unused -> {
-                        isSaved = false;
-                        updateSaveIcon();
-                        Toast.makeText(this, "Set unsaved.", Toast.LENGTH_SHORT).show();
-                    })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to unsave.", Toast.LENGTH_SHORT).show());
-        } else {
-            db.collection("users").document(userId)
-                    .update("saved_sets", com.google.firebase.firestore.FieldValue.arrayUnion(setData))
-                    .addOnSuccessListener(unused -> {
-                        isSaved = true;
-                        updateSaveIcon();
-                        Toast.makeText(this, "Set saved!", Toast.LENGTH_SHORT).show();
-                    })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to save.", Toast.LENGTH_SHORT).show());
-        }
+        userRef.get().addOnSuccessListener(documentSnapshot -> {
+            List<Map<String, Object>> savedSets = (List<Map<String, Object>>) documentSnapshot.get("saved_sets");
+            if (savedSets == null) {
+                savedSets = new ArrayList<>();
+            }
+
+            Map<String, Object> setData = new HashMap<>();
+            setData.put("id", setId);
+            setData.put("type", "flashcard");
+
+            if (isSaved) {
+                // Remove matching set by id
+                Iterator<Map<String, Object>> iterator = savedSets.iterator();
+                while (iterator.hasNext()) {
+                    Map<String, Object> item = iterator.next();
+                    if (setId.equals(item.get("id"))) {
+                        iterator.remove();
+                        break;
+                    }
+                }
+
+                userRef.update("saved_sets", savedSets)
+                        .addOnSuccessListener(unused -> {
+                            isSaved = false;
+                            updateSaveIcon();
+                            Toast.makeText(this, "Set unsaved.", Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e -> Toast.makeText(this, "Failed to unsave.", Toast.LENGTH_SHORT).show());
+
+            } else {
+                // Check if already saved (to avoid duplicates)
+                boolean alreadySaved = false;
+                for (Map<String, Object> item : savedSets) {
+                    if (setId.equals(item.get("id"))) {
+                        alreadySaved = true;
+                        break;
+                    }
+                }
+
+                if (!alreadySaved) {
+                    savedSets.add(setData);
+                }
+
+                userRef.update("saved_sets", savedSets)
+                        .addOnSuccessListener(unused -> {
+                            isSaved = true;
+                            updateSaveIcon();
+                            Toast.makeText(this, "Set saved!", Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e -> Toast.makeText(this, "Failed to save.", Toast.LENGTH_SHORT).show());
+            }
+        });
     }
+
+
+    private void checkIfSaved() {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        db.collection("users").document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    List<Map<String, Object>> savedSets = (List<Map<String, Object>>) documentSnapshot.get("saved_sets");
+                    isSaved = false;
+                    if (savedSets != null) {
+                        for (Map<String, Object> item : savedSets) {
+                            if (setId.equals(item.get("id"))) {
+                                isSaved = true;
+                                break;
+                            }
+                        }
+                    }
+                    updateSaveIcon();
+                });
+    }
+
 }
