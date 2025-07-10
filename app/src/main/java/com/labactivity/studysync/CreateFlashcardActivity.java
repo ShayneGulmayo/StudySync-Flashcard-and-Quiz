@@ -23,7 +23,6 @@ import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.labactivity.studysync.adapters.PrivacyUserAdapter;
 import com.labactivity.studysync.utils.SupabaseUploader;
 import com.yalantis.ucrop.UCrop;
 import java.io.File;
@@ -132,18 +131,13 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                     Glide.with(this).load(R.drawable.public_icon).into(privacyIcon);
                 }
 
-
                 return true;
             });
-
             privacyMenu.show();
         };
 
-
-
         privacyTxt.setOnClickListener(privacyMenuClickListener);
         privacyIcon.setOnClickListener(privacyMenuClickListener);
-
     }
 
     private void fetchUsernameAndSaveFlashcardSet() {
@@ -285,30 +279,46 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         flashcardSet.put("terms", termsMap);
         flashcardSet.put("createdAt", getCurrentFormattedDateTime());
 
-// 👇 Add this:
         if (isPublic) {
+            flashcardSet.put("privacy", "public");
             String role = roleTxt.getText().toString().trim();
-            flashcardSet.put("privacy", "public_" + (TextUtils.isEmpty(role) ? "View" : role));
+            flashcardSet.put("privacyRole", TextUtils.isEmpty(role) ? "view" : role.toLowerCase());
         } else {
             flashcardSet.put("privacy", "private");
+            flashcardSet.put("privacyRole", null);
         }
-
 
         if (setId != null) {
             db.collection("flashcards").document(setId)
-                    .set(flashcardSet)
-                    .addOnSuccessListener(doc -> {
-                        Toast.makeText(this, "Flashcard set updated", Toast.LENGTH_SHORT).show();
-                        finish();
+                    .get()
+                    .addOnSuccessListener(existingDoc -> {
+                        if (existingDoc.exists()) {
+                            Map<String, Object> existingData = existingDoc.getData();
+                            if (existingData != null && existingData.containsKey("accessUsers")) {
+                                flashcardSet.put("accessUsers", existingData.get("accessUsers"));
+                            }
+                        }
+
+                        db.collection("flashcards").document(setId)
+                                .set(flashcardSet)
+                                .addOnSuccessListener(doc -> {
+                                    Toast.makeText(this, "Flashcard set updated", Toast.LENGTH_SHORT).show();
+                                    finish();
+                                })
+                                .addOnFailureListener(e -> Toast.makeText(this, "Failed to update set", Toast.LENGTH_SHORT).show());
                     })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to update set", Toast.LENGTH_SHORT).show());
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to fetch existing set before update", Toast.LENGTH_SHORT).show();
+                    });
         } else {
+            Map<String, Object> accessUsers = new HashMap<>();
+            accessUsers.put(auth.getCurrentUser().getUid(), "Owner");
+            flashcardSet.put("accessUsers", accessUsers);
+
             db.collection("flashcards")
                     .add(flashcardSet)
                     .addOnSuccessListener(doc -> {
-                        String generatedSetId = doc.getId();  // 🔑 Get the new document ID
-
-                        // 🔹 Prepare owned_set object
+                        String generatedSetId = doc.getId();
                         Map<String, Object> ownedSet = new HashMap<>();
                         ownedSet.put("id", generatedSetId);
                         ownedSet.put("type", "flashcard");
@@ -334,7 +344,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                                 });
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to save set", Toast.LENGTH_SHORT).show());
-
         }
     }
 
@@ -426,6 +435,4 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 })
                 .show();
     }
-
 }
-
