@@ -98,9 +98,7 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:padding="8dp"
-                    android:background="@drawable/click_effect"
-                    android:clickable="true"
-                    android:focusable="true">
+                    >
 
                     <ImageView
                         android:layout_width="32dp"
@@ -138,9 +136,7 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:padding="5dp"
-                    android:background="@drawable/click_effect"
-                    android:clickable="true"
-                    android:focusable="true">
+                    >
 
                     <ImageView
                         android:layout_width="32dp"
@@ -177,9 +173,7 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:padding="5dp"
-                    android:background="@drawable/click_effect"
-                    android:clickable="true"
-                    android:focusable="true">
+                    >
 
                     <ImageView
                         android:layout_width="32dp"
@@ -215,9 +209,7 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:padding="5dp"
-                    android:background="@drawable/click_effect"
-                    android:clickable="true"
-                    android:focusable="true">
+                    >
 
                     <ImageView
                         android:layout_width="32dp"
