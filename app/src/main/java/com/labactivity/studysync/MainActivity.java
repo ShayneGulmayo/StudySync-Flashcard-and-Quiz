@@ -1,5 +1,6 @@
 package com.labactivity.studysync;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.content.res.ColorStateList;
@@ -91,6 +92,15 @@ public class MainActivity extends AppCompatActivity {
                             .addOnSuccessListener(aVoid -> Log.d("FCM", "Token saved successfully"))
                             .addOnFailureListener(e -> Log.w("FCM", "Failed to save token", e));
                 });
+        if (getIntent().getExtras() != null) {
+            String chatRoomId = getIntent().getStringExtra("chatRoomId");
+            if (chatRoomId != null && !chatRoomId.isEmpty()) {
+                Intent chatIntent = new Intent(this, ChatRoomActivity.class);
+                chatIntent.putExtra("chatRoomId", chatRoomId);
+                startActivity(chatIntent);
+            }
+        }
+
     }
     public void setBottomNavSelection(int itemId) {
         if (bottomNavigationView != null) {

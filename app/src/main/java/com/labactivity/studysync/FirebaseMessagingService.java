@@ -6,6 +6,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
@@ -21,64 +22,64 @@ import com.google.firebase.messaging.RemoteMessage;
 public class FirebaseMessagingService extends com.google.firebase.messaging.FirebaseMessagingService {
 
     private static final String CHANNEL_ID = "chat_notifications";
-    private static final String PREF_NAME = "ChatRoomPrefs";
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
-        if (remoteMessage == null || remoteMessage.getData().isEmpty()) return;
+        super.onMessageReceived(remoteMessage);
 
-        String chatId = remoteMessage.getData().get("chatId");
-        String title = remoteMessage.getNotification() != null ? remoteMessage.getNotification().getTitle() : "StudySync";
-        String body = remoteMessage.getNotification() != null ? remoteMessage.getNotification().getBody() : "New message received";
+        String title = "New Message";
+        String body = "You have a new message";
+        String chatRoomId = null;
 
-        if (chatId == null || !isNotificationsEnabled(chatId)) return;
+        if (remoteMessage.getNotification() != null) {
+            title = remoteMessage.getNotification().getTitle();
+            body = remoteMessage.getNotification().getBody();
+        }
 
-        showNotification(chatId, title, body);
-    }
+        if (remoteMessage.getData().size() > 0) {
+            chatRoomId = remoteMessage.getData().get("chatRoomId");
+            String senderFirstName = remoteMessage.getData().get("senderFirstName");
+            String messageBody = remoteMessage.getData().get("messageBody");
 
-    private void showNotification(String chatId, String title, String body) {
+            // Override body if data was provided
+            if (senderFirstName != null && messageBody != null) {
+                body = senderFirstName + ": " + messageBody;
+            }
+        }
+
         Intent intent = new Intent(this, ChatRoomActivity.class);
-        intent.putExtra("chatId", chatId);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("chatRoomId", chatRoomId);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, chatId.hashCode(), intent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
-
-        Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE
+        );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.notifications) // your notification icon
+                .setSmallIcon(R.drawable.notifications)
                 .setContentTitle(title)
                 .setContentText(body)
+                .setColor(Color.parseColor("#00BF63"))
                 .setAutoCancel(true)
-                .setSound(soundUri)
-                .setContentIntent(pendingIntent);
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_HIGH);
 
-        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
+        // Create channel for Android 8+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID, "Chat Messages", NotificationManager.IMPORTANCE_HIGH);
+                    CHANNEL_ID,
+                    "Chat Notifications",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
             manager.createNotificationChannel(channel);
         }
 
-        manager.notify(chatId.hashCode(), builder.build());
-    }
-
-    private boolean isNotificationsEnabled(String chatId) {
-        SharedPreferences prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
-        return prefs.getBoolean(chatId, true);
-    }
-    @Override
-    public void onNewToken(@NonNull String token) {
-        super.onNewToken(token);
-        Log.d("FCM", "Refreshed token: " + token);
-
-        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        FirebaseFirestore.getInstance()
-                .collection("users")
-                .document(currentUserId)
-                .update("fcmToken", token);
+        manager.notify((int) System.currentTimeMillis(), builder.build());
     }
 
 }
