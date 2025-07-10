@@ -231,7 +231,7 @@
         android:maxWidth="350dp"
         android:text="@string/start_flashcard"
         android:textColor="@color/white"
-        android:textSize="16sp"
+        android:textSize="18sp"
         app:cornerRadius="15dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
