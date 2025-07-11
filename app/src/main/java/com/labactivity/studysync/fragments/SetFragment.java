@@ -30,7 +30,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.labactivity.studysync.CreateFlashcardActivity;
 import com.labactivity.studysync.CreateQuizActivity;
 import com.labactivity.studysync.FlashcardPreviewActivity;
-import com.labactivity.studysync.GenerateFlashcardActivity;
+import com.labactivity.studysync.GenerateSetActivity;
 import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.adapters.SetAdapter;
@@ -414,13 +414,16 @@ public class SetFragment extends Fragment {
 
         view.findViewById(R.id.add_flashcard).setOnClickListener(v -> {
             dialog.dismiss();
-            Intent intent = new Intent(getContext(), GenerateFlashcardActivity.class);
+            Intent intent = new Intent(getContext(), GenerateSetActivity.class);
+            intent.putExtra("setType", "flashcard");
             startActivity(intent);
         });
 
         view.findViewById(R.id.add_quiz).setOnClickListener(v -> {
             dialog.dismiss();
-            showAddBottomSheetQuiz();
+            Intent intent = new Intent(getContext(), GenerateSetActivity.class);
+            intent.putExtra("setType", "quiz");
+            startActivity(intent);
         });
     }
 

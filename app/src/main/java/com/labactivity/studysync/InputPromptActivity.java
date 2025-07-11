@@ -12,25 +12,24 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
-public class FlashcardInputPromptActivity extends AppCompatActivity {
+public class InputPromptActivity extends AppCompatActivity {
 
     private ImageView backBtn, paste;
     private Button generateBtn;
     private EditText inputPrompt;
+    private String setType;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_flashcard_input_prompt);
+        setContentView(R.layout.activity_input_prompt);
         backBtn = findViewById(R.id.back_button);
         paste = findViewById(R.id.pasteBtn);
         inputPrompt = findViewById(R.id.promptEditTxt);
         generateBtn = findViewById(R.id.generateBtn);
+        setType = getIntent().getStringExtra("setType");
 
         backBtn.setOnClickListener(v -> finish());
 
@@ -40,6 +39,7 @@ public class FlashcardInputPromptActivity extends AppCompatActivity {
                 Intent intent = new Intent(this, LoadingSetActivity.class);
                 intent.putExtra("textPrompt", userInput);
                 intent.putExtra("type", "text");
+                intent.putExtra("setType", setType);
                 startActivity(intent);
             } else {
                 Toast.makeText(this, "Input cannot be empty", Toast.LENGTH_SHORT).show();

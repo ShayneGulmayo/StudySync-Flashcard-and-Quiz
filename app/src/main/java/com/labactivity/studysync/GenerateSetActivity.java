@@ -7,14 +7,12 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.InputType;
-import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
@@ -26,15 +24,18 @@ import com.google.firebase.auth.FirebaseUser;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-public class GenerateFlashcardActivity extends AppCompatActivity {
+public class GenerateSetActivity extends AppCompatActivity {
 
     private static final String TAG = "GenerateFlashcard";
     private static final int PERMISSION_REQUEST_CODE = 100;
     private final Executor executor = Executors.newSingleThreadExecutor();
 
     private FirebaseAuth mAuth;
-    private CardView selectFile, generateManually, selectImages, pasteText;
+    private CardView selectFile, generateManually, selectImages, pasteText, scanDocument;
     private ImageView backBtn;
+    private TextView txtTitle;
+    private String setType;
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -45,6 +46,7 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
             Intent intent = new Intent(this, LoadingSetActivity.class);
             intent.setData(imageUri);
             intent.putExtra("type", "image");
+            intent.putExtra("setType", setType);
             startActivity(intent);
         }
     }
@@ -65,7 +67,7 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_generate_flashcard);
+        setContentView(R.layout.activity_generate_set);
 
         mAuth = FirebaseAuth.getInstance();
         selectFile = findViewById(R.id.selectFile);
@@ -73,19 +75,39 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
         generateManually = findViewById(R.id.generateManually);
         selectImages = findViewById(R.id.selectImages);
         pasteText = findViewById(R.id.pasteText);
+        scanDocument = findViewById(R.id.scanDocument);
+        setType = getIntent().getStringExtra("setType");
+        txtTitle = findViewById(R.id.txtView_title);
+
+        if ("flashcard".equalsIgnoreCase(setType)) {
+            txtTitle.setText("Create a Flashcard Set");
+        } else if ("quiz".equalsIgnoreCase(setType)) {
+            txtTitle.setText("Create a Quiz Set");
+        } else {
+            txtTitle.setText("Create a Set");
+        }
 
         checkUserAuthentication();
 
-        pasteText.setOnClickListener(view ->{
-            Intent intent = new Intent(this, FlashcardInputPromptActivity.class);
+        pasteText.setOnClickListener(view -> {
+            Intent intent = new Intent(this, InputPromptActivity.class);
+            intent.putExtra("setType", setType);
             startActivity(intent);
             finish();
         });
         backBtn.setOnClickListener(v -> finish());
         generateManually.setOnClickListener(view -> {
-            Intent intent = new Intent(this, CreateFlashcardActivity.class);
-            startActivity(intent);
-            finish();
+            if ("flashcard".equalsIgnoreCase(setType)){
+                Intent intent = new Intent(this, CreateFlashcardActivity.class);
+                startActivity(intent);
+                finish();
+            } else if ("quiz".equalsIgnoreCase(setType)) {
+                Intent intent = new Intent(this, CreateQuizActivity.class);
+                startActivity(intent);
+                finish();
+            }else{
+                Toast.makeText(this, "No Set Type Entered", Toast.LENGTH_SHORT).show();
+            }
         });
 
         selectFile.setOnClickListener(view -> {
@@ -107,6 +129,9 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
             intent.setType("image/*");
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             startActivityForResult(Intent.createChooser(intent, "Select an Image"), 200);  // custom request code
+        });
+
+        scanDocument.setOnClickListener(view -> {
         });
 
 
@@ -139,7 +164,9 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
         Intent intent = new Intent(this, LoadingSetActivity.class);
         intent.setData(uri);
         intent.putExtra("type", "pdf");
+        intent.putExtra("setType", setType);
         startActivity(intent);
     }
+
 
 }

@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".GenerateQuizActivity"
+    tools:context=".GenerateSetActivity"
     android:background="@color/white">
 
     <com.google.android.material.navigation.NavigationView
@@ -39,7 +39,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:gravity="center"
-        android:text="Create a Quiz Set"
+        android:text="Create a Flashcard Set"
         android:textColor="@color/black"
         android:textSize="18sp"
         android:textStyle="bold"

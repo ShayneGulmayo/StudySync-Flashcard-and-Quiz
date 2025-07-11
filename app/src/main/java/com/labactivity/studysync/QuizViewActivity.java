@@ -410,42 +410,26 @@ public class QuizViewActivity extends AppCompatActivity {
 
 
     private void displayEnumeration(Map<String, Object> questionData) {
-        if (chooseAnswerLabel != null) {
-            chooseAnswerLabel.setText("Type your answer"); // ✅ Changes label
-        }
+        chooseAnswerLabel.setText("Type your answer");
+        selectedAnswer = null;
+        hasAnswered = false;
 
         String questionText = questionData.get("question") != null
                 ? questionData.get("question").toString()
                 : "No question text";
 
         quizQuestionTextView.setText(questionText);
-        linearLayoutOptions.removeAllViews(); // ✅ Clears previous options
+        linearLayoutOptions.removeAllViews();
 
-        List<String> answers = null;
-        try {
-            answers = (List<String>) questionData.get("choices"); // ✅ Comes from Firestore
-        } catch (ClassCastException e) {
-            Toast.makeText(this, "Invalid answers format.", Toast.LENGTH_SHORT).show();
-        }
+        View singleInputView = LayoutInflater.from(this)
+                .inflate(R.layout.item_quiz_enumeration_blanks, linearLayoutOptions, false);
+        EditText input = singleInputView.findViewById(R.id.enum_answer_input);
+        input.setHint("Enter your answer");
 
-        if (answers != null) {
-            for (int i = 0; i < answers.size(); i++) {
-                View blankView = LayoutInflater.from(this)
-                        .inflate(R.layout.item_quiz_enumeration_blanks, linearLayoutOptions, false);
-
-                EditText input = blankView.findViewById(R.id.enum_answer_input);
-                input.setHint("Answer " + (i + 1));
-
-                if (i == 0) {
-                    input.requestFocus(); // ✅ This makes the first blank get focus
-                }
-
-                linearLayoutOptions.addView(blankView);
-            }
-        } else {
-            Toast.makeText(this, "Missing enumeration answers", Toast.LENGTH_SHORT).show();
-        }
+        linearLayoutOptions.addView(singleInputView);
     }
+
+
 
 
 
@@ -632,89 +616,58 @@ public class QuizViewActivity extends AppCompatActivity {
             }, 1000);
 
         } else if (type.equals("enumeration")) {
-            List<String> userAnswers = new ArrayList<>();
-            boolean hasEmptyBlanks = false;
-
-            for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
-                View child = linearLayoutOptions.getChildAt(i);
-                EditText input = child.findViewById(R.id.enum_answer_input);
-                if (input != null) {
-                    String answer = input.getText().toString().trim().toLowerCase();
-                    if (!answer.isEmpty()) {
-                        userAnswers.add(answer);
-                    } else {
-                        hasEmptyBlanks = true;
-                    }
-                }
-            }
-
-            if (userAnswers.isEmpty()) {
-                Toast.makeText(this, "Please fill in at least one answer.", Toast.LENGTH_SHORT).show();
+            View child = linearLayoutOptions.getChildAt(0);
+            EditText input = child.findViewById(R.id.enum_answer_input);
+            if (input == null) {
+                Toast.makeText(this, "Answer input missing.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            Runnable proceedWithCheck = () -> {
-                List<String> correctAnswers = new ArrayList<>();
-                try {
-                    correctAnswers = (List<String>) currentQuestion.get("choices");
-                } catch (ClassCastException e) {
-                    Toast.makeText(this, "Invalid choices for enumeration.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                List<String> correctLower = new ArrayList<>();
-                for (String ans : correctAnswers) {
-                    correctLower.add(ans.trim().toLowerCase());
-                }
-
-                Set<String> userSet = new HashSet<>(userAnswers);
-                Set<String> correctSet = new HashSet<>(correctLower);
-
-                Set<String> correctMatched = new HashSet<>(userSet);
-                correctMatched.retainAll(correctSet);
-
-                Set<String> missedAnswers = new HashSet<>(correctSet);
-                missedAnswers.removeAll(userSet);
-
-                boolean isCorrect = correctMatched.size() == correctSet.size();
-                if (isCorrect) score++;
-
-                Map<String, Object> answer = new HashMap<>();
-                answer.put("question", currentQuestion.get("question"));
-                answer.put("type", "enumeration");
-                answer.put("selected", userAnswers);
-                answer.put("correct", correctLower);
-                answer.put("isCorrect", isCorrect);
-                answer.put("choices", correctLower);
-                answer.put("order", currentQuestionIndex);
-                userAnswersList.add(answer);
-
-                hasAnswered = true;
-
-                new AlertDialog.Builder(this)
-                        .setTitle(isCorrect ? "✅ Correct!" : "❌ Not Quite")
-                        .setMessage("You answered: " + TextUtils.join(", ", userAnswers) + "\n\n" +
-                                "Correct answers: " + TextUtils.join(", ", correctLower) + "\n\n" +
-                                "Matched: " + TextUtils.join(", ", correctMatched) + "\n" +
-                                "Missed: " + TextUtils.join(", ", missedAnswers))
-                        .setPositiveButton("Next", (dialog, which) -> {
-                            currentQuestionIndex++;
-                            displayNextValidQuestion();
-                        })
-                        .setCancelable(false)
-                        .show();
-            };
-
-            if (hasEmptyBlanks) {
-                new AlertDialog.Builder(this)
-                        .setTitle("Some blanks are empty")
-                        .setMessage("You still have blanks unanswered. Are you sure you want to check?")
-                        .setPositiveButton("Yes", (dialog, which) -> proceedWithCheck.run())
-                        .setNegativeButton("No, Go Back", null)
-                        .show();
-            } else {
-                proceedWithCheck.run();
+            String userAnswer = input.getText().toString().trim().toLowerCase();
+            if (userAnswer.isEmpty()) {
+                Toast.makeText(this, "Please enter an answer.", Toast.LENGTH_SHORT).show();
+                return;
             }
+
+            List<String> correctAnswers;
+            try {
+                correctAnswers = (List<String>) currentQuestion.get("correctAnswer");
+            } catch (ClassCastException e) {
+                Toast.makeText(this, "Invalid format for correct answers.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            List<String> correctLower = new ArrayList<>();
+            for (String ans : correctAnswers) {
+                correctLower.add(ans.trim().toLowerCase());
+            }
+
+            boolean isCorrect = correctLower.contains(userAnswer);
+            if (isCorrect) score++;
+
+            Map<String, Object> answer = new HashMap<>();
+            answer.put("question", currentQuestion.get("question"));
+            answer.put("type", "enumeration");
+            answer.put("selected", userAnswer);
+            answer.put("correct", correctLower);
+            answer.put("isCorrect", isCorrect);
+            answer.put("choices", correctLower);
+            answer.put("order", currentQuestionIndex);
+            userAnswersList.add(answer);
+
+            hasAnswered = true;
+
+            new AlertDialog.Builder(this)
+                    .setTitle(isCorrect ? "✅ Correct!" : "❌ Incorrect")
+                    .setMessage("You answered: " + userAnswer + "\n\n" +
+                            "Accepted answers: " + TextUtils.join(", ", correctLower))
+                    .setPositiveButton("Next", (dialog, which) -> {
+                        currentQuestionIndex++;
+                        displayNextValidQuestion();
+                    })
+                    .setCancelable(false)
+                    .show();
+
         }
     }
 

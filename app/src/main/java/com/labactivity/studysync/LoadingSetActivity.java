@@ -28,10 +28,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
+
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -39,14 +37,17 @@ public class LoadingSetActivity extends AppCompatActivity {
     private static final String TAG = "LoadingSetActivity";
     private final Executor executor = Executors.newSingleThreadExecutor();
 
+    private String setType;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_loading_set);
 
-        String type = getIntent().getStringExtra("type");
+        setType = getIntent().getStringExtra("setType");
+        String fileType = getIntent().getStringExtra("type");
 
-        if ("text".equals(type)) {
+        if ("text".equals(fileType)) {
             String userPrompt = getIntent().getStringExtra("textPrompt");
             if (userPrompt == null || userPrompt.trim().isEmpty()) {
                 showError("Text prompt is empty.");
@@ -63,14 +64,9 @@ public class LoadingSetActivity extends AppCompatActivity {
             try (InputStream inputStream = getContentResolver().openInputStream(fileUri)) {
                 if (inputStream != null) {
                     byte[] fileBytes = readBytes(inputStream);
-
-                    // Determine MIME type
-                    String mimeType;
-                    if (type != null) {
-                        mimeType = type.equals("image") ? "image/*" : "application/pdf";
-                    } else {
-                        mimeType = getContentResolver().getType(fileUri);
-                    }
+                    String mimeType = (fileType != null) ?
+                            (fileType.equals("image") ? "image/*" : "application/pdf") :
+                            getContentResolver().getType(fileUri);
 
                     runGeminiModel(fileBytes, mimeType);
                 } else {
@@ -91,21 +87,13 @@ public class LoadingSetActivity extends AppCompatActivity {
         GenerativeModelFutures model = GenerativeModelFutures.from(ai);
 
         String mediaDescription = mimeType != null && mimeType.startsWith("image") ? "image" : "PDF";
+        String promptText = setType != null && setType.equals("quiz")
+                ? getQuizPrompt(mediaDescription)
+                : getFlashcardPrompt(mediaDescription);
 
         Content prompt = new Content.Builder()
                 .addInlineData(data, mimeType)
-                .addText(
-                        "From the contents of this " + mediaDescription + ", generate a JSON object **only** in the following structure:\n" +
-                                "{\n" +
-                                "  \"title\": \"<A descriptive title>\",\n" +
-                                "  \"terms\": [\n" +
-                                "    { \"term\": \"<Term 1>\", \"definition\": \"<Definition 1>\" },\n" +
-                                "    { \"term\": \"<Term 2>\", \"definition\": \"<Definition 2>\" },\n" +
-                                "    ...\n" +
-                                "  ]\n" +
-                                "}\n" +
-                                "Return only this JSON object — do not include any extra explanation, markdown, or preamble."
-                )
+                .addText(promptText)
                 .build();
 
         Futures.addCallback(model.generateContent(prompt), new FutureCallback<GenerateContentResponse>() {
@@ -117,7 +105,7 @@ public class LoadingSetActivity extends AppCompatActivity {
             @Override
             public void onFailure(Throwable t) {
                 Log.e(TAG, "Gemini generation failed", t);
-                showError("Failed to generate flashcards");
+                showError("Failed to generate content");
             }
         }, executor);
     }
@@ -129,19 +117,12 @@ public class LoadingSetActivity extends AppCompatActivity {
 
         GenerativeModelFutures model = GenerativeModelFutures.from(ai);
 
+        String promptText = setType != null && setType.equals("quiz")
+                ? getQuizPrompt("text") + "\nInput:\n" + inputText
+                : getFlashcardPrompt("text") + "\nInput:\n" + inputText;
+
         Content prompt = new Content.Builder()
-                .addText(
-                        "Based on the following input, generate a JSON object ONLY in this format:\n" +
-                                "{\n" +
-                                "  \"title\": \"<Descriptive Title>\",\n" +
-                                "  \"terms\": [\n" +
-                                "    { \"term\": \"<Term 1>\", \"definition\": \"<Definition 1>\" },\n" +
-                                "    { \"term\": \"<Term 2>\", \"definition\": \"<Definition 2>\" }\n" +
-                                "  ]\n" +
-                                "}\n\n" +
-                                "Return only this JSON object. No extra text.\n\n" +
-                                "Input:\n" + inputText
-                )
+                .addText(promptText)
                 .build();
 
         Futures.addCallback(model.generateContent(prompt), new FutureCallback<GenerateContentResponse>() {
@@ -173,48 +154,81 @@ public class LoadingSetActivity extends AppCompatActivity {
         try {
             JSONObject json = new JSONObject(aiText);
             String title = json.optString("title", "Untitled Set");
-            JSONArray termsArray = json.getJSONArray("terms");
 
-            Map<String, Map<String, String>> termsMap = new HashMap<>();
-            for (int i = 0; i < termsArray.length(); i++) {
-                JSONObject item = termsArray.getJSONObject(i);
-                Map<String, String> entry = new HashMap<>();
-                entry.put("term", item.optString("term", ""));
-                entry.put("definition", item.optString("definition", ""));
-                termsMap.put(String.valueOf(i), entry);
+            if ("quiz".equals(setType)) {
+                JSONArray questionsArray = json.getJSONArray("questions");
+                List<Map<String, Object>> questions = new ArrayList<>();
+                for (int i = 0; i < questionsArray.length(); i++) {
+                    JSONObject q = questionsArray.getJSONObject(i);
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("question", q.optString("question", ""));
+                    item.put("type", q.optString("type", "multiple choice"));
+
+                    JSONArray choicesJson = q.optJSONArray("choices");
+                    if (choicesJson != null) {
+                        List<String> choices = new ArrayList<>();
+                        for (int j = 0; j < choicesJson.length(); j++) {
+                            choices.add(choicesJson.getString(j));
+                        }
+                        item.put("choices", choices);
+                    }
+
+                    Object correct = q.get("correctAnswer");
+                    if (correct instanceof JSONArray) {
+                        List<String> correctAnswers = new ArrayList<>();
+                        JSONArray correctJson = (JSONArray) correct;
+                        for (int j = 0; j < correctJson.length(); j++) {
+                            correctAnswers.add(correctJson.getString(j));
+                        }
+                        item.put("correctAnswer", correctAnswers);
+                    } else {
+                        item.put("correctAnswer", correct.toString());
+                    }
+
+                    questions.add(item);
+                }
+
+                saveQuizToFirestore(title, questions);
+            } else {
+                JSONArray termsArray = json.getJSONArray("terms");
+                Map<String, Map<String, String>> termsMap = new HashMap<>();
+                for (int i = 0; i < termsArray.length(); i++) {
+                    JSONObject item = termsArray.getJSONObject(i);
+                    Map<String, String> entry = new HashMap<>();
+                    entry.put("term", item.optString("term", ""));
+                    entry.put("definition", item.optString("definition", ""));
+                    termsMap.put(String.valueOf(i), entry);
+                }
+
+                saveFlashcardsToFirestore(title, termsMap);
             }
-
-            saveToFirestore(title, termsMap);
         } catch (JSONException e) {
             Log.e(TAG, "Failed to parse AI response", e);
             showError("AI returned invalid format");
         }
     }
 
-    private void saveToFirestore(String title, Map<String, Map<String, String>> termsMap) {
+    private void saveFlashcardsToFirestore(String title, Map<String, Map<String, String>> termsMap) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
             showError("User not authenticated");
             return;
         }
 
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
         Map<String, String> accessUsers = new HashMap<>();
         accessUsers.put(user.getUid(), "Owner");
 
-        String createdAt = new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault()).format(new Date());
-
         Map<String, Object> doc = new HashMap<>();
         doc.put("accessUsers", accessUsers);
-        doc.put("createdAt", createdAt);
         doc.put("owner_uid", user.getUid());
+        doc.put("createdAt", getCurrentTime());
         doc.put("privacy", "private");
         doc.put("privacyRole", "edit");
-        doc.put("number_of_items", termsMap.size());
         doc.put("title", title);
         doc.put("terms", termsMap);
+        doc.put("number_of_items", termsMap.size());
 
-        db.collection("flashcards")
+        FirebaseFirestore.getInstance().collection("flashcards")
                 .add(doc)
                 .addOnSuccessListener(ref -> {
                     Intent intent = new Intent(this, FlashcardPreviewActivity.class);
@@ -222,10 +236,43 @@ public class LoadingSetActivity extends AppCompatActivity {
                     startActivity(intent);
                     finish();
                 })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Firestore save failed", e);
-                    showError("Failed to save flashcards");
-                });
+                .addOnFailureListener(e -> showError("Failed to save flashcards"));
+    }
+
+    private void saveQuizToFirestore(String title, List<Map<String, Object>> questions) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            showError("User not authenticated");
+            return;
+        }
+
+        Map<String, String> accessUsers = new HashMap<>();
+        accessUsers.put(user.getUid(), "Owner");
+
+        Map<String, Object> doc = new HashMap<>();
+        doc.put("accessUsers", accessUsers);
+        doc.put("owner_uid", user.getUid());
+        doc.put("created_at", new Date());
+        doc.put("privacy", "private");
+        doc.put("privacyRole", "edit");
+        doc.put("title", title);
+        doc.put("questions", questions);
+        doc.put("number_of_items", questions.size());
+        doc.put("progress", 0);
+
+        FirebaseFirestore.getInstance().collection("quiz")
+                .add(doc)
+                .addOnSuccessListener(ref -> {
+                    Intent intent = new Intent(this, QuizPreviewActivity.class);
+                    intent.putExtra("quizId", ref.getId());
+                    startActivity(intent);
+                    finish();
+                })
+                .addOnFailureListener(e -> showError("Failed to save quiz"));
+    }
+
+    private String getCurrentTime() {
+        return new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault()).format(new Date());
     }
 
     private void showError(String message) {
@@ -239,12 +286,36 @@ public class LoadingSetActivity extends AppCompatActivity {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int nRead;
         byte[] data = new byte[4096];
-
         while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
             buffer.write(data, 0, nRead);
         }
-
         buffer.flush();
         return buffer.toByteArray();
+    }
+
+    private String getFlashcardPrompt(String source) {
+        return "From the contents of this " + source + ", generate a JSON object ONLY in the following structure:\n" +
+                "{\n" +
+                "  \"title\": \"<A descriptive title>\",\n" +
+                "  \"terms\": [\n" +
+                "    { \"term\": \"<Term 1>\", \"definition\": \"<Definition 1>\" },\n" +
+                "    { \"term\": \"<Term 2>\", \"definition\": \"<Definition 2>\" }\n" +
+                "  ]\n" +
+                "}\nReturn only this JSON object. No extra text.";
+    }
+
+    private String getQuizPrompt(String source) {
+        return "From the contents of this " + source + ", generate a JSON object ONLY in the following structure:\n" +
+                "{\n" +
+                "  \"title\": \"<Descriptive title>\",\n" +
+                "  \"questions\": [\n" +
+                "    {\n" +
+                "      \"question\": \"<Question text>\",\n" +
+                "      \"type\": \"multiple choice\" or \"enumeration\",\n" +
+                "      \"choices\": [\"Option 1\", \"Option 2\", ...],\n" +
+                "      \"correctAnswer\": \"Correct Answer\" or [\"Answer1\", \"Answer2\"]\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}\nReturn only this JSON object. No explanation or markdown.";
     }
 }
