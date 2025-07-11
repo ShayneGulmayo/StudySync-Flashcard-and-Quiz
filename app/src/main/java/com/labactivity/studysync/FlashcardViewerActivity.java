@@ -35,8 +35,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     private View cardFront, cardBack;
     private String cardOrientation = "term";
     private String offlineFileName;
-    private int knowCount;
-    private int dontKnowCount;
+    private int knowCount, dontKnowCount, totalItems;
     private int currentIndex = 0;
     private boolean isReviewingOnlyDontKnow = false;
     private boolean showingFront = true;
@@ -47,6 +46,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_flashcard_viewer);
+        knowCount = getIntent().getIntExtra("knowCount", 0);
 
         setId = getIntent().getStringExtra("setId");
         isReviewingOnlyDontKnow = getIntent().getBooleanExtra("isReviewingOnlyDontKnow", false);
@@ -72,6 +72,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
         frontCard.setOnClickListener(v -> flipCard());
         backCard.setOnClickListener(v -> flipCard());
+
 
         knowBtn.setOnClickListener(v -> {
             knowCount++;
@@ -170,54 +171,47 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     }
 
     private void loadOfflineFlashcards() {
-        File file = new File(getFilesDir(), offlineFileName);
-        if (!file.exists()) {
-            Toast.makeText(this, "Offline set file not found.", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
+        if (setData != null && setData.containsKey("terms")) {
+            Map<String, Object> terms = (Map<String, Object>) setData.get("terms");
+            flashcards.clear();
 
-        try {
-            FileInputStream fis = new FileInputStream(file);
-            byte[] data = new byte[(int) file.length()];
-            fis.read(data);
-            fis.close();
-
-            String json = new String(data);
-            Type type = new TypeToken<Map<String, Object>>() {}.getType();
-            Map<String, Object> setData = new Gson().fromJson(json, type);
-
-            if (setData != null && setData.containsKey("terms")) {
-                Map<String, Object> terms = (Map<String, Object>) setData.get("terms");
-                flashcards.clear();
-
-                for (Map.Entry<String, Object> entry : terms.entrySet()) {
-                    Map<String, Object> termEntry = (Map<String, Object>) entry.getValue();
-                    String term = (String) termEntry.get("term");
-                    String definition = (String) termEntry.get("definition");
-                    String photoUrl = (String) termEntry.get("photoUrl");
-                    String photoPath = (String) termEntry.get("photoPath");
-
-                    Flashcard card = new Flashcard(term, definition, photoUrl, photoPath);
-                    flashcards.add(card);
-                }
-
-                if (!flashcards.isEmpty()) {
-                    currentIndex = 0;
-                    showCard(0);
-                } else {
-                    frontCard.setText("No flashcards found.");
-                }
-            } else {
-                frontCard.setText("No flashcards data.");
+            for (Map.Entry<String, Object> entry : terms.entrySet()) {
+                Map<String, Object> termEntry = (Map<String, Object>) entry.getValue();
+                flashcards.add(new Flashcard(
+                        (String) termEntry.get("term"),
+                        (String) termEntry.get("definition"),
+                        (String) termEntry.get("photoUrl"),
+                        (String) termEntry.get("photoPath")));
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Failed to load offline set.", Toast.LENGTH_SHORT).show();
-            finish();
+            totalItems = flashcards.size(); // ✅ FIX — set totalItems properly
+
+            // Apply review filtering
+            if (isReviewingOnlyDontKnow) {
+                ArrayList<String> dontKnowTerms = getIntent().getStringArrayListExtra("dontKnowTerms");
+                if (dontKnowTerms != null) {
+                    ArrayList<Flashcard> filtered = new ArrayList<>();
+                    for (Flashcard card : flashcards) {
+                        if (dontKnowTerms.contains(card.getTerm())) {
+                            filtered.add(card);
+                        }
+                    }
+                    flashcards = filtered;
+                }
+            }
+
+            if (!flashcards.isEmpty()) {
+                currentIndex = 0;
+                showCard(0);
+            } else {
+                frontCard.setText("No flashcards found.");
+            }
+        } else {
+            frontCard.setText("No flashcards data.");
         }
     }
+
+
 
     private void shuffleFlashcards() {
         if (flashcards.isEmpty()) {
@@ -255,36 +249,38 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                             Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
                             return;
                         }
-
                         Map<String, Object> data = snapshot.getData();
-                        if (data != null && data.containsKey("terms")) {
-                            Map<String, Object> terms = (Map<String, Object>) data.get("terms");
-                            flashcards.clear();
-
-                            for (Map.Entry<String, Object> entry : terms.entrySet()) {
-                                Map<String, Object> termEntry = (Map<String, Object>) entry.getValue();
-                                String term = (String) termEntry.get("term");
-                                String definition = (String) termEntry.get("definition");
-                                String photoUrl = (String) termEntry.get("photoUrl");
-                                String photoPath = (String) termEntry.get("photoPath");
-
-                                Flashcard card = new Flashcard(term, definition, photoUrl, photoPath);
-                                flashcards.add(card);
-                            }
-
-                            if (!flashcards.isEmpty()) {
-                                currentIndex = 0;
-                                showCard(0);
-                            } else {
-                                frontCard.setText("No flashcards found.");
-                            }
-                        } else {
-                            frontCard.setText("No flashcards data.");
+                        Map<String, Object> terms = (Map<String, Object>) data.get("terms");
+                        flashcards.clear();
+                        for (Map.Entry<String, Object> entry : terms.entrySet()) {
+                            Map<String, Object> termEntry = (Map<String, Object>) entry.getValue();
+                            flashcards.add(new Flashcard(
+                                    (String) termEntry.get("term"),
+                                    (String) termEntry.get("definition"),
+                                    (String) termEntry.get("photoUrl"),
+                                    (String) termEntry.get("photoPath")));
                         }
+                        totalItems = flashcards.size();
+                        currentIndex = 0;
+
+                        if (isReviewingOnlyDontKnow) {
+                            ArrayList<String> dontKnowTerms = getIntent().getStringArrayListExtra("dontKnowTerms");
+                            if (dontKnowTerms != null) {
+                                ArrayList<Flashcard> filtered = new ArrayList<>();
+                                for (Flashcard card : flashcards) {
+                                    if (dontKnowTerms.contains(card.getTerm())) {
+                                        filtered.add(card);
+                                    }
+                                }
+                                flashcards = filtered;
+                            }
+                        }
+
+                        if (!flashcards.isEmpty()) showCard(0);
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to load flashcards.", Toast.LENGTH_SHORT).show());
         }
-    }
+            }
 
     private void showCard(int index) {
         if (index < flashcards.size()) {
@@ -405,12 +401,10 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     private void openFlashcardProgressActivity() {
         Intent intent = new Intent(this, FlashcardProgressActivity.class);
         intent.putExtra("knowCount", knowCount);
-        intent.putExtra("stillLearningCount", dontKnowCount);
-        intent.putExtra("totalItems", flashcards.size());
+        intent.putExtra("totalItems", totalItems);
         intent.putExtra("setId", setId);
         intent.putExtra("isOffline", isOffline);
         if (isOffline) intent.putExtra("offlineFileName", offlineFileName);
-
         ArrayList<String> dontKnowTerms = new ArrayList<>();
         for (Flashcard card : dontKnowFlashcards) {
             dontKnowTerms.add(card.getTerm());
@@ -418,6 +412,5 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         intent.putStringArrayListExtra("dontKnowTerms", dontKnowTerms);
         startActivity(intent);
         finish();
-
     }
 }

@@ -28,7 +28,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
     TextView progressPercentage, knowItems, stillLearningItems, flashcardTitleTxt, retakeFlashcardBtn;
     Button reviewQuestionsBtn;
     ImageView backButton;
-    int knowCount, stillLearningCount, totalItems;
+    int knowCount, totalItems;
     String setId, offlineFileName;
     FirebaseFirestore db;
     private boolean isOffline;
@@ -41,7 +41,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
         isOffline = getIntent().getBooleanExtra("isOffline", false);
         offlineFileName = getIntent().getStringExtra("offlineFileName");
-
 
         db = FirebaseFirestore.getInstance();
 
@@ -62,14 +61,17 @@ public class FlashcardProgressActivity extends AppCompatActivity {
         flashcardTitleTxt = findViewById(R.id.flashcard_title);
 
         knowCount = getIntent().getIntExtra("knowCount", 0);
-        stillLearningCount = getIntent().getIntExtra("stillLearningCount", 0);
         totalItems = getIntent().getIntExtra("totalItems", 1);
         setId = getIntent().getStringExtra("setId");
 
-        int progressValue = (int) (((float) knowCount / totalItems) * 100);
+        // 🔧 Accurate capped values
+        int cappedKnowCount = Math.min(knowCount, totalItems);
+        int stillLearningCount = Math.max(0, totalItems - cappedKnowCount);
+        int progressValue = (int) (((float) cappedKnowCount / totalItems) * 100);
+
         statsProgressBar.setProgress(progressValue);
         progressPercentage.setText(progressValue + "%");
-        knowItems.setText(knowCount + " items");
+        knowItems.setText(cappedKnowCount + " items");
         stillLearningItems.setText(stillLearningCount + " items");
 
         if (stillLearningCount > 0) {
@@ -89,22 +91,25 @@ public class FlashcardProgressActivity extends AppCompatActivity {
             intent.putExtra("setId", setId);
             intent.putExtra("isOffline", isOffline);
             if (isOffline) intent.putExtra("offlineFileName", offlineFileName);
+            intent.putExtra("totalItems", totalItems);
+            intent.putExtra("knowCount", 0); // 👈 pass progress
             startActivity(intent);
             finish();
         });
+
 
         reviewQuestionsBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, FlashcardViewerActivity.class);
             intent.putExtra("setId", setId);
             intent.putExtra("isOffline", isOffline);
             if (isOffline) intent.putExtra("offlineFileName", offlineFileName);
+            intent.putExtra("totalItems", totalItems);
+            intent.putExtra("knowCount", cappedKnowCount); // 👈 pass knowCount
             intent.putExtra("isReviewingOnlyDontKnow", true);
             intent.putStringArrayListExtra("dontKnowTerms", getIntent().getStringArrayListExtra("dontKnowTerms"));
             startActivity(intent);
             finish();
         });
-
-        backButton.setOnClickListener(v -> finish());
 
     }
 
@@ -119,7 +124,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                     if (!documentSnapshot.exists()) return;
 
                     String collectionField;
-
                     if (documentSnapshot.contains("owner_uid")) {
                         String ownerId = documentSnapshot.getString("owner_uid");
                         collectionField = ownerId != null && ownerId.equals(currentUserId) ? "owned_sets" : "saved_sets";
@@ -136,7 +140,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                                 if (setList == null) setList = new ArrayList<>();
 
                                 boolean found = false;
-
                                 for (Map<String, Object> item : setList) {
                                     if (setId.equals(item.get("id"))) {
                                         item.put("progress", progressValue);
@@ -155,17 +158,11 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
                                 db.collection("users").document(currentUserId)
                                         .update(collectionField, setList)
-                                        .addOnFailureListener(e -> {
-                                            Toast.makeText(this, "Failed to save progress.", Toast.LENGTH_SHORT).show();
-                                        });
+                                        .addOnFailureListener(e -> Toast.makeText(this, "Failed to save progress.", Toast.LENGTH_SHORT).show());
                             })
-                            .addOnFailureListener(e -> {
-                                Toast.makeText(this, "Failed to load user data.", Toast.LENGTH_SHORT).show();
-                            });
+                            .addOnFailureListener(e -> Toast.makeText(this, "Failed to load user data.", Toast.LENGTH_SHORT).show());
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to fetch set owner.", Toast.LENGTH_SHORT).show();
-                });
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to fetch set owner.", Toast.LENGTH_SHORT).show());
     }
 
     @SuppressLint("SetTextI18n")
@@ -184,9 +181,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
             try {
                 StringBuilder jsonBuilder = new StringBuilder();
-                java.io.BufferedReader reader = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(new java.io.FileInputStream(file))
-                );
+                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(file)));
                 String line;
                 while ((line = reader.readLine()) != null) {
                     jsonBuilder.append(line);
@@ -198,11 +193,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                 String title = (String) setData.get("title");
 
                 if (title != null && !title.isEmpty()) {
-                    if (title.length() > 20) {
-                        flashcardTitleTxt.setText(title.substring(0, 20) + "...");
-                    } else {
-                        flashcardTitleTxt.setText(title);
-                    }
+                    flashcardTitleTxt.setText(title.length() > 20 ? title.substring(0, 20) + "..." : title);
                 } else {
                     flashcardTitleTxt.setText("Untitled Set");
                 }
@@ -221,12 +212,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                         if (documentSnapshot.exists()) {
                             String title = documentSnapshot.getString("title");
                             if (title != null && !title.isEmpty()) {
-                                if (title.length() > 20) {
-                                    String shortTitle = title.substring(0, 20) + "...";
-                                    flashcardTitleTxt.setText(shortTitle);
-                                } else {
-                                    flashcardTitleTxt.setText(title);
-                                }
+                                flashcardTitleTxt.setText(title.length() > 20 ? title.substring(0, 20) + "..." : title);
                             } else {
                                 flashcardTitleTxt.setText("Untitled Set");
                             }
@@ -234,10 +220,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                             flashcardTitleTxt.setText("Flashcard set not found.");
                         }
                     })
-                    .addOnFailureListener(e -> {
-                        flashcardTitleTxt.setText("Failed to load title.");
-                    });
+                    .addOnFailureListener(e -> flashcardTitleTxt.setText("Failed to load title."));
         }
     }
-
 }

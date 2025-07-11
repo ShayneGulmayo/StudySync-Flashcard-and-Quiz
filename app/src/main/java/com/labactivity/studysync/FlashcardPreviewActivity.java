@@ -94,7 +94,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         isOffline = getIntent().getBooleanExtra("isOffline", false);
 
         if (isOffline) {
-            // Offline mode — no need for setId
             offlineFileName = getIntent().getStringExtra("offlineFileName");
             if (offlineFileName != null) {
                 loadOfflineSet(offlineFileName);
@@ -104,7 +103,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             }
 
         } else {
-            // Online mode
             if (getIntent().hasExtra("setId")) {
                 setId = getIntent().getStringExtra("setId");
                 fetchSetFromFirestore(setId);
@@ -118,7 +116,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             }
         }
     }
-
 
     @Override
     protected void onResume() {
@@ -188,7 +185,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         });
 
-
         ownerTextView.setOnClickListener(v -> {
             if (ownerUid != null) {
                 Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
@@ -244,9 +240,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 Toast.makeText(this, "You don't have access to start this flashcard set.", Toast.LENGTH_SHORT).show();
             }
         });
-
-
-
     }
 
     private void showMoreBottomSheet() {
@@ -310,7 +303,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             bottomSheetDialog.dismiss();
         });
 
-
         copyBtn.setOnClickListener(v -> {
             makeCopy();
             bottomSheetDialog.dismiss();
@@ -365,10 +357,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 .setTitle("Download Options")
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
-                        // Option 1: Download as PDF
                         downloadOfflinePdf(setId);
                     } else if (which == 1) {
-                        // Option 2: Download for Offline Use
                         downloadSet();
                     }
                 })
@@ -1025,7 +1015,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         currentPrivacy = documentSnapshot.getString("privacy") != null ? documentSnapshot.getString("privacy") : "Public";
                         currentReminder = documentSnapshot.getString("reminder");
 
-                        // Check if the set is already downloaded
                         File file = new File(getFilesDir(), "set_" + setId + ".json");
                         if (file.exists()) {
                             downloadIcon.setImageResource(R.drawable.downloaded);
