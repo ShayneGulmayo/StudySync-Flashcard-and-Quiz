@@ -30,13 +30,14 @@ import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.labactivity.studysync.adapters.CarouselAdapter;
+import com.labactivity.studysync.adapters.FlashcardCarouselAdapter;
 import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.receivers.ReminderReceiver;
 import com.labactivity.studysync.utils.SupabaseUploader;
@@ -1009,6 +1010,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         String title = documentSnapshot.getString("title");
                         String ownerUid = documentSnapshot.getString("owner_uid");
                         Long numberOfItems = documentSnapshot.getLong("number_of_items");
+                        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
                         titleTextView.setText(title != null ? title : "Untitled");
 
@@ -1022,6 +1024,19 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         } else {
                             downloadIcon.setImageResource(R.drawable.download);
                             downloadTxt.setText(R.string.not_download);
+                        }
+
+                        if (currentUser != null && ownerUid != null) {
+                            if (ownerUid.equals(currentUser.getUid())) {
+                                accessLevel = "owner";
+                                saveSetBtn.setVisibility(View.GONE);
+                            } else {
+                                accessLevel = "view";
+                                saveSetBtn.setVisibility(View.VISIBLE);
+                            }
+                        } else {
+                            accessLevel = "view";
+                            saveSetBtn.setVisibility(View.VISIBLE);
                         }
 
                         loadFlashcards();
@@ -1222,7 +1237,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     }
 
     private void setupCarousel() {
-        CarouselAdapter carouselAdapter = new CarouselAdapter(flashcards);
+        FlashcardCarouselAdapter carouselAdapter = new FlashcardCarouselAdapter(flashcards);
         carouselViewPager.setOrientation(ViewPager2.ORIENTATION_HORIZONTAL);
         carouselViewPager.setAdapter(carouselAdapter);
         dotsIndicator.setViewPager2(carouselViewPager);

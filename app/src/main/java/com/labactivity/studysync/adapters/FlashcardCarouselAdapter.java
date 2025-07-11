@@ -16,11 +16,11 @@ import com.labactivity.studysync.R;
 
 import java.util.List;
 
-public class CarouselAdapter extends RecyclerView.Adapter<CarouselAdapter.CarouselViewHolder> {
+public class FlashcardCarouselAdapter extends RecyclerView.Adapter<FlashcardCarouselAdapter.CarouselViewHolder> {
 
     private final List<Flashcard> flashcards;
 
-    public CarouselAdapter(List<Flashcard> flashcards) {
+    public FlashcardCarouselAdapter(List<Flashcard> flashcards) {
         this.flashcards = flashcards;
     }
 
@@ -28,7 +28,7 @@ public class CarouselAdapter extends RecyclerView.Adapter<CarouselAdapter.Carous
     @Override
     public CarouselViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_carousel, parent, false);
+                .inflate(R.layout.item_flashcard_carousel, parent, false);
         return new CarouselViewHolder(view);
     }
 

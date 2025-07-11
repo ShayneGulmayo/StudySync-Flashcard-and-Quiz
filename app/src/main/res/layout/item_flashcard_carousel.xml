@@ -10,7 +10,7 @@
     <androidx.cardview.widget.CardView
         android:id="@+id/card_term"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="230dp"
         android:background="@color/white"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -19,7 +19,7 @@
         <TextView
             android:id="@+id/term_card"
             android:layout_width="match_parent"
-            android:layout_height="200dp"
+            android:layout_height="match_parent"
             android:background="@drawable/card_background"
             android:gravity="center"
             android:padding="16dp"
@@ -33,7 +33,7 @@
     <androidx.cardview.widget.CardView
         android:id="@+id/card_definition"
         android:layout_width="0dp"
-        android:layout_height="200dp"
+        android:layout_height="230dp"
         android:background="@color/white"
         android:padding="16dp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -47,7 +47,7 @@
             <TextView
                 android:id="@+id/definition_card"
                 android:layout_width="match_parent"
-                android:layout_height="200dp"
+                android:layout_height="230dp"
                 android:background="@drawable/card_background"
                 android:gravity="center"
                 android:padding="16dp"

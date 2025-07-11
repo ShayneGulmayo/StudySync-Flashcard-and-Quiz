@@ -17,7 +17,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.labactivity.studysync.models.Flashcard;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -74,7 +73,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
         frontCard.setOnClickListener(v -> flipCard());
         backCard.setOnClickListener(v -> flipCard());
-
 
         knowBtn.setOnClickListener(v -> {
             knowCount++;
@@ -201,9 +199,8 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                         (String) termEntry.get("photoPath")));
             }
 
-            totalItems = flashcards.size(); // ✅ FIX — set totalItems properly
+            totalItems = flashcards.size();
 
-            // Apply review filtering
             if (isReviewingOnlyDontKnow) {
                 ArrayList<String> dontKnowTerms = getIntent().getStringArrayListExtra("dontKnowTerms");
                 if (dontKnowTerms != null) {
@@ -227,8 +224,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             frontCard.setText("No flashcards data.");
         }
     }
-
-
 
     private void shuffleFlashcards() {
         if (flashcards.isEmpty()) {
@@ -393,7 +388,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                 }).start();
     }
 
-
     private void nextCard() {
         currentIndex++;
         if (currentIndex < flashcards.size()) {
@@ -430,7 +424,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                             existingAttempts = (ArrayList<Map<String, Object>>) snapshot.get("knowCount");
                         }
 
-                        // Merge new attempts into existing attempts
                         for (Map<String, Object> newAttempt : flashcardAttempts) {
                             String term = newAttempt.get("term").toString();
                             boolean replaced = false;
@@ -438,18 +431,17 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                             for (int i = 0; i < existingAttempts.size(); i++) {
                                 Map<String, Object> existingAttempt = existingAttempts.get(i);
                                 if (existingAttempt.get("term").equals(term)) {
-                                    existingAttempts.set(i, newAttempt);  // replace existing
+                                    existingAttempts.set(i, newAttempt);
                                     replaced = true;
                                     break;
                                 }
                             }
 
                             if (!replaced) {
-                                existingAttempts.add(newAttempt);  // add new if not found
+                                existingAttempts.add(newAttempt);
                             }
                         }
 
-                        // Save merged attempts
                         Map<String, Object> data = new HashMap<>();
                         data.put("knowCount", existingAttempts);
 
@@ -465,13 +457,11 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                                     Toast.makeText(this, "Failed to save attempts.", Toast.LENGTH_SHORT).show();
                                     proceedToProgressScreen();
                                 });
-
                     })
                     .addOnFailureListener(e -> {
                         Toast.makeText(this, "Failed to fetch existing attempts.", Toast.LENGTH_SHORT).show();
                         proceedToProgressScreen();
                     });
-
         } else {
             proceedToProgressScreen();
         }

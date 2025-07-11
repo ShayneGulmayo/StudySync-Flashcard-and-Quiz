@@ -12,14 +12,12 @@ import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.Timestamp;
@@ -34,10 +32,7 @@ import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 import com.google.firebase.firestore.DocumentReference;
 import java.util.HashMap;
 import java.util.Iterator;
-
-
 import androidx.viewpager2.widget.ViewPager2;
-
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -84,10 +79,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
         dotsIndicator = findViewById(R.id.dots_indicator);
         shuffleSwitch = findViewById(R.id.shuffle_switch);
         shuffleOptionsSwitch = findViewById(R.id.shuffle_options_switch);
-        saveQuizBtn = findViewById(R.id.saveQuizBtn);
+        saveQuizBtn = findViewById(R.id.saveSetBtn);
         TextView startQuizBtn = findViewById(R.id.start_quiz_btn);
 
-        // 🔧 FIX: initialize Firestore and quizId BEFORE checkIfSaved()
         db = FirebaseFirestore.getInstance();
         quizId = getIntent().getStringExtra("quizId");
         photoUrl = getIntent().getStringExtra("photoUrl");
@@ -95,7 +89,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
         saveQuizBtn.setOnClickListener(v -> toggleSaveState());
 
         if (quizId != null) {
-            checkIfSaved(); // ✅ now safe to call here
+            checkIfSaved();
             loadQuizData(quizId);
         } else {
             Toast.makeText(this, "No quiz ID provided", Toast.LENGTH_SHORT).show();
@@ -114,7 +108,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
             startActivity(intent);
         });
     }
-
 
     @Override
     protected void onResume() {
@@ -166,10 +159,10 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     if (currentUser != null && ownerUid != null) {
                         if (ownerUid.equals(currentUser.getUid())) {
                             accessLevel = "owner";
-                            saveQuizBtn.setVisibility(View.GONE); // hide save button for owner
+                            saveQuizBtn.setVisibility(View.GONE);
                         } else {
                             accessLevel = "view";
-                            saveQuizBtn.setVisibility(View.VISIBLE); // show save button for non-owner
+                            saveQuizBtn.setVisibility(View.VISIBLE);
                         }
                     } else {
                         accessLevel = "view";
@@ -250,7 +243,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 });
     }
 
-
     private void showMoreBottomSheet() {
         if (isFinishing() || isDestroyed()) return;
 
@@ -270,7 +262,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         switch (accessLevel) {
             case "owner":
-                // all buttons shown
                 break;
 
             case "edit":
@@ -322,10 +313,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 return;
             }
 
-            String newQuizId = db.collection("quiz").document().getId(); // generate new ID
+            String newQuizId = db.collection("quiz").document().getId();
             String userId = currentUser.getUid();
 
-            // Fetch the original quiz
             db.collection("quiz").document(quizId)
                     .get()
                     .addOnSuccessListener(doc -> {
@@ -340,7 +330,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                             return;
                         }
 
-                        // Fetch username from users collection
                         db.collection("users").document(userId)
                                 .get()
                                 .addOnSuccessListener(userDoc -> {
@@ -348,20 +337,18 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                     originalData.put("owner_uid", userId);
                                     originalData.put("owner_username", username != null ? username : "Unknown");
                                     originalData.put("created_at", Timestamp.now());
-                                    originalData.put("reminder", ""); // reset reminder
-                                    originalData.put("privacy", "private"); // optional: set to private
-                                    originalData.put("id", newQuizId); // optional: helpful for future reference
+                                    originalData.put("reminder", "");
+                                    originalData.put("privacy", "private");
+                                    originalData.put("id", newQuizId);
                                     originalData.put("privacyRole", "view");
 
                                     Map<String, Object> accessUsers = new HashMap<>();
                                     accessUsers.put(userId, "Owner");
                                     originalData.put("accessUsers", accessUsers);
 
-                                    // Upload new quiz document
                                     db.collection("quiz").document(newQuizId)
                                             .set(originalData)
                                             .addOnSuccessListener(aVoid -> {
-                                                // Add to owned_sets
                                                 DocumentReference userRef = db.collection("users").document(userId);
                                                 userRef.get().addOnSuccessListener(userSnapshot -> {
                                                     List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userSnapshot.get("owned_sets");
@@ -429,8 +416,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
         bottomSheetDialog.show();
     }
 
-
-
     private void showReminderDialog() {
         Calendar calendar = Calendar.getInstance();
 
@@ -497,16 +482,13 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 .collection("quiz_attempt")
                 .get()
                 .addOnSuccessListener(userAttempts -> {
-                    // Delete all user attempts under quiz_attempt
                     for (DocumentSnapshot userAttempt : userAttempts.getDocuments()) {
                         userAttempt.getReference().delete();
                     }
 
-                    // Delete the quiz document itself
                     db.collection("quiz").document(quizId)
                             .delete()
                             .addOnSuccessListener(aVoid -> {
-                                // 🔄 Remove from owned_sets under user document
                                 DocumentReference userRef = db.collection("users").document(userId);
 
                                 userRef.get().addOnSuccessListener(userDoc -> {
@@ -531,7 +513,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                                     finish();
                                                 });
                                     } else {
-                                        // No owned_sets field found, just finish
                                         Toast.makeText(this, "Quiz deleted.", Toast.LENGTH_SHORT).show();
                                         finish();
                                     }
@@ -636,6 +617,4 @@ public class QuizPreviewActivity extends AppCompatActivity {
             saveQuizBtn.setImageResource(R.drawable.bookmark);
         }
     }
-
-
 }

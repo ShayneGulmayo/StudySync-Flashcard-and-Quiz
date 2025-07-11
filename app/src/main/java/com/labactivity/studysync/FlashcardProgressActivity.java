@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.io.File;
@@ -89,7 +90,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
         totalItems = getIntent().getIntExtra("totalItems", 1);
         setId = getIntent().getStringExtra("setId");
 
-        // 🔧 Accurate capped values
         int cappedKnowCount = Math.min(knowCount, totalItems);
         int stillLearningCount = Math.max(0, totalItems - cappedKnowCount);
         int progressValue = (int) (((float) cappedKnowCount / totalItems) * 100);
@@ -122,7 +122,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
             finish();
         });
 
-
         reviewQuestionsBtn.setOnClickListener(v -> {
             String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
             db.collection("flashcards")
@@ -131,9 +130,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                     .document(userId)
                     .get()
                     .addOnSuccessListener(attemptDoc -> {
-                        if (attemptDoc.exists() && attemptDoc.contains("knowCount")) {
-                            // If attempt exists, open FlashcardViewerActivity in review-only mode
-                            Intent intent = new Intent(FlashcardProgressActivity.this, FlashcardViewerActivity.class);
+                        if (attemptDoc.exists() && attemptDoc.contains("knowCount")) {Intent intent = new Intent(FlashcardProgressActivity.this, FlashcardViewerActivity.class);
                             intent.putExtra("setId", setId);
                             intent.putExtra("photoUrl", getIntent().getStringExtra("photoUrl"));
                             intent.putExtra("mode", "review_only_incorrect");
@@ -281,7 +278,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                     if (doc.exists()) {
                         List<Map<String, Object>> knowCount = (List<Map<String, Object>>) doc.get("knowCount");
                         if (knowCount != null && !knowCount.isEmpty()) {
-                            // Sort by order ascending
                             Collections.sort(knowCount, (a, b) -> {
                                 int orderA = a.get("order") != null ? ((Number) a.get("order")).intValue() : 0;
                                 int orderB = b.get("order") != null ? ((Number) b.get("order")).intValue() : 0;
@@ -296,6 +292,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                                 TextView statusLabel = answerView.findViewById(R.id.status_label);
                                 LinearLayout linearLayout = answerView.findViewById(R.id.linear_layout);
                                 ImageView termIcon = answerView.findViewById(R.id.check_term);
+                                ImageView definitionImage = answerView.findViewById(R.id.definition_image); // 👈 your image view
 
                                 String term = t.get("term") != null ? t.get("term").toString() : "No term";
                                 String definition = t.get("definition") != null ? t.get("definition").toString() : "No definition";
@@ -313,6 +310,17 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                                     linearLayout.setBackground(ContextCompat.getDrawable(this, R.drawable.warning_stroke_bg));
                                     termIcon.setImageResource(R.drawable.x_circle);
                                     termIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.white)));
+                                }
+
+                                String photoUrl = t.get("photoUrl") != null ? t.get("photoUrl").toString() : null;
+                                if (photoUrl != null && !photoUrl.isEmpty()) {
+                                    definitionImage.setVisibility(View.VISIBLE);
+                                    Glide.with(this)
+                                            .load(photoUrl)
+                                            .centerCrop()
+                                            .into(definitionImage);
+                                } else {
+                                    definitionImage.setVisibility(View.GONE);
                                 }
 
                                 answersLayout.addView(answerView);

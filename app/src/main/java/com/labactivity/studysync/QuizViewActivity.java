@@ -1,7 +1,5 @@
 package com.labactivity.studysync;
 
-import static androidx.core.util.TypedValueCompat.dpToPx;
-
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
@@ -14,23 +12,14 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
-
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-
-import com.bumptech.glide.Glide;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,8 +30,7 @@ public class QuizViewActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private ImageView back_button;
     private ImageView more_button;
-    private ImageView privacyIcon;
-    private TextView quizTitleView, quizOwnerView, quizQuestionTextView;
+    private TextView quizQuestionTextView;
     private TextView chooseAnswerLabel;
     private String selectedAnswer = null;
     private String correctAnswer = null;
@@ -51,7 +39,6 @@ public class QuizViewActivity extends AppCompatActivity {
     private int currentQuestionIndex = 0;
     private String quizId;
     private boolean hasAnswered = false;
-    private ImageView ownerProfile;
     private int score = 0;
     private TextView txtViewItems;
     private List<Map<String, Object>> userAnswersList = new ArrayList<>();
@@ -60,53 +47,27 @@ public class QuizViewActivity extends AppCompatActivity {
     private int originalQuestionCount = 0;
     private boolean shouldShuffle = false;
 
-
-
-
-
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_quiz_viewer);
 
-        // Initialize Firebase
         db = FirebaseFirestore.getInstance();
 
-        // Get quizId FIRST before anything else
         quizId = getIntent().getStringExtra("quizId");
         if (quizId == null || quizId.trim().isEmpty()) {
             Toast.makeText(this, "Quiz ID not found.", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
-
-        // Initialize Views
-        quizTitleView = findViewById(R.id.quiz_title);
-        quizOwnerView = findViewById(R.id.owner_username);
         quizQuestionTextView = findViewById(R.id.quiz_question_txt_view);
         txtViewItems = findViewById(R.id.txt_view_items);
         linearLayoutOptions = findViewById(R.id.linear_layout_options);
-        ownerProfile = findViewById(R.id.owner_profile);
         more_button = findViewById(R.id.more_button);
-        privacyIcon = findViewById(R.id.privacy_icon);
         chooseAnswerLabel = findViewById(R.id.choose_answer_label);
         back_button = findViewById(R.id.back_button);
 
-        // Setup profile image if passed
-        String photoUrl = getIntent().getStringExtra("photoUrl");
-        if (photoUrl != null && !photoUrl.isEmpty()) {
-            Glide.with(this)
-                    .load(photoUrl)
-                    .placeholder(R.drawable.user_profile)
-                    .circleCrop()
-                    .into(ownerProfile);
-        } else {
-            ownerProfile.setImageResource(R.drawable.user_profile);
-        }
 
-        // Setup button
         Button btnCheck = findViewById(R.id.btn_check_answer);
         btnCheck.setOnClickListener(v -> handleAnswerCheck());
 
@@ -120,124 +81,19 @@ public class QuizViewActivity extends AppCompatActivity {
             }
         });
 
-
-        // Back button behavior
         back_button.setOnClickListener(v -> showExitConfirmationDialog());
 
-
-        // Determine mode (default is normal)
         mode = getIntent().getStringExtra("mode");
         if (mode == null) mode = "normal";
         shouldShuffle = getIntent().getBooleanExtra("shuffle", false);
 
-
-
-
-        // Load appropriate quiz content
         if ("review_only_incorrect".equals(mode)) {
-            loadIncorrectQuestions(); // this calls loadQuizMetaInfo internally
+            loadIncorrectQuestions();
         } else {
-            loadQuizFromFirestore(); // this also loads meta and full quiz
+            loadQuizFromFirestore();
         }
 
-        // (Optional) More options button if needed later
         // more_button.setOnClickListener(v -> showMoreBottomSheet());
-    }
-
-
-
-
-
-    private void showMoreBottomSheet() {
-        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_preview, null);
-        bottomSheetDialog.setContentView(view);
-
-        TextView privacyOption = view.findViewById(R.id.privacy);
-
-        // Fetch current privacy to update label
-        db.collection("quiz").document(quizId).get().addOnSuccessListener(doc -> {
-            String currentPrivacy = doc.getString("privacy");
-            if ("private".equalsIgnoreCase(currentPrivacy)) {
-                privacyOption.setText("Set as Public");
-            } else {
-                privacyOption.setText("Set as Private");
-            }
-        });
-
-        view.findViewById(R.id.download).setOnClickListener(v -> {
-            Toast.makeText(this, "Download clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        privacyOption.setOnClickListener(v -> {
-            db.collection("quiz").document(quizId).get().addOnSuccessListener(doc -> {
-                String currentPrivacy = doc.getString("privacy");
-                if (currentPrivacy == null) currentPrivacy = "private";
-
-                String newPrivacy = currentPrivacy.equalsIgnoreCase("private") ? "public" : "private";
-
-                db.collection("quiz").document(quizId)
-                        .update("privacy", newPrivacy)
-                        .addOnSuccessListener(aVoid -> {
-                            Toast.makeText(this, "Quiz set to " + newPrivacy, Toast.LENGTH_SHORT).show();
-
-                            if ("private".equalsIgnoreCase(newPrivacy)) {
-                                privacyIcon.setImageResource(R.drawable.lock);
-                            } else {
-                                privacyIcon.setImageResource(R.drawable.public_icon);
-                            }
-
-                        })
-                        .addOnFailureListener(e -> {
-                            Toast.makeText(this, "Failed to update privacy", Toast.LENGTH_SHORT).show();
-                        });
-            });
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.reminder).setOnClickListener(v -> {
-            Toast.makeText(this, "Reminder clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.sendToChat).setOnClickListener(v -> {
-            Toast.makeText(this, "Send to Chat clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
-        });
-
-        view.findViewById(R.id.edit).setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-            Intent intent = new Intent(this, CreateQuizActivity.class);
-            intent.putExtra("quizId", quizId);
-            startActivity(intent);
-        });
-
-        view.findViewById(R.id.delete).setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-            showDeleteConfirmationDialog();
-        });
-
-        bottomSheetDialog.show();
-    }
-
-    private void showDeleteConfirmationDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete Quiz")
-                .setMessage("Are you sure you want to delete this quiz? This action cannot be undone.")
-                .setPositiveButton("Yes", (dialog, which) -> deleteQuiz())
-                .setNegativeButton("No", null)
-                .show();
-    }
-
-    private void deleteQuiz() {
-        db.collection("quiz").document(quizId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Quiz deleted.", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete quiz.", Toast.LENGTH_SHORT).show());
     }
 
     private void loadQuizFromFirestore() {
@@ -245,49 +101,6 @@ public class QuizViewActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-                        quizTitleView.setText(documentSnapshot.getString("title"));
-                        String ownerUid = documentSnapshot.getString("owner_uid");
-
-                        if (ownerUid != null && !ownerUid.isEmpty()) {
-                            db.collection("users").document(ownerUid).get()
-                                    .addOnSuccessListener(userDoc -> {
-                                        String latestUsername = userDoc.getString("username");
-                                        if (latestUsername != null && !latestUsername.isEmpty()) {
-                                            quizOwnerView.setText(latestUsername);
-                                        } else {
-                                            quizOwnerView.setText("Unknown User");
-                                        }
-
-                                        // Optional: update profile photo if needed
-                                        String photoUrl = userDoc.getString("photoUrl");
-                                        if (photoUrl != null && !photoUrl.isEmpty()) {
-                                            Glide.with(this)
-                                                    .load(photoUrl)
-                                                    .placeholder(R.drawable.user_profile)
-                                                    .circleCrop()
-                                                    .into(ownerProfile);
-                                        } else {
-                                            ownerProfile.setImageResource(R.drawable.user_profile);
-                                        }
-
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        quizOwnerView.setText("Failed to load user");
-                                        ownerProfile.setImageResource(R.drawable.user_profile);
-                                    });
-                        } else {
-                            quizOwnerView.setText("Unknown User");
-                            ownerProfile.setImageResource(R.drawable.user_profile);
-                        }
-
-
-                        String currentPrivacy = documentSnapshot.getString("privacy");
-
-                        if ("private".equalsIgnoreCase(currentPrivacy)) {
-                            privacyIcon.setImageResource(R.drawable.lock);
-                        } else {
-                            privacyIcon.setImageResource(R.drawable.public_icon);
-                        }
 
                         Object raw = documentSnapshot.get("questions");
                         questions = new ArrayList<>();
@@ -429,11 +242,6 @@ public class QuizViewActivity extends AppCompatActivity {
         linearLayoutOptions.addView(singleInputView);
     }
 
-
-
-
-
-
     private void addOptionView(String optionText, String correctAnswer) {
         View optionView = LayoutInflater.from(this).inflate(R.layout.item_quiz_options, linearLayoutOptions, false);
         TextView tvOption = optionView.findViewById(R.id.tvOptionText);
@@ -464,44 +272,7 @@ public class QuizViewActivity extends AppCompatActivity {
         linearLayoutOptions.addView(optionView);
     }
 
-    private void loadQuizMetaInfo() {
-        db.collection("quiz").document(quizId).get().addOnSuccessListener(doc -> {
-            if (doc.exists()) {
-                String title = doc.getString("title");
-                quizTitleView.setText(title != null ? title : "Untitled");
-
-                String ownerUid = doc.getString("owner_uid");
-                if (ownerUid != null) {
-                    db.collection("users").document(ownerUid).get().addOnSuccessListener(userDoc -> {
-                        String username = userDoc.getString("username");
-                        quizOwnerView.setText(username != null ? username : "Unknown User");
-
-                        String photoUrl = userDoc.getString("photoUrl");
-                        if (photoUrl != null && !photoUrl.isEmpty()) {
-                            Glide.with(this).load(photoUrl).placeholder(R.drawable.user_profile).circleCrop().into(ownerProfile);
-                        } else {
-                            ownerProfile.setImageResource(R.drawable.user_profile);
-                        }
-                    }).addOnFailureListener(e -> {
-                        quizOwnerView.setText("Failed to load user");
-                        ownerProfile.setImageResource(R.drawable.user_profile);
-                    });
-                }
-
-                String privacy = doc.getString("privacy");
-                if ("private".equalsIgnoreCase(privacy)) {
-                    privacyIcon.setImageResource(R.drawable.lock);
-                } else {
-                    privacyIcon.setImageResource(R.drawable.public_icon);
-                }
-
-            }
-        });
-    }
-
-
     private void loadIncorrectQuestions() {
-        loadQuizMetaInfo();
 
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         db.collection("quiz")
@@ -549,8 +320,7 @@ public class QuizViewActivity extends AppCompatActivity {
                             startActivity(intent);
                             finish();
                         } else {
-                            // Otherwise just load the full quiz
-                            loadQuizFromFirestore(); // fallback to normal
+                            loadQuizFromFirestore();
                         }
                     }
                 })
@@ -597,7 +367,6 @@ public class QuizViewActivity extends AppCompatActivity {
                 }
             }
 
-            // Save answer
             Map<String, Object> answer = new HashMap<>();
             answer.put("question", currentQuestion.get("question"));
             answer.put("type", "multiple choice");
@@ -716,23 +485,20 @@ public class QuizViewActivity extends AppCompatActivity {
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : "anonymous";
 
-        // Count how many answers are correct
         int finalScore = 0;
         for (Map<String, Object> answer : newAnswers) {
             Boolean isCorrect = (Boolean) answer.get("isCorrect");
             if (isCorrect != null && isCorrect) finalScore++;
         }
 
-        // Prepare result data to fully overwrite old attempt
         Map<String, Object> resultData = new HashMap<>();
         resultData.put("quizId", quizId);
         resultData.put("userId", userId);
         resultData.put("score", finalScore);
         resultData.put("total", originalQuestionCount);
-        resultData.put("answeredQuestions", newAnswers); // ✅ full overwrite
+        resultData.put("answeredQuestions", newAnswers);
         resultData.put("timestamp", FieldValue.serverTimestamp());
 
-        // Save new attempt (overwrite the document)
         db.collection("quiz")
                 .document(quizId)
                 .collection("quiz_attempt")
@@ -740,11 +506,9 @@ public class QuizViewActivity extends AppCompatActivity {
                 .set(resultData);
     }
 
-
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
     }
-
 
     @SuppressLint("MissingSuperCall")
     @Override
@@ -752,13 +516,11 @@ public class QuizViewActivity extends AppCompatActivity {
         showExitConfirmationDialog();
     }
 
-
     private void showExitConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("Exit Quiz")
                 .setMessage("Are you sure you want to exit the quiz?\nYour progress will not be saved.")
                 .setPositiveButton("Yes, Exit", (dialog, which) -> {
-                    // Call super to allow actual back navigation
                     QuizViewActivity.super.onBackPressed();
                 })
                 .setNegativeButton("Cancel", null)
