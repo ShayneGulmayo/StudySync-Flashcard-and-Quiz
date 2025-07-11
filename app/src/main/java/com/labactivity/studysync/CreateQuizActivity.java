@@ -1,10 +1,29 @@
 package com.labactivity.studysync;
 
+import static android.content.Intent.getIntent;
+import com.canhub.cropper.CropImage;
+import com.canhub.cropper.CropImageContract;
+import com.canhub.cropper.CropImageContractOptions;
+import com.canhub.cropper.CropImageOptions;
+import com.canhub.cropper.CropImageView;
+import android.content.ContentResolver;
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.FileOutputStream;
+
+
+import com.canhub.cropper.CropImage;
+import com.google.firebase.storage.FirebaseStorage;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -17,30 +36,34 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.content.DialogInterface;
 import android.widget.*;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
-
 import com.bumptech.glide.Glide;
 import com.google.firebase.firestore.*;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.DocumentReference;
-
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import androidx.core.content.FileProvider;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.Timestamp;
+import com.yalantis.ucrop.UCrop;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
+import java.util.UUID;
 
 public class CreateQuizActivity extends AppCompatActivity {
 
@@ -57,8 +80,11 @@ public class CreateQuizActivity extends AppCompatActivity {
     private TextView roleTxt, privacyTxt;
     private ImageView privacyIcon;
     private boolean isPublic = true;
+    private View currentQuizItemView;
+    private ActivityResultLauncher<Intent> pickQuizImageLauncher;
+    private Map<View, Uri> pendingUploads = new HashMap<>();
 
-
+    private String ownerUid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,15 +103,9 @@ public class CreateQuizActivity extends AppCompatActivity {
         privacyIcon = findViewById(R.id.icon_privacy);
         roleTxt = findViewById(R.id.role_text);
 
-
-
-
-
-
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
-
-        quizId = getIntent().getStringExtra("quizId");
+        ownerUid = auth.getCurrentUser().getUid();
 
         db.collection("users")
                 .document(auth.getCurrentUser().getUid())
@@ -182,6 +202,27 @@ public class CreateQuizActivity extends AppCompatActivity {
         privacyTxt.setOnClickListener(privacyClickListener);
         privacyIcon.setOnClickListener(privacyClickListener);
 
+        pickQuizImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri sourceUri = result.getData().getData();
+                        File file = new File(getCacheDir(), UUID.randomUUID().toString() + ".jpg");
+                        Uri destUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", file);
+
+                        UCrop.of(sourceUri, destUri)
+                                .withAspectRatio(1, 1)
+                                .withMaxResultSize(512, 512)
+                                .start(this);
+                    }
+                }
+        );
+
+
+
+
+
+
     }
 
     private void saveQuizToFirebase() {
@@ -198,6 +239,16 @@ public class CreateQuizActivity extends AppCompatActivity {
             questionData.put("question", questionInput.getText().toString().trim());
             questionData.put("type", quizType);
 
+            ImageView imageView = quizItem.findViewById(R.id.add_image_button);
+            String photoUrl = imageView.getTag() != null ? imageView.getTag().toString() : null;
+            String fileName = (String) imageView.getContentDescription();
+
+            if (photoUrl != null) {
+                questionData.put("photoUrl", photoUrl);
+                if (fileName != null) {
+                    questionData.put("photoFileName", fileName);
+                }
+            }
 
             if (quizType.equals("multiple choice")) {
                 List<String> choices = new ArrayList<>();
@@ -235,9 +286,9 @@ public class CreateQuizActivity extends AppCompatActivity {
         quizData.put("number_of_items", questionCount);
         quizData.put("progress", 0);
         quizData.put("questions", questionList);
-        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault());
-        String formattedDate = sdf.format(new Date());
-        quizData.put("createdAt", formattedDate);
+        quizData.put("created_at", Timestamp.now());
+
+
 
 
         Map<String, Object> accessUsers = new HashMap<>();
@@ -254,62 +305,63 @@ public class CreateQuizActivity extends AppCompatActivity {
         }
 
 
-        if (quizId != null) {
-            quizData.put("quizId", quizId);
-            // 🔁 Update existing quiz
-            db.collection("quiz").document(quizId)
-                    .update(quizData)
-                    .addOnSuccessListener(documentReference -> {
-                        Toast.makeText(this, "Quiz updated successfully!", Toast.LENGTH_SHORT).show();
-                        finish();
-                    })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to update quiz", Toast.LENGTH_SHORT).show());
+        DocumentReference quizRef;
+        if (quizId == null) {
+            quizRef = db.collection("quiz").document(); // auto-generates ID
+            quizId = quizRef.getId(); // set it for image uploads etc.
         } else {
-            String generatedQuizId = db.collection("quiz").document().getId();  // 🔑 generate ID first
-            quizData.put("quizId", generatedQuizId);
-
-            db.collection("quiz").document(generatedQuizId)
-                    .set(quizData)
-                    .addOnSuccessListener(unused -> {
-                        // 🔹 Prepare the set object
-                        Map<String, Object> ownedSet = new HashMap<>();
-                        ownedSet.put("id", generatedQuizId);
-                        ownedSet.put("type", "quiz");
-
-                        // 🔹 Add to user's owned_sets safely
-                        DocumentReference userRef = db.collection("users").document(auth.getCurrentUser().getUid());
-                        userRef.update("owned_sets", FieldValue.arrayUnion(ownedSet))
-                                .addOnSuccessListener(userUpdate -> {
-                                    Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
-                                    finish();
-                                })
-                                .addOnFailureListener(e -> {
-                                    // If owned_sets doesn't exist, initialize it
-                                    Map<String, Object> initData = new HashMap<>();
-                                    List<Map<String, Object>> newList = new ArrayList<>();
-                                    newList.add(ownedSet);
-                                    initData.put("owned_sets", newList);
-
-                                    userRef.set(initData, SetOptions.merge())
-                                            .addOnSuccessListener(mergeSuccess -> {
-                                                Toast.makeText(this, "Quiz saved and owned set initialized!", Toast.LENGTH_SHORT).show();
-                                                finish();
-                                            })
-                                            .addOnFailureListener(err -> {
-                                                Toast.makeText(this, "Quiz saved but failed to register as owned", Toast.LENGTH_LONG).show();
-                                                finish();
-                                            });
-                                });
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Failed to save quiz", Toast.LENGTH_SHORT).show();
-                    });
-
-
-
-
+            quizRef = db.collection("quiz").document(quizId); // use existing one for update
         }
+        quizRef.get().addOnSuccessListener(doc -> {
+            if (doc.exists()) {
+                // 🔁 UPDATE
+                quizRef.update(quizData)
+                        .addOnSuccessListener(documentReference -> {
+                            Toast.makeText(this, "Quiz updated successfully!", Toast.LENGTH_SHORT).show();
+                            finish();
+                        })
+                        .addOnFailureListener(e -> Toast.makeText(this, "Failed to update quiz", Toast.LENGTH_SHORT).show());
+            } else {
+                // 🆕 CREATE
+                quizRef.set(quizData)
+                        .addOnSuccessListener(unused -> {
+                            for (Map.Entry<View, Uri> entry : pendingUploads.entrySet()) {
+                                uploadQuizImage(entry.getValue(), ownerUid, quizId, entry.getKey());
+                            }
+                            pendingUploads.clear();
 
+                            Map<String, Object> ownedSet = new HashMap<>();
+                            ownedSet.put("id", quizId);
+                            ownedSet.put("type", "quiz");
+
+                            DocumentReference userRef = db.collection("users").document(auth.getCurrentUser().getUid());
+                            userRef.update("owned_sets", FieldValue.arrayUnion(ownedSet))
+                                    .addOnSuccessListener(userUpdate -> {
+                                        Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
+                                        finish();
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Map<String, Object> initData = new HashMap<>();
+                                        List<Map<String, Object>> newList = new ArrayList<>();
+                                        newList.add(ownedSet);
+                                        initData.put("owned_sets", newList);
+
+                                        userRef.set(initData, SetOptions.merge())
+                                                .addOnSuccessListener(mergeSuccess -> {
+                                                    Toast.makeText(this, "Quiz saved and owned set initialized!", Toast.LENGTH_SHORT).show();
+                                                    finish();
+                                                })
+                                                .addOnFailureListener(err -> {
+                                                    Toast.makeText(this, "Quiz saved but failed to register as owned", Toast.LENGTH_LONG).show();
+                                                    finish();
+                                                });
+                                    });
+                        })
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(this, "Failed to save quiz", Toast.LENGTH_SHORT).show();
+                        });
+            }
+        });
     }
 
     private void showExitConfirmation() {
@@ -353,6 +405,15 @@ public class CreateQuizActivity extends AppCompatActivity {
             quizContainer.removeView(quizItem);
             questionCount--;
         });
+
+        ImageView addImageButton = quizItem.findViewById(R.id.add_image_button);
+        addImageButton.setOnClickListener(v -> {
+            currentQuizItemView = quizItem;
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            pickQuizImageLauncher.launch(Intent.createChooser(intent, "Select Image"));
+        });
+
 
         quizTypeSpinner.setOnItemSelectedListener(getQuizTypeChangeListener(addOptionText, optionsContainer));
 
@@ -486,6 +547,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         quizTitleInput.setText(documentSnapshot.getString("title"));
+                        ownerUid = documentSnapshot.getString("owner_uid");
 
                         List<Map<String, Object>> questions = (List<Map<String, Object>>) documentSnapshot.get("questions");
                         if (questions != null) {
@@ -655,7 +717,21 @@ public class CreateQuizActivity extends AppCompatActivity {
             questionCount--;
         });
 
-        // Finally add to parent
+        ImageView addImageButton = quizItem.findViewById(R.id.add_image_button);
+        addImageButton.setOnClickListener(v -> {
+            currentQuizItemView = quizItem;
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            pickQuizImageLauncher.launch(Intent.createChooser(intent, "Select Image"));
+        });
+
+        Object photoUrlObj = questionData.get("photoUrl");
+        if (photoUrlObj instanceof String) {
+            String photoUrl = (String) photoUrlObj;
+            Glide.with(this).load(photoUrl).into(addImageButton);
+            addImageButton.setTag(photoUrl);
+        }
+
         quizContainer.addView(quizItem);
     }
 
@@ -740,6 +816,110 @@ public class CreateQuizActivity extends AppCompatActivity {
         };
 
     }
+
+    private void uploadQuizImage(Uri imageUri, String ownerUid, String quizId, View quizItemView) {
+        if (ownerUid == null || quizId == null) {
+            Toast.makeText(this, "Missing user or quiz ID", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            File file = getFileFromUri(this, imageUri);
+            if (file.length() > 5 * 1024 * 1024) {
+                Toast.makeText(this, "Image too large (max 5MB)", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String mimeType = getContentResolver().getType(imageUri);
+            String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+            if (ext == null) ext = "jpg";
+
+            String fileName = UUID.randomUUID().toString() + "." + ext;
+            String path = "quiz_images/" + ownerUid + "/" + quizId + "/" + fileName;
+
+            FirebaseStorage.getInstance().getReference().child(path)
+                    .putFile(imageUri)
+                    .addOnSuccessListener(taskSnapshot -> {
+                        taskSnapshot.getStorage().getDownloadUrl()
+                                .addOnSuccessListener(uri -> {
+                                    ImageView imageView = quizItemView.findViewById(R.id.add_image_button);
+                                    Glide.with(this).load(uri).into(imageView);
+                                    imageView.setTag(uri.toString());
+                                    imageView.setContentDescription(fileName);
+                                    Toast.makeText(this, "Image uploaded", Toast.LENGTH_SHORT).show();
+                                });
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Upload failed", Toast.LENGTH_SHORT).show();
+                    });
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Image error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+    public static File getFileFromUri(Context context, Uri uri) throws Exception {
+        ContentResolver contentResolver = context.getContentResolver();
+        String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(uri));
+        if (extension == null) extension = "jpg";
+
+        File tempFile = File.createTempFile("upload", "." + extension, context.getCacheDir());
+
+        try (InputStream inputStream = contentResolver.openInputStream(uri);
+             OutputStream outputStream = new FileOutputStream(tempFile)) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        }
+
+        return tempFile;
+    }
+
+    private final ActivityResultLauncher<CropImageContractOptions> cropImageLauncher =
+            registerForActivityResult(new CropImageContract(), result -> {
+                if (result.isSuccessful() && result.getUriContent() != null && currentQuizItemView != null) {
+                    Uri croppedUri = result.getUriContent();
+
+                    if (quizId == null) {
+                        // DO NOT upload yet — save it temporarily
+                        pendingUploads.put(currentQuizItemView, croppedUri);
+                        Toast.makeText(this, "Image ready to upload after quiz is saved", Toast.LENGTH_SHORT).show();
+                    } else {
+                        uploadQuizImage(croppedUri, ownerUid, quizId, currentQuizItemView);
+                    }
+                }
+
+            });
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == UCrop.REQUEST_CROP && resultCode == RESULT_OK && data != null) {
+            Uri resultUri = UCrop.getOutput(data);
+            if (resultUri != null && currentQuizItemView != null) {
+                if (currentQuizItemView != null) {
+                    ImageView imageView = currentQuizItemView.findViewById(R.id.add_image_button);
+                    Glide.with(this).load(resultUri).into(imageView);
+                    imageView.setTag(resultUri.toString());
+                    imageView.setContentDescription("pending"); // optional
+
+                    if (quizId == null) {
+                        pendingUploads.put(currentQuizItemView, resultUri);
+                        Toast.makeText(this, "Image ready to upload after quiz is saved", Toast.LENGTH_SHORT).show();
+                    } else {
+                        uploadQuizImage(resultUri, ownerUid, quizId, currentQuizItemView);
+                    }
+                }
+            }
+        }
+    }
+
+
+
     @Override
     public void onBackPressed() {
         if (questionCount > 0) {
