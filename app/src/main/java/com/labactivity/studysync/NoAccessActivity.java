@@ -1,5 +1,9 @@
 package com.labactivity.studysync;
 
+import android.app.AlarmManager;
+import android.app.DatePickerDialog;
+import android.app.PendingIntent;
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -10,18 +14,26 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.labactivity.studysync.receivers.ReminderReceiver;
+import org.json.JSONObject;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class NoAccessActivity extends AppCompatActivity {
 
     private ImageView moreButton, backButton;
-    private String setId;
+    private String setId, setType;
     private BottomSheetDialog bottomSheetDialog;
-
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
+    private DatePickerDialog datePickerDialog;
+    private TimePickerDialog timePickerDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,11 +47,11 @@ public class NoAccessActivity extends AppCompatActivity {
         if (getIntent().hasExtra("setId")) {
             setId = getIntent().getStringExtra("setId");
         } else {
-            Toast.makeText(this, "No Flashcard Set ID provided.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No Set ID provided.", Toast.LENGTH_SHORT).show();
             finish();
         }
 
-
+        setType = getIntent().getStringExtra("setType") != null ? getIntent().getStringExtra("setType") : "flashcard";
     }
 
     private void initializeViews() {
@@ -66,7 +78,7 @@ public class NoAccessActivity extends AppCompatActivity {
 
         String currentUserId = auth.getCurrentUser().getUid();
 
-        db.collection("flashcards").document(setId)
+        db.collection(setType.equals("quiz") ? "quizzes" : "flashcards").document(setId)
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (!doc.exists()) {
@@ -95,7 +107,7 @@ public class NoAccessActivity extends AppCompatActivity {
 
                                     if (savedSets != null) {
                                         for (Map<String, Object> set : savedSets) {
-                                            if (setId.equals(set.get("id")) && "flashcard".equals(set.get("type"))) {
+                                            if (setId.equals(set.get("id")) && setType.equals(set.get("type"))) {
                                                 isSavedSet = true;
                                                 break;
                                             }
@@ -128,7 +140,6 @@ public class NoAccessActivity extends AppCompatActivity {
         if (privacy == null && privacyRole == null && !isSavedSet) {
             // Owner — show all
         } else if ("public".equals(privacy) && "view".equalsIgnoreCase(privacyRole)) {
-            // Default is view-only access
             privacyBtn.setVisibility(View.GONE);
             reminderBtn.setVisibility(View.GONE);
             sendToChatBtn.setVisibility(View.GONE);
@@ -138,7 +149,6 @@ public class NoAccessActivity extends AppCompatActivity {
             copyBtn.setVisibility(View.VISIBLE);
             editBtn.setVisibility(View.GONE);
 
-            // 🔥 Check if this user has explicit Edit access via accessUsers
             if ("Edit".equalsIgnoreCase(userAccessRole)) {
                 editBtn.setVisibility(View.VISIBLE);
                 downloadBtn.setVisibility(View.VISIBLE);
@@ -146,7 +156,6 @@ public class NoAccessActivity extends AppCompatActivity {
                 reqAccessBtn.setVisibility(View.VISIBLE);
             }
         } else if ("public".equals(privacy) && "edit".equalsIgnoreCase(privacyRole)) {
-            // Public edit access
             privacyBtn.setVisibility(View.GONE);
             reminderBtn.setVisibility(View.GONE);
             sendToChatBtn.setVisibility(View.GONE);
@@ -154,7 +163,6 @@ public class NoAccessActivity extends AppCompatActivity {
             copyBtn.setVisibility(View.VISIBLE);
             editBtn.setVisibility(View.VISIBLE);
         } else {
-            // Not owner, not saved set, no public access — deny
             privacyBtn.setVisibility(View.GONE);
             reminderBtn.setVisibility(View.GONE);
             sendToChatBtn.setVisibility(View.GONE);
@@ -162,15 +170,10 @@ public class NoAccessActivity extends AppCompatActivity {
             deleteBtn.setVisibility(View.GONE);
             downloadBtn.setVisibility(View.GONE);
             reqAccessBtn.setVisibility(View.VISIBLE);
-
         }
 
-        // Listeners
-
-        reqAccessBtn.setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-        });
-
+        reqAccessBtn.setOnClickListener(v -> bottomSheetDialog.dismiss());
         bottomSheetDialog.show();
     }
+
 }

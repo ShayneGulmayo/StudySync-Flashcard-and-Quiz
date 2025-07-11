@@ -1,0 +1,100 @@
+package com.labactivity.studysync;
+
+import android.content.Context;
+import android.content.Intent;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.io.File;
+import java.util.List;
+import java.util.Map;
+
+public class DownloadedSetsAdapter extends RecyclerView.Adapter<DownloadedSetsAdapter.ViewHolder> {
+
+    private List<Map<String, Object>> sets;
+    private Context context;
+
+    public DownloadedSetsAdapter(List<Map<String, Object>> sets, Context context) {
+        this.sets = sets;
+        this.context = context;
+    }
+
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(context).inflate(R.layout.item_downloaded_set, parent, false);
+        return new ViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        Map<String, Object> set = sets.get(position);
+        String title = (String) set.get("title");
+        String username = (String) set.get("username");
+        if (username == null) username = "Unknown User";
+
+        Object itemsObj = set.get("number_of_items");
+        String items = (itemsObj != null) ? String.valueOf(itemsObj) : "No Items Found";
+
+        holder.title.setText(title != null ? title : "Untitled Set");
+        holder.username.setText(username);
+        holder.items.setText(items + (items.equals("1") ? " item" : " items"));
+
+        holder.itemView.setOnClickListener(v -> {
+            String fileName = (String) set.get("fileName");
+            if (fileName != null) {
+                Intent intent = new Intent(context, FlashcardPreviewActivity.class);
+                intent.putExtra("isOffline", true);
+                intent.putExtra("offlineFileName", fileName);
+                context.startActivity(intent);
+            } else {
+                Toast.makeText(context, "File not found.", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
+        holder.deleteBtn.setOnClickListener(v -> {
+            String fileName = (String) set.get("fileName");
+            if (fileName != null) {
+                File file = new File(context.getFilesDir(), fileName);
+                if (file.exists()) {
+                    if (file.delete()) {
+                        Toast.makeText(context, "Set deleted.", Toast.LENGTH_SHORT).show();
+                        sets.remove(position);
+                        notifyItemRemoved(position);
+                        notifyItemRangeChanged(position, sets.size());
+                    } else {
+                        Toast.makeText(context, "Failed to delete set.", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(context, "File not found.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+    }
+
+    @Override
+    public int getItemCount() {
+        return sets.size();
+    }
+
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView title, username, items;
+        ImageView deleteBtn;
+
+        public ViewHolder(View itemView) {
+            super(itemView);
+            title = itemView.findViewById(R.id.setTitle);
+            username = itemView.findViewById(R.id.setUsername);
+            items = itemView.findViewById(R.id.setItems);
+            deleteBtn = itemView.findViewById(R.id.deleteBtn);
+        }
+    }
+}
