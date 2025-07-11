@@ -7,9 +7,10 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Base64;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -19,12 +20,23 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.android.gms.common.util.IOUtils;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.firebase.ai.FirebaseAI;
+import com.google.firebase.ai.GenerativeModel;
+import com.google.firebase.ai.java.GenerativeModelFutures;
+import com.google.firebase.ai.type.Content;
+import com.google.firebase.ai.type.GenerateContentResponse;
+import com.google.firebase.ai.type.GenerativeBackend;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.firestore.FirebaseFirestore;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -32,16 +44,18 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class GenerateFlashcardActivity extends AppCompatActivity {
 
     private static final String TAG = "GenerateFlashcard";
     private static final int PERMISSION_REQUEST_CODE = 100;
+    private final Executor executor = Executors.newSingleThreadExecutor();
 
     private FirebaseAuth mAuth;
     private CardView selectFile, generateManually;
     private ImageView backBtn;
-
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -76,7 +90,6 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
         });
 
         selectFile.setOnClickListener(view -> {
-            Toast.makeText(this, "Select File clicked", Toast.LENGTH_SHORT).show(); // Debug
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 openFilePicker();
             } else {
@@ -89,7 +102,6 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
                     openFilePicker();
                 }
             }
-
         });
     }
 
@@ -106,54 +118,20 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
 
     private void openFilePicker() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");
-        String[] mimeTypes = {
-                "application/pdf",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-        };
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+        intent.setType("application/pdf");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        filePickerLauncher.launch(Intent.createChooser(intent, "Select File"));
+        filePickerLauncher.launch(Intent.createChooser(intent, "Select a PDF File"));
     }
 
     private void readFileContentAndSendToFunction(Uri uri, String mimeType) {
-        try (InputStream inputStream = getContentResolver().openInputStream(uri)) {
-            byte[] bytes = IOUtils.toByteArray(inputStream);
-            String base64Encoded = Base64.encodeToString(bytes, Base64.NO_WRAP);
-
-            String title = "Generated Set " + new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault()).format(new Date());
-
-            callFirebaseFunction(base64Encoded, mimeType, title);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Failed to read file", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void callFirebaseFunction(String base64File, String mimeType, String title) {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) {
-            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+        if (!"application/pdf".equals(mimeType)) {
+            Toast.makeText(this, "Only PDF files are supported", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("base64File", base64File);
-        data.put("mimeType", mimeType);
-        data.put("title", title);
-        data.put("uid", user.getUid());
-
-        FirebaseFunctions.getInstance()
-                .getHttpsCallable("generateFlashcards")
-                .call(data)
-                .addOnSuccessListener(result -> {
-                    Toast.makeText(this, "Flashcards generated and saved!", Toast.LENGTH_LONG).show();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Function error", e);
-                    Toast.makeText(this, "Generation failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+        Intent intent = new Intent(this, LoadingSetActivity.class);
+        intent.setData(uri); // pass URI
+        startActivity(intent);
     }
+
 }

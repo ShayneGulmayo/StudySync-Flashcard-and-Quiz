@@ -49,7 +49,7 @@ dependencies {
     implementation("com.google.firebase:firebase-ai")
     implementation ("com.google.guava:guava:31.0.1-android")
     implementation ("com.google.code.gson:gson:2.10.1")
-    
+    implementation ("com.airbnb.android:lottie:6.1.0")
     implementation("org.reactivestreams:reactive-streams:1.0.4")
     implementation("com.google.guava:guava:31.0.1-android")
     implementation("com.google.firebase:firebase-storage-ktx")
