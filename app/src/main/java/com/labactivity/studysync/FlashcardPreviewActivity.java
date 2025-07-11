@@ -5,8 +5,18 @@ import android.app.AlarmManager;
 import android.app.DatePickerDialog;
 import android.app.PendingIntent;
 import android.app.TimePickerDialog;
+import android.content.ActivityNotFoundException;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.pdf.PdfDocument;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -36,6 +46,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -51,7 +62,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
     private TextView titleTextView, ownerTextView, createdAtTextView, numberOfItemsTextView, privacyText, reminderTextView, downloadTxt;
-    private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, reminderIcon, saveSetBtn, downloadIcon;
+    private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, reminderIcon, saveSetBtn, downloadIcon, createdAtIcon;
     private Button startFlashcardBtn;
     private ViewPager2 carouselViewPager;
     private String currentPrivacy, setId, currentReminder, offlineFileName, ownerUid;
@@ -66,6 +77,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private TimePickerDialog timePickerDialog;
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private boolean isSaved = false;
+    boolean isDownloaded = false;
     private boolean isOffline;
     private Map<String, Object> setData;
 
@@ -129,6 +141,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         titleTextView = findViewById(R.id.flashcard_title);
         ownerTextView = findViewById(R.id.owner_username);
         createdAtTextView = findViewById(R.id.createdAt_txt);
+        createdAtIcon = findViewById(R.id.createdAt_icon);
         numberOfItemsTextView = findViewById(R.id.item_txt);
         ownerPhotoImageView = findViewById(R.id.owner_profile);
         carouselViewPager = findViewById(R.id.carousel_viewpager);
@@ -156,22 +169,35 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         });
 
         privacyIcon.setOnClickListener(v -> {
-            Intent intent = new Intent(FlashcardPreviewActivity.this, PrivacyActivity.class);
-            startActivity(intent);
+            startActivity(new Intent(this, PrivacyActivity.class).putExtra("setId", setId));
+
         });
 
         privacyText.setOnClickListener(v -> {
-            Intent intent = new Intent(FlashcardPreviewActivity.this, PrivacyActivity.class);
-            startActivity(intent);
+            startActivity(new Intent(this, PrivacyActivity.class).putExtra("setId", setId));
+
         });
+
+        reminderIcon.setOnClickListener(v -> {
+            showReminderDialog();
+
+        });
+
+        reminderTextView.setOnClickListener(v -> {
+            showReminderDialog();
+
+        });
+
 
         ownerTextView.setOnClickListener(v -> {
             if (ownerUid != null) {
                 Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
                 intent.putExtra("userId", ownerUid);
                 startActivity(intent);
+            } else if (isOffline){
+                Toast.makeText(this, "You are Offline.", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this, "User not found.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "User Not Found.", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -180,8 +206,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
                 intent.putExtra("userId", ownerUid);
                 startActivity(intent);
+            } else if (isOffline){
+                Toast.makeText(this, "You are Offline.", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this, "User not found.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "User Not Found.", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -278,7 +306,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
 
         downloadBtn.setOnClickListener(v -> {
-            downloadSet();
+            showDownloadOptionsDialog();
             bottomSheetDialog.dismiss();
         });
 
@@ -330,6 +358,24 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         bottomSheetDialog.show();
     }
 
+    private void showDownloadOptionsDialog() {
+        String[] options = {"Download as PDF", "Download for Offline Use"};
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Download Options")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        // Option 1: Download as PDF
+                        downloadOfflinePdf(setId);
+                    } else if (which == 1) {
+                        // Option 2: Download for Offline Use
+                        downloadSet();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     private void fetchSetFromFirestore(String setId) {
         db.collection("flashcards").document(setId)
                 .get()
@@ -353,7 +399,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                                 setData.put("username", "Unknown User");
                                                 setData.put("photoUrl", "");
                                             }
-                                            // only display after complete user fetch
                                             loadFlashcardSet();
                                         })
                                         .addOnFailureListener(e -> {
@@ -497,193 +542,179 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
     }
 
-//
-//    private void downloadOfflinePdf(String setId) {
-//        FirebaseFirestore db = FirebaseFirestore.getInstance();
-//
-//        db.collection("flashcards").document(setId)
-//                .get()
-//                .addOnSuccessListener(documentSnapshot -> {
-//                    if (documentSnapshot.exists()) {
-//                        String title = documentSnapshot.getString("title");
-//                        if (title == null || title.isEmpty()) {
-//                            title = "Flashcard_" + setId;
-//                        }
-//
-//                        Object termsObj = documentSnapshot.get("terms");
-//
-//                        if (termsObj == null) {
-//                            Toast.makeText(this, "No flashcards found in this set.", Toast.LENGTH_SHORT).show();
-//                            return;
-//                        }
-//
-//                        List<Object> rawTerms;
-//
-//                        if (termsObj instanceof Map) {
-//                            Map<String, Object> termsMap = (Map<String, Object>) termsObj;
-//                            rawTerms = new ArrayList<>(termsMap.values());
-//                        } else if (termsObj instanceof List) {
-//                            rawTerms = (List<Object>) termsObj;
-//                        } else {
-//                            Toast.makeText(this, "Terms data is invalid format.", Toast.LENGTH_SHORT).show();
-//                            return;
-//                        }
-//
-//                        if (rawTerms.isEmpty()) {
-//                            Toast.makeText(this, "No flashcards in this set.", Toast.LENGTH_SHORT).show();
-//                            return;
-//                        }
-//
-//                        writePdfFile(title, rawTerms);
-//
-//                    } else {
-//                        Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
-//                    }
-//                })
-//                .addOnFailureListener(e -> {
-//                    Toast.makeText(this, "Failed to fetch flashcards: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-//                    e.printStackTrace();
-//                });
-//    }
-//
-//    private void writePdfFile(String title, List<Object> termsList) {
-//        try {
-//            PdfDocument pdfDocument = new PdfDocument();
-//            Paint paint = new Paint();
-//            paint.setTextSize(14f);
-//            paint.setAntiAlias(true);
-//
-//            int pageWidth = 595;
-//            int pageHeight = 842;
-//            int margin = 40;
-//            int y = margin;
-//
-//            PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
-//            PdfDocument.Page page = pdfDocument.startPage(pageInfo);
-//            Canvas canvas = page.getCanvas();
-//
-//            Paint titlePaint = new Paint();
-//            titlePaint.setTextSize(18f);
-//            titlePaint.setFakeBoldText(true);
-//            titlePaint.setAntiAlias(true);
-//            canvas.drawText(title, margin, y, titlePaint);
-//            y += 40;
-//
-//            for (Object termItem : termsList) {
-//                if (termItem instanceof Map) {
-//                    Map<String, Object> termMap = (Map<String, Object>) termItem;
-//                    String term = (String) termMap.get("term");
-//                    String definition = (String) termMap.get("definition");
-//
-//                    if (term != null) {
-//                        y = drawWrappedText(canvas, "Term: " + term, paint, margin, y, pageWidth - margin);
-//                        y += 10;
-//                    }
-//                    if (definition != null) {
-//                        y = drawWrappedText(canvas, "Definition: " + definition, paint, margin + 20, y, pageWidth - margin);
-//                        y += 20;
-//                    }
-//
-//                    if (y > pageHeight - margin) {
-//                        pdfDocument.finishPage(page);
-//                        pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pdfDocument.getPages().size() + 1).create();
-//                        page = pdfDocument.startPage(pageInfo);
-//                        canvas = page.getCanvas();
-//                        y = margin;
-//                    }
-//                }
-//            }
-//
-//            pdfDocument.finishPage(page);
-//
-//            String safeTitle = title.replaceAll("[\\\\/:*?\"<>|]", "_");
-//            String fileName = safeTitle + ".pdf";
-//
-//            ContentResolver resolver = getContentResolver();
-//            Uri downloadsUri = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
-//            String selection = MediaStore.Downloads.DISPLAY_NAME + "=?";
-//            String[] selectionArgs = new String[]{fileName};
-//            Cursor cursor = resolver.query(downloadsUri, null, selection, selectionArgs, null);
-//
-//            if (cursor != null && cursor.moveToFirst()) {
-//                Toast.makeText(this, "PDF already downloaded.", Toast.LENGTH_SHORT).show();
-//                cursor.close();
-//                pdfDocument.close();
-//                return;
-//            }
-//
-//            if (cursor != null) cursor.close();
-//
-//            ContentValues values = new ContentValues();
-//            values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
-//            values.put(MediaStore.Downloads.MIME_TYPE, "application/pdf");
-//            values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-//
-//            Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-//
-//            if (uri != null) {
-//                OutputStream outputStream = resolver.openOutputStream(uri);
-//                pdfDocument.writeTo(outputStream);
-//                pdfDocument.close();
-//                outputStream.close();
-//
-//                Toast.makeText(this, "PDF downloaded to Downloads/" + fileName, Toast.LENGTH_LONG).show();
-//                openPdfFile(uri);
-//            } else {
-//                Toast.makeText(this, "Failed to create PDF file.", Toast.LENGTH_SHORT).show();
-//            }
-//
-//        } catch (Exception e) {
-//            Toast.makeText(this, "Failed to generate PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-//            e.printStackTrace();
-//        }
-//    }
-//
-//    private int drawWrappedText(Canvas canvas, String text, Paint paint, int x, int y, int rightMargin) {
-//        int maxWidth = rightMargin - x;
-//        String[] words = text.split(" ");
-//        StringBuilder line = new StringBuilder();
-//        for (String word : words) {
-//            if (paint.measureText(line + word + " ") > maxWidth) {
-//                canvas.drawText(line.toString(), x, y, paint);
-//                y += 20;
-//                line = new StringBuilder();
-//            }
-//            line.append(word).append(" ");
-//        }
-//        if (!line.toString().isEmpty()) {
-//            canvas.drawText(line.toString(), x, y, paint);
-//            y += 20;
-//        }
-//        return y;
-//    }
-//
-//    private void openPdfFile(Uri uri) {
-//        if (uri == null) {
-//            Toast.makeText(this, "File not found.", Toast.LENGTH_SHORT).show();
-//            return;
-//        }
-//
-//        Intent intent = new Intent(Intent.ACTION_VIEW);
-//        intent.setDataAndType(uri, "application/pdf");
-//        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-//
-//        try {
-//            startActivity(Intent.createChooser(intent, "Open PDF File"));
-//        } catch (ActivityNotFoundException e) {
-//            Toast.makeText(this, "No app found to open PDF files.", Toast.LENGTH_SHORT).show();
-//        }
-//    }
-//
-//    private void updateDownloadIcon() {
-//        if (isDownloaded) {
-//            downloadIcon.setImageResource(R.drawable.downloaded);
-//            downloadTxt.setText(R.string.downloaded);
-//        } else {
-//            downloadIcon.setImageResource(R.drawable.download);
-//            downloadTxt.setText(R.string.not_download);
-//        }
-//    }
+    private void downloadOfflinePdf(String setId) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("flashcards").document(setId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String title = documentSnapshot.getString("title");
+                        if (title == null || title.isEmpty()) {
+                            title = "Flashcard_" + setId;
+                        }
+
+                        Object termsObj = documentSnapshot.get("terms");
+
+                        if (termsObj == null) {
+                            Toast.makeText(this, "No flashcards found in this set.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        List<Object> rawTerms;
+
+                        if (termsObj instanceof Map) {
+                            Map<String, Object> termsMap = (Map<String, Object>) termsObj;
+                            rawTerms = new ArrayList<>(termsMap.values());
+                        } else if (termsObj instanceof List) {
+                            rawTerms = (List<Object>) termsObj;
+                        } else {
+                            Toast.makeText(this, "Terms data is invalid format.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        if (rawTerms.isEmpty()) {
+                            Toast.makeText(this, "No flashcards in this set.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        writePdfFile(title, rawTerms);
+
+                    } else {
+                        Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to fetch flashcards: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    e.printStackTrace();
+                });
+    }
+
+    private void writePdfFile(String title, List<Object> termsList) {
+        try {
+            PdfDocument pdfDocument = new PdfDocument();
+            Paint paint = new Paint();
+            paint.setTextSize(14f);
+            paint.setAntiAlias(true);
+
+            int pageWidth = 595;
+            int pageHeight = 842;
+            int margin = 40;
+            int y = margin;
+
+            PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
+            PdfDocument.Page page = pdfDocument.startPage(pageInfo);
+            Canvas canvas = page.getCanvas();
+
+            Paint titlePaint = new Paint();
+            titlePaint.setTextSize(18f);
+            titlePaint.setFakeBoldText(true);
+            titlePaint.setAntiAlias(true);
+            canvas.drawText(title, margin, y, titlePaint);
+            y += 40;
+
+            for (Object termItem : termsList) {
+                if (termItem instanceof Map) {
+                    Map<String, Object> termMap = (Map<String, Object>) termItem;
+                    String term = (String) termMap.get("term");
+                    String definition = (String) termMap.get("definition");
+
+                    if (term != null) {
+                        y = drawWrappedText(canvas, "Term: " + term, paint, margin, y, pageWidth - margin);
+                        y += 10;
+                    }
+                    if (definition != null) {
+                        y = drawWrappedText(canvas, "Definition: " + definition, paint, margin + 20, y, pageWidth - margin);
+                        y += 20;
+                    }
+
+                    if (y > pageHeight - margin) {
+                        pdfDocument.finishPage(page);
+                        pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pdfDocument.getPages().size() + 1).create();
+                        page = pdfDocument.startPage(pageInfo);
+                        canvas = page.getCanvas();
+                        y = margin;
+                    }
+                }
+            }
+
+            pdfDocument.finishPage(page);
+
+            String safeTitle = title.replaceAll("[\\\\/:*?\"<>|]", "_");
+            String fileName = safeTitle + ".pdf";
+
+            ContentResolver resolver = getContentResolver();
+            Uri downloadsUri = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+            String selection = MediaStore.Downloads.DISPLAY_NAME + "=?";
+            String[] selectionArgs = new String[]{fileName};
+            Cursor cursor = resolver.query(downloadsUri, null, selection, selectionArgs, null);
+
+            if (cursor != null && cursor.moveToFirst()) {
+                Toast.makeText(this, "PDF already downloaded.", Toast.LENGTH_SHORT).show();
+                cursor.close();
+                pdfDocument.close();
+                return;
+            }
+
+            if (cursor != null) cursor.close();
+
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+            values.put(MediaStore.Downloads.MIME_TYPE, "application/pdf");
+            values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+
+            Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+
+            if (uri != null) {
+                OutputStream outputStream;
+                outputStream = resolver.openOutputStream(uri);
+                pdfDocument.writeTo(outputStream);
+                pdfDocument.close();
+                outputStream.close();
+
+                Toast.makeText(this, "PDF downloaded to Downloads/" + fileName, Toast.LENGTH_LONG).show();
+                openPdfFile(uri);
+            } else {
+                Toast.makeText(this, "Failed to create PDF file.", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Failed to generate PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
+    }
+
+    private int drawWrappedText(Canvas canvas, String text, Paint paint, int x, int y, int rightMargin) {
+        int maxWidth = rightMargin - x;
+        String[] words = text.split(" ");
+        StringBuilder line = new StringBuilder();
+        for (String word : words) {
+            if (paint.measureText(line + word + " ") > maxWidth) {
+                canvas.drawText(line.toString(), x, y, paint);
+                y += 20;
+                line = new StringBuilder();
+            }
+            line.append(word).append(" ");
+        }
+        if (!line.toString().isEmpty()) {
+            canvas.drawText(line.toString(), x, y, paint);
+            y += 20;
+        }
+        return y;
+    }
+
+    private void openPdfFile(Uri uri) throws ActivityNotFoundException {
+        if (uri == null) {
+            Toast.makeText(this, "File not found.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, "application/pdf");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        startActivity(Intent.createChooser(intent, "Open PDF File"));
+    }
 
     private void showDeleteConfirmationDialog() {
         if (isFinishing() || isDestroyed()) return;
@@ -967,6 +998,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             privacyText.setVisibility(View.GONE);
             privacyIcon.setVisibility(View.GONE);
             saveSetBtn.setVisibility(View.GONE);
+            createdAtTextView.setVisibility(View.GONE);
+            createdAtIcon.setVisibility(View.GONE);
 
             accessLevel = "view";
 
@@ -1003,7 +1036,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         }
 
                         loadFlashcards();
-
 
                         if (numberOfItems != null) {
                             numberOfItemsTextView.setText(numberOfItems + (numberOfItems == 1 ? " item" : " items"));

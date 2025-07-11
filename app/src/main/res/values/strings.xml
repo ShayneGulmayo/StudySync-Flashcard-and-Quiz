@@ -18,7 +18,7 @@
     <string name="generate_from_pdf">Generate set from PDF</string>
     <string name="add_new_set">Add a new set</string>
     <string name="card_orientation">Card Orientation</string>
-    <string name="download">Download for Offline Use</string>
+    <string name="download">Download</string>
     <string name="privacy">Set Privacy</string>
     <string name="reminder">Set a Reminder</string>
     <string name="send">Send to Chat</string>

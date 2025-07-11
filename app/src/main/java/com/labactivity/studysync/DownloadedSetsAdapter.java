@@ -40,7 +40,12 @@ public class DownloadedSetsAdapter extends RecyclerView.Adapter<DownloadedSetsAd
         if (username == null) username = "Unknown User";
 
         Object itemsObj = set.get("number_of_items");
-        String items = (itemsObj != null) ? String.valueOf(itemsObj) : "No Items Found";
+        String items;
+        if (itemsObj instanceof Number) {
+            items = String.valueOf(((Number) itemsObj).intValue());
+        } else {
+            items = "No Items Found";
+        }
 
         holder.title.setText(title != null ? title : "Untitled Set");
         holder.username.setText(username);
@@ -57,7 +62,6 @@ public class DownloadedSetsAdapter extends RecyclerView.Adapter<DownloadedSetsAd
                 Toast.makeText(context, "File not found.", Toast.LENGTH_SHORT).show();
             }
         });
-
 
         holder.deleteBtn.setOnClickListener(v -> {
             String fileName = (String) set.get("fileName");
@@ -86,8 +90,6 @@ public class DownloadedSetsAdapter extends RecyclerView.Adapter<DownloadedSetsAd
                 Toast.makeText(context, "File not found.", Toast.LENGTH_SHORT).show();
             }
         });
-
-
     }
 
     @Override
