@@ -59,7 +59,7 @@ public class FirebaseMessagingService extends com.google.firebase.messaging.Fire
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.notifications)
+                .setSmallIcon(R.drawable.studysync_logo)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setColor(Color.parseColor("#00BF63"))

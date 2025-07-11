@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -39,42 +38,55 @@ import java.util.concurrent.Executors;
 public class LoadingSetActivity extends AppCompatActivity {
     private static final String TAG = "LoadingSetActivity";
     private final Executor executor = Executors.newSingleThreadExecutor();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_loading_set);
 
+        Uri fileUri = getIntent().getData();
+        String fileType = getIntent().getStringExtra("type");
 
-        Uri pdfUri = getIntent().getData();
-        if (pdfUri == null) {
-            Toast.makeText(this, "Invalid file", Toast.LENGTH_SHORT).show();
-            finish();
+        if (fileUri == null) {
+            showError("Invalid file");
             return;
         }
 
-        try (InputStream inputStream = getContentResolver().openInputStream(pdfUri)) {
+        try (InputStream inputStream = getContentResolver().openInputStream(fileUri)) {
             if (inputStream != null) {
-                byte[] pdfBytes = readBytes(inputStream);
-                runGeminiModel(pdfBytes);
+                byte[] fileBytes = readBytes(inputStream);
+
+                // Determine MIME type
+                String mimeType;
+                if (fileType != null) {
+                    mimeType = fileType.equals("image") ? "image/*" : "application/pdf";
+                } else {
+                    mimeType = getContentResolver().getType(fileUri);
+                }
+
+                runGeminiModel(fileBytes, mimeType);
+            } else {
+                showError("Failed to read file");
             }
         } catch (IOException e) {
-            Log.e(TAG, "Failed to read the PDF", e);
-            Toast.makeText(this, "Failed to read file", Toast.LENGTH_SHORT).show();
-            finish();
+            Log.e(TAG, "Failed to open file", e);
+            showError("Failed to read file");
         }
     }
 
-    private void runGeminiModel(byte[] pdfBytes) {
+    private void runGeminiModel(byte[] data, String mimeType) {
         GenerativeModel ai = FirebaseAI.getInstance(
                 GenerativeBackend.vertexAI("global")
         ).generativeModel("gemini-2.5-flash");
 
         GenerativeModelFutures model = GenerativeModelFutures.from(ai);
 
+        String mediaDescription = mimeType != null && mimeType.startsWith("image") ? "image" : "PDF";
+
         Content prompt = new Content.Builder()
-                .addInlineData(pdfBytes, "application/pdf")
+                .addInlineData(data, mimeType)
                 .addText(
-                        "From the contents of this PDF, generate a JSON object **only** in the following structure:\n" +
+                        "From the contents of this " + mediaDescription + ", generate a JSON object **only** in the following structure:\n" +
                                 "{\n" +
                                 "  \"title\": \"<A descriptive title>\",\n" +
                                 "  \"terms\": [\n" +
@@ -90,37 +102,7 @@ public class LoadingSetActivity extends AppCompatActivity {
         Futures.addCallback(model.generateContent(prompt), new FutureCallback<GenerateContentResponse>() {
             @Override
             public void onSuccess(GenerateContentResponse result) {
-                String aiText = result.getText();
-                if (aiText == null || aiText.trim().isEmpty()) {
-                    showError("AI returned empty content");
-                    return;
-                }
-
-                if (aiText.startsWith("```")) {
-                    aiText = aiText.replaceAll("```json", "")
-                            .replaceAll("```", "")
-                            .trim();
-                }
-
-                try {
-                    JSONObject json = new JSONObject(aiText);
-                    String title = json.optString("title", "Untitled Set");
-                    JSONArray termsArray = json.getJSONArray("terms");
-
-                    Map<String, Map<String, String>> termsMap = new HashMap<>();
-                    for (int i = 0; i < termsArray.length(); i++) {
-                        JSONObject item = termsArray.getJSONObject(i);
-                        Map<String, String> entry = new HashMap<>();
-                        entry.put("term", item.optString("term", ""));
-                        entry.put("definition", item.optString("definition", ""));
-                        termsMap.put(String.valueOf(i), entry);
-                    }
-
-                    saveToFirestore(title, termsMap);
-                } catch (JSONException e) {
-                    Log.e(TAG, "Failed to parse AI response", e);
-                    showError("AI returned invalid format");
-                }
+                handleAIResponse(result.getText());
             }
 
             @Override
@@ -129,6 +111,39 @@ public class LoadingSetActivity extends AppCompatActivity {
                 showError("Failed to generate flashcards");
             }
         }, executor);
+    }
+
+    private void handleAIResponse(String aiText) {
+        if (aiText == null || aiText.trim().isEmpty()) {
+            showError("AI returned empty content");
+            return;
+        }
+
+        if (aiText.startsWith("```")) {
+            aiText = aiText.replaceAll("```json", "")
+                    .replaceAll("```", "")
+                    .trim();
+        }
+
+        try {
+            JSONObject json = new JSONObject(aiText);
+            String title = json.optString("title", "Untitled Set");
+            JSONArray termsArray = json.getJSONArray("terms");
+
+            Map<String, Map<String, String>> termsMap = new HashMap<>();
+            for (int i = 0; i < termsArray.length(); i++) {
+                JSONObject item = termsArray.getJSONObject(i);
+                Map<String, String> entry = new HashMap<>();
+                entry.put("term", item.optString("term", ""));
+                entry.put("definition", item.optString("definition", ""));
+                termsMap.put(String.valueOf(i), entry);
+            }
+
+            saveToFirestore(title, termsMap);
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to parse AI response", e);
+            showError("AI returned invalid format");
+        }
     }
 
     private void saveToFirestore(String title, Map<String, Map<String, String>> termsMap) {
@@ -167,6 +182,7 @@ public class LoadingSetActivity extends AppCompatActivity {
                     showError("Failed to save flashcards");
                 });
     }
+
     private void showError(String message) {
         runOnUiThread(() -> {
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();

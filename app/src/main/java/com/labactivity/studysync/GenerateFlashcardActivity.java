@@ -7,10 +7,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -20,30 +17,9 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.firebase.ai.FirebaseAI;
-import com.google.firebase.ai.GenerativeModel;
-import com.google.firebase.ai.java.GenerativeModelFutures;
-import com.google.firebase.ai.type.Content;
-import com.google.firebase.ai.type.GenerateContentResponse;
-import com.google.firebase.ai.type.GenerativeBackend;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -54,8 +30,21 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
     private final Executor executor = Executors.newSingleThreadExecutor();
 
     private FirebaseAuth mAuth;
-    private CardView selectFile, generateManually;
+    private CardView selectFile, generateManually, selectImages, pasteText;
     private ImageView backBtn;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == 200 && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+            Uri imageUri = data.getData();
+            Intent intent = new Intent(this, LoadingSetActivity.class);
+            intent.setData(imageUri);
+            intent.putExtra("type", "image");
+            startActivity(intent);
+        }
+    }
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -79,6 +68,8 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
         selectFile = findViewById(R.id.selectFile);
         backBtn = findViewById(R.id.back_button);
         generateManually = findViewById(R.id.generateManually);
+        selectImages = findViewById(R.id.selectImages);
+        pasteText = findViewById(R.id.pasteText);
 
         checkUserAuthentication();
 
@@ -103,6 +94,14 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
                 }
             }
         });
+        selectImages.setOnClickListener(view -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            startActivityForResult(Intent.createChooser(intent, "Select an Image"), 200);  // custom request code
+        });
+
+
     }
 
     private void checkUserAuthentication() {
@@ -130,7 +129,8 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
         }
 
         Intent intent = new Intent(this, LoadingSetActivity.class);
-        intent.setData(uri); // pass URI
+        intent.setData(uri);
+        intent.putExtra("type", "pdf");
         startActivity(intent);
     }
 
