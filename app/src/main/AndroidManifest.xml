@@ -18,13 +18,7 @@
         android:theme="@style/Theme.StudySync"
         tools:targetApi="31">
         <activity
-            android:name=".DownloadedSetsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".BottomSheetMorePreviewActivity"
-            android:exported="false" />
-        <activity
-            android:name=".OfflineSetsActivity"
+            android:name=".GenerateQuizActivity"
             android:exported="false" />
         <activity
             android:name=".UserProfileActivity"
@@ -120,6 +114,9 @@
             android:exported="false" />
         <activity
             android:name=".ChangeEmailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".DownloadedSetsActivity"
             android:exported="false" />
         <activity
             android:name=".LoginActivity"

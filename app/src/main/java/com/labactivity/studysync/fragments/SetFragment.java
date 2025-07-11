@@ -30,6 +30,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.labactivity.studysync.CreateFlashcardActivity;
 import com.labactivity.studysync.CreateQuizActivity;
 import com.labactivity.studysync.FlashcardPreviewActivity;
+import com.labactivity.studysync.GenerateFlashcardActivity;
 import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.adapters.SetAdapter;
@@ -399,23 +400,22 @@ public class SetFragment extends Fragment {
         dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         dialog.show();
 
-        // ✅ Set size and position
         Window window = dialog.getWindow();
         if (window != null) {
             window.setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             window.setBackgroundDrawableResource(android.R.color.transparent); // Keep your background styling
 
-            // Customize position
             WindowManager.LayoutParams params = window.getAttributes();
-            params.gravity = Gravity.TOP | Gravity.START;  // Anchor to top-left as a base
-            params.x = 25;  // ← horizontal offset from the left (in pixels)
-            params.y = 895;  // ← vertical offset from the top (in pixels)
+            params.gravity = Gravity.TOP | Gravity.START;
+            params.x = 25;
+            params.y = 895;
             window.setAttributes(params);
         }
 
         view.findViewById(R.id.add_flashcard).setOnClickListener(v -> {
             dialog.dismiss();
-            showAddBottomSheetFlashcard();
+            Intent intent = new Intent(getContext(), GenerateFlashcardActivity.class);
+            startActivity(intent);
         });
 
         view.findViewById(R.id.add_quiz).setOnClickListener(v -> {
@@ -445,6 +445,11 @@ public class SetFragment extends Fragment {
             params.y = 910;
             window.setAttributes(params);
         }
+
+        view.findViewById(R.id.generate_from_camera).setOnClickListener(v -> {
+            dialog.dismiss();
+            Toast.makeText(getContext(), "Generate from camera coming soon!", Toast.LENGTH_SHORT).show();
+        });
 
         view.findViewById(R.id.generate_from_image).setOnClickListener(v -> {
             dialog.dismiss();

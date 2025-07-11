@@ -8,6 +8,20 @@
     android:padding="24dp">
 
     <TextView
+        android:id="@+id/generate_from_camera"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/photocamera"
+        android:drawablePadding="16dp"
+        android:gravity="center_vertical"
+        android:paddingStart="10dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:text="Generate set from Camera"
+        android:textColor="@color/black"
+        android:textSize="18sp" />
+
+    <TextView
         android:id="@+id/generate_from_image"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
