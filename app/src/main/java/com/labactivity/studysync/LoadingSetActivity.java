@@ -44,33 +44,42 @@ public class LoadingSetActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_loading_set);
 
-        Uri fileUri = getIntent().getData();
-        String fileType = getIntent().getStringExtra("type");
+        String type = getIntent().getStringExtra("type");
 
-        if (fileUri == null) {
-            showError("Invalid file");
-            return;
-        }
+        if ("text".equals(type)) {
+            String userPrompt = getIntent().getStringExtra("textPrompt");
+            if (userPrompt == null || userPrompt.trim().isEmpty()) {
+                showError("Text prompt is empty.");
+                return;
+            }
+            runGeminiTextPrompt(userPrompt);
+        } else {
+            Uri fileUri = getIntent().getData();
+            if (fileUri == null) {
+                showError("Invalid file");
+                return;
+            }
 
-        try (InputStream inputStream = getContentResolver().openInputStream(fileUri)) {
-            if (inputStream != null) {
-                byte[] fileBytes = readBytes(inputStream);
+            try (InputStream inputStream = getContentResolver().openInputStream(fileUri)) {
+                if (inputStream != null) {
+                    byte[] fileBytes = readBytes(inputStream);
 
-                // Determine MIME type
-                String mimeType;
-                if (fileType != null) {
-                    mimeType = fileType.equals("image") ? "image/*" : "application/pdf";
+                    // Determine MIME type
+                    String mimeType;
+                    if (type != null) {
+                        mimeType = type.equals("image") ? "image/*" : "application/pdf";
+                    } else {
+                        mimeType = getContentResolver().getType(fileUri);
+                    }
+
+                    runGeminiModel(fileBytes, mimeType);
                 } else {
-                    mimeType = getContentResolver().getType(fileUri);
+                    showError("Failed to read file");
                 }
-
-                runGeminiModel(fileBytes, mimeType);
-            } else {
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to open file", e);
                 showError("Failed to read file");
             }
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to open file", e);
-            showError("Failed to read file");
         }
     }
 
@@ -109,6 +118,42 @@ public class LoadingSetActivity extends AppCompatActivity {
             public void onFailure(Throwable t) {
                 Log.e(TAG, "Gemini generation failed", t);
                 showError("Failed to generate flashcards");
+            }
+        }, executor);
+    }
+
+    private void runGeminiTextPrompt(String inputText) {
+        GenerativeModel ai = FirebaseAI.getInstance(
+                GenerativeBackend.vertexAI("global")
+        ).generativeModel("gemini-2.5-flash");
+
+        GenerativeModelFutures model = GenerativeModelFutures.from(ai);
+
+        Content prompt = new Content.Builder()
+                .addText(
+                        "Based on the following input, generate a JSON object ONLY in this format:\n" +
+                                "{\n" +
+                                "  \"title\": \"<Descriptive Title>\",\n" +
+                                "  \"terms\": [\n" +
+                                "    { \"term\": \"<Term 1>\", \"definition\": \"<Definition 1>\" },\n" +
+                                "    { \"term\": \"<Term 2>\", \"definition\": \"<Definition 2>\" }\n" +
+                                "  ]\n" +
+                                "}\n\n" +
+                                "Return only this JSON object. No extra text.\n\n" +
+                                "Input:\n" + inputText
+                )
+                .build();
+
+        Futures.addCallback(model.generateContent(prompt), new FutureCallback<GenerateContentResponse>() {
+            @Override
+            public void onSuccess(GenerateContentResponse result) {
+                handleAIResponse(result.getText());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                Log.e(TAG, "Gemini text generation failed", t);
+                showError("Failed to generate from text prompt");
             }
         }, executor);
     }

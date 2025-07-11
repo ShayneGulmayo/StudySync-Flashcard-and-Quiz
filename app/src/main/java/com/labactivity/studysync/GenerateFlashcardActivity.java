@@ -7,11 +7,14 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.InputType;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
@@ -73,6 +76,11 @@ public class GenerateFlashcardActivity extends AppCompatActivity {
 
         checkUserAuthentication();
 
+        pasteText.setOnClickListener(view ->{
+            Intent intent = new Intent(this, FlashcardInputPromptActivity.class);
+            startActivity(intent);
+            finish();
+        });
         backBtn.setOnClickListener(v -> finish());
         generateManually.setOnClickListener(view -> {
             Intent intent = new Intent(this, CreateFlashcardActivity.class);
