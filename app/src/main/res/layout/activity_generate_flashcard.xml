@@ -48,30 +48,31 @@
         android:id="@+id/cardViews"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="15dp"
-        android:weightSum="2"
-        android:padding="5dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="5dp"
         android:gravity="center_vertical"
-        app:layout_constraintTop_toBottomOf="@id/navigationView"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/navigationView">
 
         <androidx.cardview.widget.CardView
             android:id="@+id/selectImages"
             android:layout_width="0dp"
             android:layout_height="150dp"
-            android:layout_weight="1"
             android:layout_marginEnd="5dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/primary"
             app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            android:backgroundTint="@color/primary">
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:orientation="vertical"
                 android:gravity="center"
+                android:orientation="vertical"
                 android:padding="8dp">
 
                 <ImageView
@@ -84,13 +85,13 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Select Images"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/white"
-                    android:gravity="center"
                     android:ellipsize="end"
-                    android:maxLines="1"/>
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:text="Select Images"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -98,17 +99,17 @@
             android:id="@+id/scanDocument"
             android:layout_width="0dp"
             android:layout_height="150dp"
+            android:layout_marginStart="5dp"
             android:layout_weight="1"
-            android:layout_marginEnd="5dp"
+            android:backgroundTint="@color/bg_yellow"
             app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            android:backgroundTint="@color/bg_yellow">
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:orientation="vertical"
                 android:gravity="center"
+                android:orientation="vertical"
                 android:padding="5dp">
 
                 <ImageView
@@ -121,13 +122,13 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Scan document"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
                     android:ellipsize="end"
+                    android:gravity="center"
                     android:maxLines="1"
-                    android:textColor="@color/white"/>
+                    android:text="Scan document"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
     </LinearLayout>
@@ -136,30 +137,31 @@
         android:id="@+id/cardviews2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_marginStart="5dp"
         android:layout_marginTop="10dp"
-        android:weightSum="2"
-        android:padding="5dp"
+        android:layout_marginEnd="5dp"
         android:gravity="center_vertical"
-        app:layout_constraintTop_toBottomOf="@id/cardViews"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/cardViews">
 
         <androidx.cardview.widget.CardView
             android:id="@+id/pasteText"
             android:layout_width="0dp"
             android:layout_height="150dp"
-            android:layout_weight="1"
             android:layout_marginEnd="5dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/bg_yellow"
             app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            android:backgroundTint="@color/bg_yellow">
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:orientation="vertical"
                 android:gravity="center"
+                android:orientation="vertical"
                 android:padding="5dp">
 
                 <ImageView
@@ -172,30 +174,31 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Paste text"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
                     android:ellipsize="end"
+                    android:gravity="center"
                     android:maxLines="1"
-                    android:textColor="@color/white"/>
+                    android:text="Paste text"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
+
         <androidx.cardview.widget.CardView
             android:id="@+id/selectFile"
             android:layout_width="0dp"
             android:layout_height="150dp"
+            android:layout_marginStart="5dp"
             android:layout_weight="1"
-            android:layout_marginEnd="5dp"
+            android:backgroundTint="@color/primary"
             app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            android:backgroundTint="@color/primary">
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:orientation="vertical"
                 android:gravity="center"
+                android:orientation="vertical"
                 android:padding="8dp">
 
                 <ImageView
@@ -208,13 +211,13 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Select a PDF File"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/white"
-                    android:gravity="center"
                     android:ellipsize="end"
-                    android:maxLines="1"/>
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:text="Select a PDF File"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
     </LinearLayout>
@@ -223,31 +226,30 @@
         android:id="@+id/cardviews3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_marginStart="5dp"
         android:layout_marginTop="10dp"
-        android:weightSum="2"
-        android:padding="5dp"
+        android:layout_marginEnd="5dp"
         android:gravity="center_vertical"
-        app:layout_constraintTop_toBottomOf="@id/cardviews2"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/cardviews2">
 
         <androidx.cardview.widget.CardView
             android:id="@+id/generateManually"
             android:layout_width="0dp"
             android:layout_height="150dp"
             android:layout_weight="2"
-            android:layout_marginEnd="5dp"
+            android:backgroundTint="@color/primary"
             app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            android:backgroundTint="@color/primary">
+            app:cardElevation="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:orientation="vertical"
                 android:gravity="center"
-                android:padding="5dp">
+                android:orientation="vertical">
 
                 <ImageView
                     android:layout_width="32dp"
@@ -259,13 +261,13 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Create manually"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
                     android:ellipsize="end"
+                    android:gravity="center"
                     android:maxLines="1"
-                    android:textColor="@color/white"/>
+                    android:text="Create manually"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
     </LinearLayout>
