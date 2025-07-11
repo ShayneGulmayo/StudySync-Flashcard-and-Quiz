@@ -11,7 +11,7 @@
         android:id="@+id/card_term"
         android:layout_width="match_parent"
         android:layout_height="200dp"
-        android:background="@drawable/card_background"
+        android:background="@color/white"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -34,7 +34,7 @@
         android:id="@+id/card_definition"
         android:layout_width="0dp"
         android:layout_height="200dp"
-        android:background="@drawable/card_background"
+        android:background="@color/white"
         android:padding="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

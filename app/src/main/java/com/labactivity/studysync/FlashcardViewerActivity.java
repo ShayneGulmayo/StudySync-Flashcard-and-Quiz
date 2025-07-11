@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 public class FlashcardViewerActivity extends AppCompatActivity {
@@ -41,6 +42,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     private boolean showingFront = true;
     private boolean isOffline = false;
     private Map<String, Object> setData;
+    private ArrayList<Map<String, Object>> flashcardAttempts = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,13 +78,17 @@ public class FlashcardViewerActivity extends AppCompatActivity {
 
         knowBtn.setOnClickListener(v -> {
             knowCount++;
+            addAttempt(true);
             animateCardSwipe();
+
         });
 
         dontKnowBtn.setOnClickListener(v -> {
             dontKnowCount++;
             dontKnowFlashcards.add(flashcards.get(currentIndex));
+            addAttempt(false);
             animateCardSwipe();
+
         });
 
         if (isOffline) {
@@ -143,6 +149,17 @@ public class FlashcardViewerActivity extends AppCompatActivity {
 
         dialog.show();
     }
+
+    private void addAttempt(boolean isCorrect) {
+        Flashcard card = flashcards.get(currentIndex);
+        Map<String, Object> attempt = new HashMap<>();
+        attempt.put("term", card.getTerm());
+        attempt.put("definition", card.getDefinition());
+        attempt.put("isCorrect", isCorrect);
+        attempt.put("order", currentIndex + 1);
+        flashcardAttempts.add(attempt);
+    }
+
     private void loadOfflineSet(String fileName) {
         File file = new File(getFilesDir(), fileName);
         if (!file.exists()) {
@@ -399,6 +416,68 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     }
 
     private void openFlashcardProgressActivity() {
+        if (!isOffline) {
+            String userId = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+            db.collection("flashcards")
+                    .document(setId)
+                    .collection("flashcard_attempt")
+                    .document(userId)
+                    .get()
+                    .addOnSuccessListener(snapshot -> {
+                        ArrayList<Map<String, Object>> existingAttempts = new ArrayList<>();
+                        if (snapshot.exists() && snapshot.contains("knowCount")) {
+                            existingAttempts = (ArrayList<Map<String, Object>>) snapshot.get("knowCount");
+                        }
+
+                        // Merge new attempts into existing attempts
+                        for (Map<String, Object> newAttempt : flashcardAttempts) {
+                            String term = newAttempt.get("term").toString();
+                            boolean replaced = false;
+
+                            for (int i = 0; i < existingAttempts.size(); i++) {
+                                Map<String, Object> existingAttempt = existingAttempts.get(i);
+                                if (existingAttempt.get("term").equals(term)) {
+                                    existingAttempts.set(i, newAttempt);  // replace existing
+                                    replaced = true;
+                                    break;
+                                }
+                            }
+
+                            if (!replaced) {
+                                existingAttempts.add(newAttempt);  // add new if not found
+                            }
+                        }
+
+                        // Save merged attempts
+                        Map<String, Object> data = new HashMap<>();
+                        data.put("knowCount", existingAttempts);
+
+                        db.collection("flashcards")
+                                .document(setId)
+                                .collection("flashcard_attempt")
+                                .document(userId)
+                                .set(data)
+                                .addOnSuccessListener(unused -> {
+                                    proceedToProgressScreen();
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(this, "Failed to save attempts.", Toast.LENGTH_SHORT).show();
+                                    proceedToProgressScreen();
+                                });
+
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to fetch existing attempts.", Toast.LENGTH_SHORT).show();
+                        proceedToProgressScreen();
+                    });
+
+        } else {
+            proceedToProgressScreen();
+        }
+    }
+
+    private void proceedToProgressScreen() {
         Intent intent = new Intent(this, FlashcardProgressActivity.class);
         intent.putExtra("knowCount", knowCount);
         intent.putExtra("totalItems", totalItems);
@@ -413,4 +492,5 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
 }
