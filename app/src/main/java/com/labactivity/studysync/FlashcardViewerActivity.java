@@ -19,6 +19,7 @@ import com.google.gson.reflect.TypeToken;
 import com.labactivity.studysync.models.Flashcard;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -90,12 +91,10 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         });
 
         if (isOffline) {
-            String fileName = getIntent().getStringExtra("offlineFileName");
-            loadOfflineSet(fileName);
+            loadOfflineSet(offlineFileName);
         } else {
             loadFlashcards();
         }
-
 
     }
 
@@ -153,6 +152,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         Map<String, Object> attempt = new HashMap<>();
         attempt.put("term", card.getTerm());
         attempt.put("definition", card.getDefinition());
+        attempt.put("photoUrl", card.getPhotoUrl());
         attempt.put("isCorrect", isCorrect);
         attempt.put("order", currentIndex + 1);
         flashcardAttempts.add(attempt);
@@ -225,6 +225,33 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         }
     }
 
+    private void saveOfflineAttempts() {
+        if (!isOffline || offlineFileName == null) return;
+
+        try {
+            File file = new File(getFilesDir(), offlineFileName);
+            if (!file.exists()) return;
+
+            FileInputStream fis = new FileInputStream(file);
+            byte[] dataBytes = new byte[(int) file.length()];
+            fis.read(dataBytes);
+            fis.close();
+
+            String json = new String(dataBytes);
+            Type type = new TypeToken<Map<String, Object>>() {}.getType();
+            Map<String, Object> setData = new Gson().fromJson(json, type);
+
+            setData.put("attempts", flashcardAttempts); // save all attempts
+
+            String updatedJson = new Gson().toJson(setData);
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(updatedJson.getBytes());
+            fos.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     private void shuffleFlashcards() {
         if (flashcards.isEmpty()) {
             Toast.makeText(this, "No flashcards to shuffle.", Toast.LENGTH_SHORT).show();
@@ -463,8 +490,8 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                         proceedToProgressScreen();
                     });
         } else {
-            proceedToProgressScreen();
-        }
+            saveOfflineAttempts();
+            proceedToProgressScreen();        }
     }
 
     private void proceedToProgressScreen() {

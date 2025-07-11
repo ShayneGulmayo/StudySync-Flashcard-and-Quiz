@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -19,9 +20,17 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,30 +60,13 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.review_terms_txt), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
-
         setId = getIntent().getStringExtra("setId");
-        if (setId == null || setId.isEmpty()) {
+
+        if (!isOffline && (setId == null || setId.isEmpty())) {
             Toast.makeText(this, "No flashcard ID provided", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
-
-        db.collection("flashcards").document(setId).get().addOnSuccessListener(documentSnapshot -> {
-            if (documentSnapshot.exists()) {
-                displayFlashcardAttempts();
-            } else {
-                Toast.makeText(this, "Flashcard not found", Toast.LENGTH_SHORT).show();
-                finish();
-            }
-        }).addOnFailureListener(e -> {
-            Toast.makeText(this, "Failed to fetch flashcard", Toast.LENGTH_SHORT).show();
-            finish();
-        });
 
         backgroundProgressBar = findViewById(R.id.background_progressbar);
         statsProgressBar = findViewById(R.id.stats_progressbar);
@@ -88,7 +80,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
         knowCount = getIntent().getIntExtra("knowCount", 0);
         totalItems = getIntent().getIntExtra("totalItems", 1);
-        setId = getIntent().getStringExtra("setId");
 
         int cappedKnowCount = Math.min(knowCount, totalItems);
         int stillLearningCount = Math.max(0, totalItems - cappedKnowCount);
@@ -105,7 +96,26 @@ public class FlashcardProgressActivity extends AppCompatActivity {
             reviewQuestionsBtn.setVisibility(View.GONE);
         }
 
-        updateProgressInFirestore(setId, progressValue);
+        if (!isOffline) {
+            // Firestore check only in online mode
+            db.collection("flashcards").document(setId).get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            displayFlashcardAttempts();
+                        } else {
+                            Toast.makeText(this, "Flashcard not found", Toast.LENGTH_SHORT).show();
+                            finish();
+                        }
+                    }).addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to fetch flashcard", Toast.LENGTH_SHORT).show();
+                        finish();
+                    });
+        } else {
+            // Offline — load attempts directly
+            displayFlashcardAttempts();
+        }
+
+        updateProgressInFirestore(setId, progressValue);  // will auto skip in offline mode due to existing check
 
         loadFlashcardTitle(setId);
 
@@ -117,20 +127,25 @@ public class FlashcardProgressActivity extends AppCompatActivity {
             intent.putExtra("isOffline", isOffline);
             if (isOffline) intent.putExtra("offlineFileName", offlineFileName);
             intent.putExtra("totalItems", totalItems);
-            intent.putExtra("knowCount", 0); // 👈 pass progress
+            intent.putExtra("knowCount", 0);
             startActivity(intent);
             finish();
         });
 
         reviewQuestionsBtn.setOnClickListener(v -> {
+            if (isOffline) {
+                Toast.makeText(this, "Review only works in online mode.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            db.collection("flashcards")
-                    .document(setId)
+            db.collection("flashcards").document(setId)
                     .collection("flashcard_attempt")
                     .document(userId)
                     .get()
                     .addOnSuccessListener(attemptDoc -> {
-                        if (attemptDoc.exists() && attemptDoc.contains("knowCount")) {Intent intent = new Intent(FlashcardProgressActivity.this, FlashcardViewerActivity.class);
+                        if (attemptDoc.exists() && attemptDoc.contains("knowCount")) {
+                            Intent intent = new Intent(FlashcardProgressActivity.this, FlashcardViewerActivity.class);
                             intent.putExtra("setId", setId);
                             intent.putExtra("photoUrl", getIntent().getStringExtra("photoUrl"));
                             intent.putExtra("mode", "review_only_incorrect");
@@ -145,13 +160,13 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                         } else {
                             Toast.makeText(this, "No attempt data to review.", Toast.LENGTH_SHORT).show();
                         }
-                    })
-                    .addOnFailureListener(e -> {
+                    }).addOnFailureListener(e -> {
                         Toast.makeText(this, "Failed to load attempt data.", Toast.LENGTH_SHORT).show();
                     });
         });
 
     }
+
 
     private void updateProgressInFirestore(String setId, int progressValue) {
         if (isOffline || setId == null) return;
@@ -269,6 +284,95 @@ public class FlashcardProgressActivity extends AppCompatActivity {
         LinearLayout answersLayout = findViewById(R.id.item_flashcard_container);
         LayoutInflater inflater = LayoutInflater.from(this);
 
+        if (isOffline) {
+            if (offlineFileName == null) {
+                Toast.makeText(this, "No offline data available.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            File file = new File(getFilesDir(), offlineFileName);
+            if (!file.exists()) {
+                Toast.makeText(this, "Offline flashcard data not found.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            try {
+                StringBuilder jsonBuilder = new StringBuilder();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    jsonBuilder.append(line);
+                }
+                reader.close();
+
+                String json = jsonBuilder.toString();
+                Map<String, Object> setData = new Gson().fromJson(json, Map.class);
+
+                List<Map<String, Object>> attempts = (List<Map<String, Object>>) setData.get("attempts");
+
+                if (attempts == null || attempts.isEmpty()) {
+                    Toast.makeText(this, "No offline attempts found.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // Sort by order just like online
+                Collections.sort(attempts, (a, b) -> {
+                    int orderA = a.get("order") != null ? ((Number) a.get("order")).intValue() : 0;
+                    int orderB = b.get("order") != null ? ((Number) b.get("order")).intValue() : 0;
+                    return Integer.compare(orderA, orderB);
+                });
+
+                for (Map<String, Object> t : attempts) {
+                    View answerView = inflater.inflate(R.layout.item_flashcard_attempt_view, answersLayout, false);
+
+                    TextView termText = answerView.findViewById(R.id.term_text);
+                    TextView definitionText = answerView.findViewById(R.id.definition_text);
+                    TextView statusLabel = answerView.findViewById(R.id.status_label);
+                    LinearLayout linearLayout = answerView.findViewById(R.id.linear_layout);
+                    ImageView termIcon = answerView.findViewById(R.id.check_term);
+                    ImageView definitionImage = answerView.findViewById(R.id.definition_image);
+
+                    String term = t.get("term") != null ? t.get("term").toString() : "No term";
+                    String definition = t.get("definition") != null ? t.get("definition").toString() : "No definition";
+                    String photoUrl = t.get("photoUrl") != null ? t.get("photoUrl").toString() : null;
+                    boolean isCorrect = t.get("isCorrect") != null && (boolean) t.get("isCorrect");
+
+                    termText.setText(term);
+                    definitionText.setText(definition);
+
+                    if (isCorrect) {
+                        statusLabel.setText(R.string.know_term_text);
+                        statusLabel.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_message_current_user));
+                    } else {
+                        statusLabel.setText(R.string.dont_know_term_text);
+                        statusLabel.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_light_red));
+                        linearLayout.setBackground(ContextCompat.getDrawable(this, R.drawable.warning_stroke_bg));
+                        termIcon.setImageResource(R.drawable.x_circle);
+                        termIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.white)));
+                    }
+
+                    if (photoUrl != null && !photoUrl.isEmpty()) {
+                        definitionImage.setVisibility(View.VISIBLE);
+                        Glide.with(this)
+                                .load(photoUrl)
+                                .transform(new RoundedCorners(dpToPx(20)))
+                                .into(definitionImage);
+                    } else {
+                        definitionImage.setVisibility(View.GONE);
+                    }
+
+                    answersLayout.addView(answerView);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Failed to load offline attempts.", Toast.LENGTH_SHORT).show();
+            }
+
+            return;
+        }
+
+        // ONLINE Mode
         db.collection("flashcards")
                 .document(setId)
                 .collection("flashcard_attempt")
@@ -292,7 +396,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                                 TextView statusLabel = answerView.findViewById(R.id.status_label);
                                 LinearLayout linearLayout = answerView.findViewById(R.id.linear_layout);
                                 ImageView termIcon = answerView.findViewById(R.id.check_term);
-                                ImageView definitionImage = answerView.findViewById(R.id.definition_image); // 👈 your image view
+                                ImageView definitionImage = answerView.findViewById(R.id.definition_image);
 
                                 String term = t.get("term") != null ? t.get("term").toString() : "No term";
                                 String definition = t.get("definition") != null ? t.get("definition").toString() : "No definition";
@@ -317,7 +421,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                                     definitionImage.setVisibility(View.VISIBLE);
                                     Glide.with(this)
                                             .load(photoUrl)
-                                            .centerCrop()
+                                            .transform(new RoundedCorners(dpToPx(20)))
                                             .into(definitionImage);
                                 } else {
                                     definitionImage.setVisibility(View.GONE);
@@ -325,6 +429,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
                                 answersLayout.addView(answerView);
                             }
+
                         } else {
                             Toast.makeText(this, "No attempt data found.", Toast.LENGTH_SHORT).show();
                         }
@@ -336,5 +441,11 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to load answers", Toast.LENGTH_SHORT).show();
                 });
     }
+
+    private int dpToPx(int dp) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dp * density);
+    }
+
 
 }

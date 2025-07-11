@@ -10,12 +10,19 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
@@ -43,12 +50,16 @@ import com.labactivity.studysync.receivers.ReminderReceiver;
 import com.labactivity.studysync.utils.SupabaseUploader;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -583,6 +594,9 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
     private void writePdfFile(String title, List<Object> termsList) {
         try {
+            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+            StrictMode.setThreadPolicy(policy);
+
             PdfDocument pdfDocument = new PdfDocument();
             Paint paint = new Paint();
             paint.setTextSize(14f);
@@ -609,14 +623,62 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     Map<String, Object> termMap = (Map<String, Object>) termItem;
                     String term = (String) termMap.get("term");
                     String definition = (String) termMap.get("definition");
+                    String photoUrl = (String) termMap.get("photoUrl");
 
                     if (term != null) {
                         y = drawWrappedText(canvas, "Term: " + term, paint, margin, y, pageWidth - margin);
                         y += 10;
                     }
+
                     if (definition != null) {
                         y = drawWrappedText(canvas, "Definition: " + definition, paint, margin + 20, y, pageWidth - margin);
-                        y += 20;
+                        y += 10;
+                    }
+
+                    // Load and draw image if exists
+                    if (photoUrl != null && !photoUrl.isEmpty()) {
+                        try {
+                            URL url = new URL(photoUrl);
+                            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                            connection.setDoInput(true);
+                            connection.connect();
+
+                            InputStream input = connection.getInputStream();
+                            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                            byte[] data = new byte[4096];
+                            int n;
+                            while ((n = input.read(data)) != -1) {
+                                buffer.write(data, 0, n);
+                            }
+                            input.close();
+                            byte[] imageBytes = buffer.toByteArray();
+
+                            Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+                            if (bitmap == null) {
+                                Log.e("PDF", "Failed to decode bitmap from URL: " + photoUrl);
+                                continue;  // skip if decoding failed
+                            }
+
+                            bitmap = getRoundedCornerBitmap(bitmap, dpToPx(20));
+
+                            int imageSize = (int) (2 * 72); // 2 inches = 144 points
+
+                            if (y + imageSize > pageHeight - margin) {
+                                pdfDocument.finishPage(page);
+                                pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pdfDocument.getPages().size() + 1).create();
+                                page = pdfDocument.startPage(pageInfo);
+                                canvas = page.getCanvas();
+                                y = margin;
+                            }
+
+                            Rect destRect = new Rect(margin, y, margin + imageSize, y + imageSize);
+                            canvas.drawBitmap(bitmap, null, destRect, null);
+                            y += imageSize + 20;
+
+                        } catch (Exception e) {
+                            Log.e("PDF", "Error downloading image: " + e.getMessage());
+                            e.printStackTrace();
+                        }
                     }
 
                     if (y > pageHeight - margin) {
@@ -635,20 +697,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             String fileName = safeTitle + ".pdf";
 
             ContentResolver resolver = getContentResolver();
-            Uri downloadsUri = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
-            String selection = MediaStore.Downloads.DISPLAY_NAME + "=?";
-            String[] selectionArgs = new String[]{fileName};
-            Cursor cursor = resolver.query(downloadsUri, null, selection, selectionArgs, null);
-
-            if (cursor != null && cursor.moveToFirst()) {
-                Toast.makeText(this, "PDF already downloaded.", Toast.LENGTH_SHORT).show();
-                cursor.close();
-                pdfDocument.close();
-                return;
-            }
-
-            if (cursor != null) cursor.close();
-
             ContentValues values = new ContentValues();
             values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
             values.put(MediaStore.Downloads.MIME_TYPE, "application/pdf");
@@ -657,8 +705,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
 
             if (uri != null) {
-                OutputStream outputStream;
-                outputStream = resolver.openOutputStream(uri);
+                OutputStream outputStream = resolver.openOutputStream(uri);
                 pdfDocument.writeTo(outputStream);
                 pdfDocument.close();
                 outputStream.close();
@@ -674,6 +721,29 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+    private Bitmap getRoundedCornerBitmap(Bitmap bitmap, int cornerRadius) {
+        Bitmap output = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(output);
+
+        final Paint paint = new Paint();
+        final Rect rect = new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight());
+        final RectF rectF = new RectF(rect);
+
+        paint.setAntiAlias(true);
+        canvas.drawRoundRect(rectF, cornerRadius, cornerRadius, paint);
+
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+        canvas.drawBitmap(bitmap, rect, rect, paint);
+
+        return output;
+    }
+
+    private int dpToPx(int dp) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dp * density);
+    }
+
 
     private int drawWrappedText(Canvas canvas, String text, Paint paint, int x, int y, int rightMargin) {
         int maxWidth = rightMargin - x;
