@@ -54,7 +54,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, reminderIcon, saveSetBtn, downloadIcon;
     private Button startFlashcardBtn;
     private ViewPager2 carouselViewPager;
-    private String currentPrivacy, setId, currentReminder, offlineFileName;
+    private String currentPrivacy, setId, currentReminder, offlineFileName, ownerUid;
     private String accessLevel = "none";
     private SpringDotsIndicator dotsIndicator;
     private ListenerRegistration reminderListener;
@@ -166,14 +166,25 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         });
 
         ownerTextView.setOnClickListener(v -> {
-            Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
-            startActivity(intent);
+            if (ownerUid != null) {
+                Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
+                intent.putExtra("userId", ownerUid);
+                startActivity(intent);
+            } else {
+                Toast.makeText(this, "User not found.", Toast.LENGTH_SHORT).show();
+            }
         });
 
         ownerPhotoImageView.setOnClickListener(v -> {
-            Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
-            startActivity(intent);
+            if (ownerUid != null) {
+                Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
+                intent.putExtra("userId", ownerUid);
+                startActivity(intent);
+            } else {
+                Toast.makeText(this, "User not found.", Toast.LENGTH_SHORT).show();
+            }
         });
+
 
         backButton.setOnClickListener(v -> {
             if (fromNotification) {
@@ -970,6 +981,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                             finish();
                             return;
                         }
+                        ownerUid = documentSnapshot.getString("owner_uid");
 
                         String title = documentSnapshot.getString("title");
                         String ownerUid = documentSnapshot.getString("owner_uid");

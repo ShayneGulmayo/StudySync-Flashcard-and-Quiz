@@ -114,9 +114,12 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         view.findViewById(R.id.restart).setOnClickListener(v -> {
             Intent intent = new Intent(this, FlashcardViewerActivity.class);
             intent.putExtra("setId", setId);
+            intent.putExtra("isOffline", isOffline);
+            if (isOffline) intent.putExtra("offlineFileName", offlineFileName);
             startActivity(intent);
             finish();
         });
+
 
         TextView cardOrientationTxt = view.findViewById(R.id.card_orientation_txt);
         TextView cardOrientationOption = view.findViewById(R.id.card_orientation_option);
@@ -405,14 +408,16 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         intent.putExtra("stillLearningCount", dontKnowCount);
         intent.putExtra("totalItems", flashcards.size());
         intent.putExtra("setId", setId);
+        intent.putExtra("isOffline", isOffline);
+        if (isOffline) intent.putExtra("offlineFileName", offlineFileName);
 
         ArrayList<String> dontKnowTerms = new ArrayList<>();
         for (Flashcard card : dontKnowFlashcards) {
             dontKnowTerms.add(card.getTerm());
         }
         intent.putStringArrayListExtra("dontKnowTerms", dontKnowTerms);
-
         startActivity(intent);
         finish();
+
     }
 }

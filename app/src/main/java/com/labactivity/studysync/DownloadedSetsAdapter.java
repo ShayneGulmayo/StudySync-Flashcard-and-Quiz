@@ -62,21 +62,31 @@ public class DownloadedSetsAdapter extends RecyclerView.Adapter<DownloadedSetsAd
         holder.deleteBtn.setOnClickListener(v -> {
             String fileName = (String) set.get("fileName");
             if (fileName != null) {
-                File file = new File(context.getFilesDir(), fileName);
-                if (file.exists()) {
-                    if (file.delete()) {
-                        Toast.makeText(context, "Set deleted.", Toast.LENGTH_SHORT).show();
-                        sets.remove(position);
-                        notifyItemRemoved(position);
-                        notifyItemRangeChanged(position, sets.size());
-                    } else {
-                        Toast.makeText(context, "Failed to delete set.", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    Toast.makeText(context, "File not found.", Toast.LENGTH_SHORT).show();
-                }
+                new androidx.appcompat.app.AlertDialog.Builder(context)
+                        .setTitle("Delete Set")
+                        .setMessage("Are you sure you want to delete this downloaded set?")
+                        .setPositiveButton("Delete", (dialog, which) -> {
+                            File file = new File(context.getFilesDir(), fileName);
+                            if (file.exists()) {
+                                if (file.delete()) {
+                                    Toast.makeText(context, "Set deleted.", Toast.LENGTH_SHORT).show();
+                                    sets.remove(position);
+                                    notifyItemRemoved(position);
+                                    notifyItemRangeChanged(position, sets.size());
+                                } else {
+                                    Toast.makeText(context, "Failed to delete set.", Toast.LENGTH_SHORT).show();
+                                }
+                            } else {
+                                Toast.makeText(context, "File not found.", Toast.LENGTH_SHORT).show();
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            } else {
+                Toast.makeText(context, "File not found.", Toast.LENGTH_SHORT).show();
             }
         });
+
 
     }
 
