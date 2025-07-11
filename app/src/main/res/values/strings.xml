@@ -99,7 +99,12 @@
     <string name="selected_wrong_answer">Incorrect Answer</string>
     <string name="your_answer">Your answers</string>
     <string name="no_access_text">You do not have access to view this flashcard set/quiz.</string>
-
+    <string name="people">People</string>
+    <string name="quizzes">Quizzes</string>
+    <string name="flashcards">Flashcards</string>
+    <string name="show_filter">Show Filters</string>
+    <string name="hide_filter">Hide Filters</string>
+    <string name="search_hint">Search users, flashcards, or quizzes...</string>
 </resources>
 
 

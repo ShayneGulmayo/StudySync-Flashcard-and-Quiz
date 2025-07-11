@@ -26,9 +26,6 @@
             android:name=".LoadingSetActivity"
             android:exported="false" />
         <activity
-            android:name=".GenerateQuizActivity"
-            android:exported="false" />
-        <activity
             android:name=".GenerateSetActivity"
             android:exported="false" />
         <activity
