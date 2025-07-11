@@ -1,5 +1,6 @@
 package com.labactivity.studysync;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -15,6 +16,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,14 +29,19 @@ public class FlashcardProgressActivity extends AppCompatActivity {
     Button reviewQuestionsBtn;
     ImageView backButton;
     int knowCount, stillLearningCount, totalItems;
-    String setId;
+    String setId, offlineFileName;
     FirebaseFirestore db;
+    private boolean isOffline;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_flashcard_progress);
+
+        isOffline = getIntent().getBooleanExtra("isOffline", false);
+        offlineFileName = getIntent().getStringExtra("offlineFileName");
+
 
         db = FirebaseFirestore.getInstance();
 
@@ -79,21 +87,29 @@ public class FlashcardProgressActivity extends AppCompatActivity {
         retakeFlashcardBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, FlashcardViewerActivity.class);
             intent.putExtra("setId", setId);
+            intent.putExtra("isOffline", isOffline);
+            if (isOffline) intent.putExtra("offlineFileName", offlineFileName);
             startActivity(intent);
             finish();
         });
+
         reviewQuestionsBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, FlashcardViewerActivity.class);
             intent.putExtra("setId", setId);
+            intent.putExtra("isOffline", isOffline);
+            if (isOffline) intent.putExtra("offlineFileName", offlineFileName);
             intent.putExtra("isReviewingOnlyDontKnow", true);
             intent.putStringArrayListExtra("dontKnowTerms", getIntent().getStringArrayListExtra("dontKnowTerms"));
             startActivity(intent);
             finish();
         });
+
+        backButton.setOnClickListener(v -> finish());
+
     }
 
     private void updateProgressInFirestore(String setId, int progressValue) {
-        if (setId == null) return;
+        if (isOffline || setId == null) return;
 
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
@@ -139,9 +155,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
                                 db.collection("users").document(currentUserId)
                                         .update(collectionField, setList)
-                                        .addOnSuccessListener(aVoid -> {
-                                            // success
-                                        })
                                         .addOnFailureListener(e -> {
                                             Toast.makeText(this, "Failed to save progress.", Toast.LENGTH_SHORT).show();
                                         });
@@ -155,30 +168,76 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                 });
     }
 
+    @SuppressLint("SetTextI18n")
     private void loadFlashcardTitle(String setId) {
-        if (setId == null) return;
+        if (isOffline) {
+            if (offlineFileName == null) {
+                flashcardTitleTxt.setText("Untitled Set");
+                return;
+            }
 
-        db.collection("flashcards").document(setId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        String title = documentSnapshot.getString("title");
-                        if (title != null && !title.isEmpty()) {
-                            if (title.length() > 20) {
-                                String shortTitle = title.substring(0, 20) + "...";
-                                flashcardTitleTxt.setText(shortTitle);
+            File file = new File(getFilesDir(), offlineFileName);
+            if (!file.exists()) {
+                flashcardTitleTxt.setText("Untitled Set");
+                return;
+            }
+
+            try {
+                StringBuilder jsonBuilder = new StringBuilder();
+                java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(new java.io.FileInputStream(file))
+                );
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    jsonBuilder.append(line);
+                }
+                reader.close();
+
+                String json = jsonBuilder.toString();
+                Map<String, Object> setData = new com.google.gson.Gson().fromJson(json, Map.class);
+                String title = (String) setData.get("title");
+
+                if (title != null && !title.isEmpty()) {
+                    if (title.length() > 20) {
+                        flashcardTitleTxt.setText(title.substring(0, 20) + "...");
+                    } else {
+                        flashcardTitleTxt.setText(title);
+                    }
+                } else {
+                    flashcardTitleTxt.setText("Untitled Set");
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                flashcardTitleTxt.setText("Failed to load title.");
+            }
+
+        } else {
+            if (setId == null) return;
+
+            db.collection("flashcards").document(setId)
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            String title = documentSnapshot.getString("title");
+                            if (title != null && !title.isEmpty()) {
+                                if (title.length() > 20) {
+                                    String shortTitle = title.substring(0, 20) + "...";
+                                    flashcardTitleTxt.setText(shortTitle);
+                                } else {
+                                    flashcardTitleTxt.setText(title);
+                                }
                             } else {
-                                flashcardTitleTxt.setText(title);
+                                flashcardTitleTxt.setText("Untitled Set");
                             }
                         } else {
-                            flashcardTitleTxt.setText("Untitled Set");
+                            flashcardTitleTxt.setText("Flashcard set not found.");
                         }
-                    } else {
-                        flashcardTitleTxt.setText("Flashcard set not found.");
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    flashcardTitleTxt.setText("Failed to load title.");
-                });
+                    })
+                    .addOnFailureListener(e -> {
+                        flashcardTitleTxt.setText("Failed to load title.");
+                    });
+        }
     }
+
 }

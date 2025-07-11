@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.core.ktx)
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics.buildtools)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
@@ -69,6 +70,10 @@ dependencies {
     implementation ("com.github.chrisbanes:PhotoView:2.3.0")
     implementation ("androidx.navigation:navigation-fragment-ktx:2.7.7")
     implementation ("androidx.navigation:navigation-ui-ktx:2.7.7")
+    implementation ("com.itextpdf:itext7-core:7.1.18") // if using iText (or)
+    implementation ("com.google.code.gson:gson:2.10.1")
+
+
 
 
 
