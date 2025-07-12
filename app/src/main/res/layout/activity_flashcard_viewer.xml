@@ -155,6 +155,7 @@
         android:layout_marginTop="16dp"
         android:text="@string/tap_text"
         android:textColor="@color/text_gray"
+        android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -175,17 +176,17 @@
         <ImageView
             android:id="@+id/dont_know_btn"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
+            android:layout_height="60dp"
             android:layout_margin="8dp"
+            android:layout_weight="1"
             android:src="@drawable/x_circle" />
 
         <ImageView
             android:id="@+id/know_btn"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
+            android:layout_height="60dp"
             android:layout_margin="8dp"
+            android:layout_weight="1"
             android:src="@drawable/check_circle" />
     </LinearLayout>
 

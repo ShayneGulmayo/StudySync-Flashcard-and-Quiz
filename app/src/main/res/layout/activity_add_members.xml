@@ -22,9 +22,9 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="25dp"
             android:contentDescription="Back"
             android:src="@drawable/arrow_back"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -46,15 +46,15 @@
     <androidx.appcompat.widget.SearchView
         android:id="@+id/search_view"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
         android:layout_marginTop="12dp"
-        android:queryHint="Search users"
+        android:layout_marginEnd="16dp"
         android:background="@drawable/custom_edittxt"
-        app:layout_constraintTop_toBottomOf="@id/topAppBar"
+        android:queryHint="Search users"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/topAppBar" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/selected_users_recyclerView"
@@ -71,14 +71,16 @@
         android:id="@+id/txtAddMembers"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
         android:text="Add Members"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/selected_users_recyclerView"
-        android:textStyle="bold"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="10dp"
-        android:textSize="12dp"/>
+        app:layout_constraintTop_toBottomOf="@id/selected_users_recyclerView" />
 
     <TextView
         android:id="@+id/no_users_msg"
@@ -97,11 +99,15 @@
         android:id="@+id/users_recyclerview"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
         android:padding="8dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintTop_toBottomOf="@id/txtAddMembers"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/txtAddMembers" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

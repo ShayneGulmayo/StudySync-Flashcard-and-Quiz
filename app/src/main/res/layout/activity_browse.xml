@@ -15,14 +15,14 @@
     <EditText
         android:id="@+id/searchEditText"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
+        android:layout_height="40dp"
         android:background="@drawable/green_stroke_bg"
         android:drawableLeft="@drawable/search"
         android:drawablePadding="8dp"
         android:hint="@string/search_hint"
         android:inputType="text"
         android:paddingStart="16dp"
-        android:textSize="14sp" />
+        android:textSize="16sp" />
 
     <!-- Toggle Button to Show/Hide Filters -->
     <com.google.android.material.button.MaterialButton
@@ -34,6 +34,7 @@
         android:gravity="center"
         android:text="@string/show_filter"
         android:textAllCaps="false"
+        android:textSize="16sp"
         app:icon="@drawable/drop_down_icon"
         app:iconGravity="end"
         app:iconPadding="10dp" />

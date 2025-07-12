@@ -23,20 +23,22 @@
                 android:id="@+id/setTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Title"
-                android:textStyle="bold"
-                android:textColor="@color/black"
+                android:ellipsize="end"
                 android:maxLines="1"
-                android:ellipsize="end"/>
+                android:text="Title"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/description"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
                 android:text="Flashcard set · 10 terms · by username"
                 android:textColor="@color/text_gray"
-                android:maxLines="1"
-                android:ellipsize="end"/>
+                android:textSize="14sp" />
         </LinearLayout>
 
     </LinearLayout>

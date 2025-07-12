@@ -36,7 +36,7 @@
             android:maxLines="1"
             android:text="@string/flashcard_name"
             android:textColor="@color/black"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
     </RelativeLayout>
 
@@ -61,7 +61,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/your_progress"
                 android:textColor="@color/black"
-                android:textSize="20sp"
+                android:textSize="18sp"
                 android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -103,7 +103,7 @@
                     android:layout_gravity="center"
                     android:text="0%"
                     android:textColor="@android:color/black"
-                    android:textSize="20sp"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
             </FrameLayout>
 
@@ -190,6 +190,7 @@
                 android:text="@string/keep_reviewing_terms"
                 android:textColor="@color/white"
                 android:textSize="16sp"
+                app:cornerRadius="15dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/still_learning_value" />
@@ -225,7 +226,7 @@
                     android:layout_marginBottom="16dp"
                     android:text="@string/flashcard_attempt"
                     android:textColor="@color/black"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <LinearLayout

@@ -46,30 +46,30 @@
         <ProgressBar
             android:id="@+id/loadingProgressBar"
             style="?android:attr/progressBarStyleLarge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:indeterminateTint="@color/primary"
-            android:indeterminate="true" />
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/primary" />
 
         <TextView
             android:id="@+id/generatingSetTxt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
             android:text="Generating set.."
-            android:textStyle="bold"
-            android:textSize="24sp"
             android:textAlignment="center"
             android:textColor="@color/primary"
-            android:layout_marginTop="20dp"/>
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/descTxt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="This may take a while"
+            android:textAlignment="center"
             android:textColor="@color/text_gray"
-            android:textSize="14sp"
-            android:textAlignment="center"/>
+            android:textSize="12sp" />
 
     </LinearLayout>
 

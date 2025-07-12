@@ -66,7 +66,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             offlineAttempts = new Gson().fromJson(offlineAttemptsJson, listType);
         }
 
-
         frontCard = findViewById(R.id.front_card);
         backCard = findViewById(R.id.back_card);
         flashcardImage = findViewById(R.id.flashcard_image);
@@ -103,7 +102,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         } else {
             loadFlashcards();
         }
-
     }
 
     @Override
@@ -132,7 +130,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             finish();
         });
 
-
         TextView cardOrientationTxt = view.findViewById(R.id.card_orientation_txt);
         TextView cardOrientationOption = view.findViewById(R.id.card_orientation_option);
 
@@ -159,7 +156,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         Flashcard card = flashcards.get(currentIndex);
         String term = card.getTerm();
 
-        // Check if existing attempt already recorded from offlineAttempts
         boolean replaced = false;
         for (int i = 0; i < flashcardAttempts.size(); i++) {
             if (flashcardAttempts.get(i).get("term").equals(term)) {
@@ -170,7 +166,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         }
 
         if (!replaced) {
-            // If no existing attempt, create new
             Map<String, Object> attempt = new HashMap<>();
             attempt.put("term", term);
             attempt.put("definition", card.getDefinition());
@@ -180,7 +175,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             flashcardAttempts.add(attempt);
         }
     }
-
 
     private void loadOfflineSet(String fileName) {
         File file = new File(getFilesDir(), fileName);
@@ -238,12 +232,10 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                 }
             }
 
-// Prefill flashcardAttempts from offlineAttempts
             if (!offlineAttempts.isEmpty()) {
                 flashcardAttempts.clear();
                 flashcardAttempts.addAll(offlineAttempts);
 
-                // Re-count previous knowCount based on isCorrect values
                 knowCount = 0;
                 for (Map<String, Object> attempt : offlineAttempts) {
                     if (Boolean.TRUE.equals(attempt.get("isCorrect"))) {
@@ -251,7 +243,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                     }
                 }
             }
-
 
             if (!flashcards.isEmpty()) {
                 currentIndex = 0;
@@ -291,6 +282,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
     private void shuffleFlashcards() {
         if (flashcards.isEmpty()) {
             Toast.makeText(this, "No flashcards to shuffle.", Toast.LENGTH_SHORT).show();
@@ -314,7 +306,6 @@ public class FlashcardViewerActivity extends AppCompatActivity {
 
         Toast.makeText(this, "Remaining flashcards shuffled!", Toast.LENGTH_SHORT).show();
     }
-
 
     private void loadFlashcards() {
         if (isOffline) {
@@ -530,7 +521,8 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                     });
         } else {
             saveOfflineAttempts();
-            proceedToProgressScreen();        }
+            proceedToProgressScreen();
+        }
     }
 
     private void proceedToProgressScreen() {
@@ -548,5 +540,4 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
-
 }

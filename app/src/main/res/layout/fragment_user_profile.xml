@@ -10,7 +10,7 @@
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="match_parent"
-        android:layout_height="80dp"
+        android:layout_height="70dp"
         android:layout_alignParentTop="true"
         android:background="@color/white"
         app:layout_constraintEnd_toEndOf="parent"
@@ -24,7 +24,7 @@
             android:layout_gravity="center"
             android:text="@string/profile"
             android:textColor="@color/black"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
     </com.google.android.material.navigation.NavigationView>
 
@@ -53,29 +53,29 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="Loading..."
             android:textColor="@color/black"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:ellipsize="end"
-            android:maxLines="1"/>
+            android:textSize="18dp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/usernameTxt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="loading..."
             android:textColor="@color/black"
-            android:textSize="15sp"
-            android:ellipsize="end"
-            android:maxLines="1"/>
+            android:textSize="14sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/settingsBtn"
             android:layout_width="300dp"
             android:layout_height="60dp"
-            android:layout_marginTop="30dp"
+            android:layout_marginTop="16dp"
             android:text="Your Settings"
             android:textAlignment="textStart"
             android:textColor="@color/primary"
@@ -95,7 +95,7 @@
             android:id="@+id/logoutBtn"
             android:layout_width="300dp"
             android:layout_height="60dp"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="8dp"
             android:text="Log Out"
             android:textAlignment="textStart"
             android:textColor="@color/warning"

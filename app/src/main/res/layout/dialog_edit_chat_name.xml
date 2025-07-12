@@ -7,7 +7,8 @@
 
     <EditText
         android:id="@+id/editChatNameInput"
-        android:hint="Enter new chat name"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:hint="Enter new chat name"
+        android:textSize="16sp" />
 </LinearLayout>

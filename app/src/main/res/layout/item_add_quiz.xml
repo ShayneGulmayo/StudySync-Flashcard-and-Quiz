@@ -1,6 +1,7 @@
 <androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true">
@@ -29,18 +30,18 @@
                 <Spinner
                     android:id="@+id/quiz_type_spinner"
                     android:layout_width="match_parent"
-                    android:layout_height="50dp"
+                    android:layout_height="40dp"
                     android:background="@drawable/quiz_spinner_bg"
                     android:clipToPadding="false"
                     android:paddingStart="12dp"
-                    android:paddingEnd="40dp"
                     android:paddingTop="12dp"
+                    android:paddingEnd="40dp"
                     android:paddingBottom="12dp" />
 
                 <ImageView
                     android:id="@+id/drop_down_icon"
-                    android:layout_width="15dp"
-                    android:layout_height="15dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:layout_gravity="end|center_vertical"
                     android:layout_marginEnd="20dp"
                     android:clickable="false"
@@ -86,25 +87,24 @@
                         android:id="@+id/delete_question_button"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:layout_marginTop="0dp"
-                        android:layout_marginEnd="0dp"
+                        android:layout_marginTop="8dp"
                         android:contentDescription="Delete Question"
                         android:src="@drawable/delete"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent" />
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
 
                     <ImageView
                         android:id="@+id/add_image_button"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:layout_marginTop="6dp"
+                        android:layout_marginBottom="8dp"
+                        android:clickable="true"
                         android:contentDescription="Add Image"
+                        android:focusable="true"
                         android:padding="2dp"
                         android:scaleType="fitCenter"
-                        android:clickable="true"
-                        android:focusable="true"
+                        app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/delete_question_button"
                         app:srcCompat="@drawable/add_image" />
 
                 </androidx.constraintlayout.widget.ConstraintLayout>

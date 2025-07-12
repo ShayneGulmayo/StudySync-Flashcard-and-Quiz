@@ -15,7 +15,7 @@
         <androidx.appcompat.widget.SearchView
             android:id="@+id/search_set"
             android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_height="40dp"
             android:layout_marginEnd="8dp"
             android:background="@drawable/green_stroke_bg"
             android:hint="@string/search_sets"
@@ -25,8 +25,8 @@
 
         <ImageView
             android:id="@+id/add_btn"
-            android:layout_width="50dp"
-            android:layout_height="49dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:src="@drawable/add"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -48,7 +48,7 @@
             android:layout_weight="1"
             android:checked="true"
             android:text="All"
-            android:textSize="14sp"
+            android:textSize="16sp"
             app:cornerRadius="16dp" />
 
         <com.google.android.material.button.MaterialButton
@@ -58,7 +58,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Flashcards"
-            android:textSize="14sp"
+            android:textSize="16sp"
             app:cornerRadius="16dp" />
 
         <com.google.android.material.button.MaterialButton
@@ -68,7 +68,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Quizzes"
-            android:textSize="14sp"
+            android:textSize="16sp"
             app:cornerRadius="16dp" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 

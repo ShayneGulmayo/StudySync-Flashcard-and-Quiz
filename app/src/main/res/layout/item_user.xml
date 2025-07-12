@@ -13,11 +13,11 @@
 
         <ImageView
             android:id="@+id/profile_image"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/circle_background"
             android:scaleType="centerCrop"
-            android:src="@drawable/user_profile"
-            android:background="@drawable/circle_background" />
+            android:src="@drawable/user_profile" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -31,15 +31,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Full Name"
-                android:textStyle="bold"
-                android:textColor="@color/black" />
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/username"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="\@username"
-                android:textColor="@color/text_gray" />
+                android:textColor="@color/text_gray"
+                android:textSize="14sp" />
         </LinearLayout>
 
         <RadioButton

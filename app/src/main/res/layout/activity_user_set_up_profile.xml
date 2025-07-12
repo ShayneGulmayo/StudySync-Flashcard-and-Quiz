@@ -26,22 +26,22 @@
             android:layout_gravity="center"
             android:text="@string/set_up_profile"
             android:textColor="@color/black"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
     </com.google.android.material.navigation.NavigationView>
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/user_photo"
-        android:layout_width="115dp"
-        android:layout_height="115dp"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="center"
         android:layout_marginTop="16dp"
         android:src="@drawable/upload_profile"
-        android:layout_gravity="center"
-        app:civ_border_width="2dp"
         app:civ_border_color="@color/primary"
-        app:layout_constraintTop_toBottomOf="@id/navigationView"
+        app:civ_border_width="2dp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/navigationView" />
 
     <RelativeLayout
         android:id="@+id/layoutUsername"
@@ -66,7 +66,7 @@
         <EditText
             android:id="@+id/set_username"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="40dp"
             android:layout_below="@id/username_warning_text"
             android:background="@drawable/custom_edittxt"
             android:hint="@string/username"
@@ -102,7 +102,7 @@
     <EditText
         android:id="@+id/set_firstname"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:layout_marginTop="16dp"
         android:background="@drawable/custom_edittxt"
         android:hint="@string/first_name"
@@ -111,14 +111,14 @@
         android:textColor="@color/black"
         android:textColorHint="@color/text_gray"
         android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/layoutUsername"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/layoutUsername" />
 
     <EditText
         android:id="@+id/set_lastname"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:layout_marginTop="16dp"
         android:background="@drawable/custom_edittxt"
         android:hint="@string/last_name"
@@ -127,21 +127,22 @@
         android:textColor="@color/black"
         android:textColorHint="@color/text_gray"
         android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/set_firstname"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/set_firstname" />
 
     <Button
         android:id="@+id/button"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
         android:layout_marginTop="16dp"
         android:backgroundTint="@color/primary"
         android:text="@string/save"
+        android:textColor="@color/white"
         android:textSize="16sp"
-        app:cornerRadius="8dp"
-        app:layout_constraintTop_toBottomOf="@id/set_lastname"
+        app:cornerRadius="15dp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/set_lastname" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

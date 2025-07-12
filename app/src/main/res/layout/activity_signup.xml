@@ -38,7 +38,7 @@
             android:layout_height="wrap_content"
             android:background="@color/light_gray"
             android:orientation="vertical"
-            android:padding="25dp">
+            android:padding="16dp">
 
             <TextView
                 android:id="@+id/txtSignup"
@@ -47,56 +47,64 @@
                 android:text="Signup"
                 android:textAlignment="center"
                 android:textColor="@color/black"
-                android:textSize="20sp"
+                android:textSize="18sp"
                 android:textStyle="bold" />
 
             <EditText
                 android:id="@+id/editTxtEmail"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="30dp"
+                android:layout_height="50dp"
+                android:layout_marginTop="16dp"
                 android:background="@drawable/custom_edittxt"
                 android:drawableRight="@drawable/mail"
-                android:drawablePadding="20dp"
+                android:drawablePadding="16dp"
+                android:drawableTint="@color/text_gray"
                 android:hint="Email"
                 android:inputType="textEmailAddress"
                 android:paddingStart="10dp"
                 android:paddingEnd="10dp"
-                android:drawableTint="@color/text_gray"
                 android:textColor="@color/black"
-                android:textColorHint="@color/text_gray" />
+                android:textColorHint="@color/text_gray"
+                android:textSize="16sp" />
 
             <EditText
                 android:id="@+id/editTxtPassword"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="10dp"
+                android:layout_height="50dp"
+                android:layout_marginTop="16dp"
                 android:background="@drawable/custom_edittxt"
                 android:drawableEnd="@drawable/eye_closed"
-                android:drawablePadding="20dp"
-                android:paddingEnd="10dp"
+                android:drawablePadding="16dp"
                 android:hint="Password"
                 android:inputType="textPassword"
                 android:paddingStart="10dp"
+                android:paddingEnd="10dp"
                 android:textColor="@color/black"
-                android:textColorHint="@color/text_gray" />
+                android:textColorHint="@color/text_gray"
+                android:textSize="16sp" />
 
             <Button
                 android:id="@+id/btnSignup"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_height="50dp"
+                android:layout_marginTop="32dp"
                 android:backgroundTint="@color/primary"
-                android:text="Sign up" />
+                android:text="Sign up"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                app:cornerRadius="15dp" />
 
             <Button
                 android:id="@+id/btnGoogleSignup"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="8dp"
                 android:backgroundTint="@color/light_gray"
                 android:drawableLeft="@drawable/google"
                 android:text="Sign up with Google"
                 android:textColor="@color/black"
+                android:textSize="16sp"
+                app:cornerRadius="15dp"
                 app:strokeColor="@color/text_gray"
                 app:strokeWidth="1dp" />
 
@@ -107,7 +115,8 @@
                 android:layout_marginTop="16dp"
                 android:text="Already a User? Login Here"
                 android:textAlignment="center"
-                android:textColor="@color/text_gray" />
+                android:textColor="@color/text_gray"
+                android:textSize="12sp" />
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>

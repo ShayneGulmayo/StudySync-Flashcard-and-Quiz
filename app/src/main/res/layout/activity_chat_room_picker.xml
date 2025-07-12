@@ -49,19 +49,20 @@
             android:layout_marginEnd="20dp"
             android:background="@drawable/green_stroke_bg"/>
 
-        <TextView
-            android:id="@+id/txtChatRooms"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Your Chat Rooms"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:layout_marginStart="30dp"
-            android:layout_marginEnd="20dp"
-            android:layout_marginTop="10dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/searchView"/>
+    <TextView
+        android:id="@+id/txtChatRooms"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="30dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="20dp"
+        android:text="Your Chat Rooms"
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchView" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerOwnedSets"

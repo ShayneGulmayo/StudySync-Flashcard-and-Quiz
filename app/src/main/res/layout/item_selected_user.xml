@@ -9,30 +9,29 @@
     <!-- Profile Picture -->
     <ImageView
         android:id="@+id/profile_image"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
-        android:scaleType="centerCrop"
-        android:contentDescription="Profile Photo"
         android:background="@drawable/circle_background"
-        app:layout_constraintTop_toTopOf="parent"
+        android:contentDescription="Profile Photo"
+        android:scaleType="centerCrop"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Full Name -->
     <TextView
         android:id="@+id/full_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Full Name"
-        android:textSize="12sp"
+        android:ellipsize="end"
         android:gravity="center"
         android:maxLines="1"
-        android:ellipsize="end"
-        app:layout_constraintTop_toBottomOf="@id/profile_image"
+        android:text="Full Name"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/profile_image" />
 
     <ImageView
         android:id="@+id/remove_button"

@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -16,21 +15,15 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,13 +32,13 @@ import java.util.Map;
 
 public class FlashcardProgressActivity extends AppCompatActivity {
 
+    FirebaseFirestore db;
     ProgressBar backgroundProgressBar, statsProgressBar;
     TextView progressPercentage, knowItems, stillLearningItems, flashcardTitleTxt, retakeFlashcardBtn;
     Button reviewQuestionsBtn;
     ImageView backButton;
-    int knowCount, totalItems;
     String setId, offlineFileName, flashcardId;
-    FirebaseFirestore db;
+    int knowCount, totalItems;
     private boolean isOffline;
 
     @SuppressLint("MissingInflatedId")
@@ -97,7 +90,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
         }
 
         if (!isOffline) {
-            // Firestore check only in online mode
             db.collection("flashcards").document(setId).get()
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
@@ -111,11 +103,10 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                         finish();
                     });
         } else {
-            // Offline — load attempts directly
             displayFlashcardAttempts();
         }
 
-        updateProgressInFirestore(setId, progressValue);  // will auto skip in offline mode due to existing check
+        updateProgressInFirestore(setId, progressValue);
 
         loadFlashcardTitle(setId);
 
@@ -173,11 +164,9 @@ public class FlashcardProgressActivity extends AppCompatActivity {
             intent.putExtra("isReviewingOnlyDontKnow", true);
             intent.putStringArrayListExtra("dontKnowTerms", dontKnowTerms);
 
-            // Pass offline attempts if offline
             if (isOffline && offlineAttempts != null) {
                 intent.putExtra("offlineAttemptsJson", new Gson().toJson(offlineAttempts));
             }
-
             startActivity(intent);
             finish();
         });
@@ -331,7 +320,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Sort by order just like online
                 Collections.sort(attempts, (a, b) -> {
                     int orderA = a.get("order") != null ? ((Number) a.get("order")).intValue() : 0;
                     int orderB = b.get("order") != null ? ((Number) b.get("order")).intValue() : 0;
@@ -388,7 +376,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
             return;
         }
 
-        // ONLINE Mode
         db.collection("flashcards")
                 .document(setId)
                 .collection("flashcard_attempt")
@@ -462,6 +449,4 @@ public class FlashcardProgressActivity extends AppCompatActivity {
         float density = getResources().getDisplayMetrics().density;
         return Math.round(dp * density);
     }
-
-
 }

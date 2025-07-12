@@ -9,7 +9,6 @@ import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -20,6 +19,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.StrictMode;
@@ -49,7 +49,6 @@ import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.receivers.ReminderReceiver;
 import com.labactivity.studysync.utils.SupabaseUploader;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -70,7 +69,6 @@ import java.util.Locale;
 import java.util.Map;
 import com.google.firebase.firestore.ListenerRegistration;
 
-
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
     private TextView titleTextView, ownerTextView, createdAtTextView, numberOfItemsTextView, privacyText, reminderTextView, downloadTxt;
@@ -87,10 +85,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private AlertDialog deleteConfirmationDialog;
     private DatePickerDialog datePickerDialog;
     private TimePickerDialog timePickerDialog;
-    private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private boolean isSaved = false;
-    boolean isDownloaded = false;
+    private boolean isDownloaded = false;
     private boolean isOffline;
+    private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private Map<String, Object> setData;
 
     @SuppressLint("MissingInflatedId")
@@ -132,7 +130,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
     }
 
     @Override
@@ -179,22 +176,18 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         privacyIcon.setOnClickListener(v -> {
             startActivity(new Intent(this, PrivacyActivity.class).putExtra("setId", setId));
-
         });
 
         privacyText.setOnClickListener(v -> {
             startActivity(new Intent(this, PrivacyActivity.class).putExtra("setId", setId));
-
         });
 
         reminderIcon.setOnClickListener(v -> {
             showReminderDialog();
-
         });
 
         reminderTextView.setOnClickListener(v -> {
             showReminderDialog();
-
         });
 
         ownerTextView.setOnClickListener(v -> {
@@ -220,7 +213,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 Toast.makeText(this, "User Not Found.", Toast.LENGTH_SHORT).show();
             }
         });
-
 
         backButton.setOnClickListener(v -> {
             if (fromNotification) {
@@ -352,7 +344,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         reqEditBtn.setOnClickListener(v -> {
             Toast.makeText(this, "Requst Edit clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();        });
+            bottomSheetDialog.dismiss();
+        });
 
         reqAccessBtn.setOnClickListener(v -> {
             Toast.makeText(this, "Request Access clicked", Toast.LENGTH_SHORT).show();
@@ -635,7 +628,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         y += 10;
                     }
 
-                    // Load and draw image if exists
                     if (photoUrl != null && !photoUrl.isEmpty()) {
                         try {
                             URL url = new URL(photoUrl);
@@ -656,12 +648,12 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                             Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
                             if (bitmap == null) {
                                 Log.e("PDF", "Failed to decode bitmap from URL: " + photoUrl);
-                                continue;  // skip if decoding failed
+                                continue;
                             }
 
                             bitmap = getRoundedCornerBitmap(bitmap, dpToPx(20));
 
-                            int imageSize = (int) (2 * 72); // 2 inches = 144 points
+                            int imageSize = 2 * 72;
 
                             if (y + imageSize > pageHeight - margin) {
                                 pdfDocument.finishPage(page);
@@ -702,7 +694,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             values.put(MediaStore.Downloads.MIME_TYPE, "application/pdf");
             values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
-            Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            Uri uri = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            }
 
             if (uri != null) {
                 OutputStream outputStream = resolver.openOutputStream(uri);
@@ -744,7 +739,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         return Math.round(dp * density);
     }
 
-
     private int drawWrappedText(Canvas canvas, String text, Paint paint, int x, int y, int rightMargin) {
         int maxWidth = rightMargin - x;
         String[] words = text.split(" ");
@@ -775,92 +769,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         startActivity(Intent.createChooser(intent, "Open PDF File"));
-    }
-
-    private void showDeleteConfirmationDialog() {
-        if (isFinishing() || isDestroyed()) return;
-
-        deleteConfirmationDialog = new AlertDialog.Builder(this)
-                .setTitle("Delete Flashcard Set")
-                .setMessage("Are you sure you want to delete this flashcard set? This action cannot be undone.")
-                .setPositiveButton("Yes", (dialog, which) -> deleteFlashcardSet())
-                .setNegativeButton("No", null)
-                .create();
-
-        deleteConfirmationDialog.show();
-    }
-
-    private void deleteFlashcardSet() {
-        db.collection("flashcards").document(setId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (!documentSnapshot.exists()) {
-                        Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    Map<String, Object> data = documentSnapshot.getData();
-                    if (data != null && data.containsKey("terms")) {
-                        Object termsObj = data.get("terms");
-                        if (termsObj instanceof Map) {
-                            Map<String, Object> terms = (Map<String, Object>) termsObj;
-                            for (Map.Entry<String, Object> entry : terms.entrySet()) {
-                                Object value = entry.getValue();
-                                if (value instanceof Map) {
-                                    Map<String, Object> termEntry = (Map<String, Object>) value;
-                                    String photoPath = termEntry.get("photoPath") != null ? termEntry.get("photoPath").toString() : null;
-                                    if (photoPath != null && !photoPath.isEmpty()) {
-                                        SupabaseUploader.deleteFile("flashcard-images", photoPath, new SupabaseUploader.UploadCallback() {
-                                            @Override
-                                            public void onUploadComplete(boolean success, String message, String publicUrl) {
-                                                if (success) {
-                                                    Log.d("Supabase", "Deleted image: " + photoPath);
-                                                } else {
-                                                    Log.e("Supabase", "Failed to delete image: " + photoPath + " Reason: " + message);
-                                                }
-                                            }
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    db.collection("flashcards").document(setId)
-                            .delete()
-                            .addOnSuccessListener(aVoid -> {
-                                String userId = auth.getCurrentUser().getUid();
-                                DocumentReference userRef = db.collection("users").document(userId);
-
-                                db.runTransaction(transaction -> {
-                                    DocumentSnapshot snapshot = transaction.get(userRef);
-                                    List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) snapshot.get("owned_sets");
-
-                                    if (ownedSets != null) {
-                                        List<Map<String, Object>> updatedOwnedSets = new ArrayList<>();
-                                        for (Map<String, Object> item : ownedSets) {
-                                            if (!item.get("id").equals(setId)) {
-                                                updatedOwnedSets.add(item);
-                                            }
-                                        }
-                                        transaction.update(userRef, "owned_sets", updatedOwnedSets);
-                                    }
-                                    return null;
-                                }).addOnSuccessListener(unused -> {
-                                    Toast.makeText(this, "Flashcard set deleted.", Toast.LENGTH_SHORT).show();
-                                    finish();
-                                }).addOnFailureListener(e -> {
-                                    Toast.makeText(this, "Failed to clean owned_sets.", Toast.LENGTH_SHORT).show();
-                                    finish();
-                                });
-                            })
-                            .addOnFailureListener(e -> {
-                                Toast.makeText(this, "Failed to delete flashcard set.", Toast.LENGTH_SHORT).show();
-                            });
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error fetching flashcard set.", Toast.LENGTH_SHORT).show();
-                });
     }
 
     private void makeCopy() {
@@ -1013,6 +921,92 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private String formatDateTime(Calendar calendar) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy | hh:mm a", Locale.getDefault());
         return dateFormat.format(calendar.getTime());
+    }
+
+    private void showDeleteConfirmationDialog() {
+        if (isFinishing() || isDestroyed()) return;
+
+        deleteConfirmationDialog = new AlertDialog.Builder(this)
+                .setTitle("Delete Flashcard Set")
+                .setMessage("Are you sure you want to delete this flashcard set? This action cannot be undone.")
+                .setPositiveButton("Yes", (dialog, which) -> deleteFlashcardSet())
+                .setNegativeButton("No", null)
+                .create();
+
+        deleteConfirmationDialog.show();
+    }
+
+    private void deleteFlashcardSet() {
+        db.collection("flashcards").document(setId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    Map<String, Object> data = documentSnapshot.getData();
+                    if (data != null && data.containsKey("terms")) {
+                        Object termsObj = data.get("terms");
+                        if (termsObj instanceof Map) {
+                            Map<String, Object> terms = (Map<String, Object>) termsObj;
+                            for (Map.Entry<String, Object> entry : terms.entrySet()) {
+                                Object value = entry.getValue();
+                                if (value instanceof Map) {
+                                    Map<String, Object> termEntry = (Map<String, Object>) value;
+                                    String photoPath = termEntry.get("photoPath") != null ? termEntry.get("photoPath").toString() : null;
+                                    if (photoPath != null && !photoPath.isEmpty()) {
+                                        SupabaseUploader.deleteFile("flashcard-images", photoPath, new SupabaseUploader.UploadCallback() {
+                                            @Override
+                                            public void onUploadComplete(boolean success, String message, String publicUrl) {
+                                                if (success) {
+                                                    Log.d("Supabase", "Deleted image: " + photoPath);
+                                                } else {
+                                                    Log.e("Supabase", "Failed to delete image: " + photoPath + " Reason: " + message);
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    db.collection("flashcards").document(setId)
+                            .delete()
+                            .addOnSuccessListener(aVoid -> {
+                                String userId = auth.getCurrentUser().getUid();
+                                DocumentReference userRef = db.collection("users").document(userId);
+
+                                db.runTransaction(transaction -> {
+                                    DocumentSnapshot snapshot = transaction.get(userRef);
+                                    List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) snapshot.get("owned_sets");
+
+                                    if (ownedSets != null) {
+                                        List<Map<String, Object>> updatedOwnedSets = new ArrayList<>();
+                                        for (Map<String, Object> item : ownedSets) {
+                                            if (!item.get("id").equals(setId)) {
+                                                updatedOwnedSets.add(item);
+                                            }
+                                        }
+                                        transaction.update(userRef, "owned_sets", updatedOwnedSets);
+                                    }
+                                    return null;
+                                }).addOnSuccessListener(unused -> {
+                                    Toast.makeText(this, "Flashcard set deleted.", Toast.LENGTH_SHORT).show();
+                                    finish();
+                                }).addOnFailureListener(e -> {
+                                    Toast.makeText(this, "Failed to clean owned_sets.", Toast.LENGTH_SHORT).show();
+                                    finish();
+                                });
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to delete flashcard set.", Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error fetching flashcard set.", Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void loadFlashcardSet() {
@@ -1233,7 +1227,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(this, "No flashcards found in this set.", Toast.LENGTH_SHORT).show();
             }
-
         } else {
             db.collection("flashcards").document(setId)
                     .get()

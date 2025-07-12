@@ -45,7 +45,7 @@
             android:layout_gravity="center"
             android:text="@string/add_flashcard"
             android:textColor="@color/black"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
     </com.google.android.material.navigation.NavigationView>
 
@@ -74,8 +74,8 @@
 
                 <ImageView
                     android:id="@+id/icon_privacy"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
@@ -88,7 +88,7 @@
                     android:layout_marginStart="8dp"
                     android:text="@string/privacy_public"
                     android:textColor="@color/black"
-                    android:textSize="14sp"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toEndOf="@+id/icon_privacy"
@@ -100,7 +100,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/view"
                     android:textColor="@color/black"
-                    android:textSize="14sp"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -130,7 +130,7 @@
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/set_name"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="40dp"
                     android:minHeight="48dp"
                     android:padding="12dp"
                     android:textColor="@color/black"

@@ -8,14 +8,14 @@
 
     <ImageView
         android:id="@+id/senderImage"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_marginEnd="8dp"
-        android:scaleType="centerCrop"
-        android:src="@drawable/user_profile"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_gravity="bottom"
+        android:layout_marginEnd="8dp"
         android:background="@drawable/circle_background"
-        android:contentDescription="Sender Photo" />
+        android:contentDescription="Sender Photo"
+        android:scaleType="centerCrop"
+        android:src="@drawable/user_profile" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -66,11 +66,11 @@
                 android:id="@+id/timestampText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
                 android:layout_marginStart="8dp"
                 android:text="12:00 PM"
                 android:textColor="@color/text_gray"
-                android:textSize="10sp"
-                android:layout_gravity="bottom" />
+                android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

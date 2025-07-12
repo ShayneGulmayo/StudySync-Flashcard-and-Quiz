@@ -35,14 +35,14 @@
         <ImageView
             android:id="@+id/chatRoomSettings"
             android:layout_width="30dp"
-            android:layout_height="42dp"
-            android:layout_marginEnd="16dp"
+            android:layout_height="30dp"
             android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
             android:layout_marginBottom="16dp"
-            app:srcCompat="@drawable/more_vert"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:srcCompat="@drawable/more_vert" />
 
         <ImageView
             android:id="@+id/chatroom_photo"
@@ -56,22 +56,23 @@
             app:layout_constraintEnd_toStartOf="@id/txtChatRoomName"
             app:layout_constraintStart_toEndOf="@id/back_button"
             app:layout_constraintBottom_toBottomOf="parent"/>
+
         <TextView
             android:id="@+id/txtChatRoomName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:text="Loading..."
-            android:textColor="@color/black"
-            android:textSize="16sp"
-            android:textStyle="bold"
             android:ellipsize="end"
             android:maxLines="1"
-            app:layout_constraintStart_toEndOf="@id/chatroom_photo"
+            android:text="Loading..."
+            android:textColor="@color/black"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/chatRoomSettings"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintStart_toEndOf="@id/chatroom_photo"
+            app:layout_constraintTop_toTopOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -102,8 +103,8 @@
 
         <ImageButton
             android:id="@+id/sendFlashcardsandQuiz"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_marginRight="10dp"
             android:background="?attr/selectableItemBackground"
             android:src="@drawable/add_circle"
@@ -111,8 +112,8 @@
 
         <ImageButton
             android:id="@+id/sendImg"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_marginRight="10dp"
             android:background="?attr/selectableItemBackground"
             android:src="@drawable/image"
@@ -121,7 +122,7 @@
         <EditText
             android:id="@+id/messageEditText"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_weight="1"
             android:background="@drawable/custom_edittxt"
             android:hint="Type a message"
@@ -137,8 +138,8 @@
 
         <ImageButton
             android:id="@+id/sendButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_marginLeft="10dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Send"

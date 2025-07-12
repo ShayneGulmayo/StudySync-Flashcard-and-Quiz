@@ -8,16 +8,16 @@
 
     <ImageView
         android:id="@+id/image_group_photo"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:scaleType="centerCrop"
-        android:src="@drawable/user_profile"
-        android:contentDescription="@string/group_photo"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:background="@drawable/circle_background"
         android:clipToOutline="true"
-        app:layout_constraintTop_toTopOf="parent"
+        android:contentDescription="@string/group_photo"
+        android:scaleType="centerCrop"
+        android:src="@drawable/user_profile"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/text_group_name"
@@ -38,14 +38,14 @@
         android:id="@+id/text_last_message"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="User: Last Message"
-        android:textColor="#666"
-        android:textSize="14sp"
-        android:maxLines="1"
+        android:layout_marginTop="4dp"
         android:ellipsize="end"
-        app:layout_constraintTop_toBottomOf="@id/text_group_name"
-        app:layout_constraintStart_toStartOf="@id/text_group_name"
+        android:maxLines="1"
+        android:text="User: Last Message"
+        android:textColor="@color/text_gray"
+        android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="4dp" />
+        app:layout_constraintStart_toStartOf="@id/text_group_name"
+        app:layout_constraintTop_toBottomOf="@id/text_group_name" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
