@@ -14,6 +14,7 @@ public class Quiz {
     private Date created_at;
     private List<Question> questions;
 
+
     public Quiz() {
         // Required for Firestore deserialization
     }
@@ -58,6 +59,22 @@ public class Quiz {
 
     public void setNumber_of_items(int number_of_items) {
         this.number_of_items = number_of_items;
+    }
+
+    public void setOwnerUsername(String ownerUsername) {
+        this.owner_username = ownerUsername;
+    }
+
+    public String getOwnerUsername() {
+        return owner_username;
+    }
+
+    public void setQuestionCount(int count) {
+        this.number_of_items = count;
+    }
+
+    public int getQuestionCount() {
+        return number_of_items;
     }
 
     public int getProgress() {

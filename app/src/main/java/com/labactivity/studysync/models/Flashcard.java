@@ -59,16 +59,14 @@ public class Flashcard {
     }
 
     @PropertyName("number_of_items")
-    public void set_Number_Of_Items(int number_Of_Items) {
-        this.number_Of_Items = number_Of_Items;
-    }
-
+    public void setNumber_of_items(int number_Of_Items) {this.number_Of_Items = number_Of_Items;}
 
     @PropertyName("owner_username")
     public String getOwnerUsername() { return ownerUsername; }
 
     @PropertyName("owner_username")
     public void setOwnerUsername(String ownerUsername) { this.ownerUsername = ownerUsername; }
+
 
     public int getProgress() { return progress; }
     public void setProgress(int progress) { this.progress = progress; }
@@ -95,5 +93,9 @@ public class Flashcard {
     public void setLastAccessed(long lastAccessed) {
         this.lastAccessed = lastAccessed;
     }
+    public void setTermCount(int count) {this.number_Of_Items = count;}
+
+    public int getTermCount() {return number_Of_Items;}
+
 }
 
