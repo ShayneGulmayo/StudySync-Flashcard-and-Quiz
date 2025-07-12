@@ -37,7 +37,7 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <ImageView
-                android:id="@+id/saveSetBtn"
+                android:id="@+id/saveQuizBtn"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
                 android:layout_marginEnd="8dp"
@@ -236,6 +236,7 @@
 
     <Button
         android:id="@+id/start_quiz_btn"
+        android:layout_width="0dp"
         android:layout_height="60dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"

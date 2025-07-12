@@ -98,7 +98,7 @@ public class SetFragment extends Fragment {
         allSets = new ArrayList<>();
         displayedSets = new ArrayList<>();
 
-        adapter = new SetAdapter(getContext(), displayedSets, this::onFlashcardSetClicked);
+        adapter = new SetAdapter(requireActivity(), displayedSets, this::onFlashcardSetClicked);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
 
@@ -293,8 +293,6 @@ public class SetFragment extends Fragment {
                 });
     }
 
-
-
     private void loadFlashcardsAndQuizzes(String currentUid) {
         db.collection("flashcards")
                 .whereEqualTo("owner_uid", currentUid)
@@ -426,87 +424,4 @@ public class SetFragment extends Fragment {
             startActivity(intent);
         });
     }
-
-
-
-    private void showAddBottomSheetFlashcard() {
-        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_add, null);
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(getContext())
-                .setView(view)
-                .create();
-
-        dialog.show();
-
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            window.setBackgroundDrawableResource(android.R.color.transparent);
-
-            WindowManager.LayoutParams params = window.getAttributes();
-            params.gravity = Gravity.TOP | Gravity.START;
-            params.x = 25;
-            params.y = 910;
-            window.setAttributes(params);
-        }
-
-        view.findViewById(R.id.generate_from_camera).setOnClickListener(v -> {
-            dialog.dismiss();
-            Toast.makeText(getContext(), "Generate from camera coming soon!", Toast.LENGTH_SHORT).show();
-        });
-
-        view.findViewById(R.id.generate_from_image).setOnClickListener(v -> {
-            dialog.dismiss();
-            Toast.makeText(getContext(), "Generate from image coming soon!", Toast.LENGTH_SHORT).show();
-        });
-
-        view.findViewById(R.id.generate_from_pdf).setOnClickListener(v -> {
-            dialog.dismiss();
-            Toast.makeText(getContext(), "Generate from PDF coming soon!", Toast.LENGTH_SHORT).show();
-        });
-
-        view.findViewById(R.id.add_new_set).setOnClickListener(v -> {
-            dialog.dismiss();
-            Intent intent = new Intent(getContext(), CreateFlashcardActivity.class);
-            createFlashcardLauncher.launch(intent);
-        });
-    }
-
-
-    private void showAddBottomSheetQuiz() {
-        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_add, null);
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(getContext())
-                .setView(view)
-                .create();
-
-        dialog.show();
-
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            window.setBackgroundDrawableResource(android.R.color.transparent);
-
-            WindowManager.LayoutParams params = window.getAttributes();
-            params.gravity = Gravity.TOP | Gravity.START;
-            params.x = 25;
-            params.y = 910;
-            window.setAttributes(params);
-        }
-
-        view.findViewById(R.id.generate_from_image).setOnClickListener(v -> {
-            dialog.dismiss();
-            Toast.makeText(getContext(), "Generate from image coming soon!", Toast.LENGTH_SHORT).show();
-        });
-
-        view.findViewById(R.id.generate_from_pdf).setOnClickListener(v -> {
-            dialog.dismiss();
-            Toast.makeText(getContext(), "Generate from PDF coming soon!", Toast.LENGTH_SHORT).show();
-        });
-
-        view.findViewById(R.id.add_new_set).setOnClickListener(v -> {
-            dialog.dismiss();
-            Intent intent = new Intent(getContext(), CreateQuizActivity.class);
-            createFlashcardLauncher.launch(intent);
-        });
-    }
-
 }

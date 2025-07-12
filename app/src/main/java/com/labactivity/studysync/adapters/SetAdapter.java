@@ -2,6 +2,7 @@ package com.labactivity.studysync.adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -149,6 +150,7 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
 
         holder.itemView.setOnClickListener(v -> {
             if (set.getType().equals("quiz")) {
+                Log.d("SetAdapter", "Quiz Clicked: " + set.getTitle());
                 Intent intent = new Intent(context, QuizPreviewActivity.class);
                 intent.putExtra("quizId", set.getId());
                 intent.putExtra("quizName", set.getTitle());
@@ -158,6 +160,7 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
                 listener.onFlashcardSetClick(set);
             }
         });
+
     }
 
     private void loadPhoto(ImageView view, String url) {

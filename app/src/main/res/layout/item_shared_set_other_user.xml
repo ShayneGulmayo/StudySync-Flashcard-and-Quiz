@@ -101,7 +101,7 @@
                         app:cornerRadius="10dp" />
 
                     <ImageView
-                        android:id="@+id/saveSetBtn"
+                        android:id="@+id/saveQuizBtn"
                         android:layout_width="30dp"
                         android:layout_height="30dp"
                         android:layout_weight=".1"
@@ -128,7 +128,7 @@
             android:layout_marginStart="8dp"
             android:text="12:00 PM"
             android:textColor="@color/text_gray"
-            android:textSize="10sp"
-            android:visibility="gone"/>
+            android:textSize="12sp"
+            android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>

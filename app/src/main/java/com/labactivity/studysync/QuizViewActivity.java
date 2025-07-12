@@ -8,28 +8,28 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import java.util.Collections;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-import com.google.android.material.card.MaterialCardView;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FieldValue;
-import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
+import com.google.android.material.card.MaterialCardView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+
 public class QuizViewActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
-    private ImageView back_button;
-    private ImageView more_button;
     private TextView quizQuestionTextView;
     private TextView chooseAnswerLabel;
     private String selectedAnswer = null;
@@ -60,28 +60,16 @@ public class QuizViewActivity extends AppCompatActivity {
             finish();
             return;
         }
+
         quizQuestionTextView = findViewById(R.id.quiz_question_txt_view);
         txtViewItems = findViewById(R.id.txt_view_items);
         linearLayoutOptions = findViewById(R.id.linear_layout_options);
-        more_button = findViewById(R.id.more_button);
         chooseAnswerLabel = findViewById(R.id.choose_answer_label);
-        back_button = findViewById(R.id.back_button);
-
-
         Button btnCheck = findViewById(R.id.btn_check_answer);
         btnCheck.setOnClickListener(v -> handleAnswerCheck());
 
-        View rootView = findViewById(android.R.id.content);
-        rootView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
-            int heightDiff = rootView.getRootView().getHeight() - rootView.getHeight();
-            if (heightDiff > dpToPx(200)) {
-                btnCheck.setVisibility(View.GONE);
-            } else {
-                btnCheck.setVisibility(View.VISIBLE);
-            }
-        });
-
-        back_button.setOnClickListener(v -> showExitConfirmationDialog());
+        // Back button
+        findViewById(R.id.back_button).setOnClickListener(v -> showExitConfirmationDialog());
 
         mode = getIntent().getStringExtra("mode");
         if (mode == null) mode = "normal";
@@ -92,16 +80,13 @@ public class QuizViewActivity extends AppCompatActivity {
         } else {
             loadQuizFromFirestore();
         }
-
-        // more_button.setOnClickListener(v -> showMoreBottomSheet());
     }
 
     private void loadQuizFromFirestore() {
-        FirebaseFirestore.getInstance().collection("quiz").document(quizId)
+        db.collection("quiz").document(quizId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-
                         Object raw = documentSnapshot.get("questions");
                         questions = new ArrayList<>();
 
@@ -116,7 +101,6 @@ public class QuizViewActivity extends AppCompatActivity {
                             Collections.shuffle(questions);
                         }
                         originalQuestionCount = questions.size();
-
 
                         if (!questions.isEmpty()) {
                             currentQuestionIndex = 0;
@@ -140,9 +124,7 @@ public class QuizViewActivity extends AppCompatActivity {
         correctAnswer = null;
         selectedAnswer = null;
 
-        // Check if all questions have been shown first
         if (currentQuestionIndex >= questions.size()) {
-            // ✅ Do NOT update txtViewItems here — quiz is done
             Toast.makeText(this, "🎉 Quiz Completed!", Toast.LENGTH_LONG).show();
             saveQuizAttempt(userAnswersList, score);
 
@@ -167,13 +149,11 @@ public class QuizViewActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this, "Unsupported or missing question type. Skipping...", Toast.LENGTH_SHORT).show();
             currentQuestionIndex++;
-            displayNextValidQuestion();  // 🔁 Try next one recursively
+            displayNextValidQuestion();
         }
     }
 
-
     private String detectFallbackType(Map<String, Object> question) {
-        // This is for backward compatibility: guess type if `type` is missing
         if (question.containsKey("correctAnswer")) {
             return "multiple choice";
         } else if (question.containsKey("choices")) {
@@ -182,7 +162,6 @@ public class QuizViewActivity extends AppCompatActivity {
             return "unknown";
         }
     }
-
 
     private void displayMultipleChoice(Map<String, Object> questionData) {
         chooseAnswerLabel.setText("Choose your answer");
@@ -209,7 +188,7 @@ public class QuizViewActivity extends AppCompatActivity {
 
         if (choices != null && correctAnswer != null) {
             if (shouldShuffle) {
-                Collections.shuffle(choices); // ✅ This will randomize the choices
+                Collections.shuffle(choices);
             }
             for (String optionText : choices) {
                 addOptionView(optionText, correctAnswer);
@@ -220,7 +199,6 @@ public class QuizViewActivity extends AppCompatActivity {
             displayNextValidQuestion();
         }
     }
-
 
     private void displayEnumeration(Map<String, Object> questionData) {
         chooseAnswerLabel.setText("Type your answer");
@@ -257,23 +235,17 @@ public class QuizViewActivity extends AppCompatActivity {
         cardOption.setOnClickListener(v -> {
             if (hasAnswered) return;
 
-            // Reset all option colors
             resetOptionColors();
 
-            // Highlight selected card
-            cardOption.setCardBackgroundColor(ContextCompat.getColor(this, R.color.pale_green)); // choose your highlight color
+            cardOption.setCardBackgroundColor(ContextCompat.getColor(this, R.color.pale_green));
 
-            // Store selected answer
             selectedAnswer = optionText;
         });
 
-
-        // Add the option view to the layout (this must be outside the click listener)
         linearLayoutOptions.addView(optionView);
     }
 
     private void loadIncorrectQuestions() {
-
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         db.collection("quiz")
                 .document(quizId)
@@ -283,7 +255,7 @@ public class QuizViewActivity extends AppCompatActivity {
                 .addOnSuccessListener(doc -> {
                     List<Map<String, Object>> answered = (List<Map<String, Object>>) doc.get("answeredQuestions");
                     if (answered != null) {
-                        originalQuestionCount = answered.size(); // ✅ Save total questions originally answered
+                        originalQuestionCount = answered.size();
                     }
                     incorrectQuestions.clear();
                     for (Map<String, Object> q : answered) {
@@ -311,8 +283,6 @@ public class QuizViewActivity extends AppCompatActivity {
                         currentQuestionIndex = 0;
                         displayNextValidQuestion();
                     } else {
-                        // Only exit if the user actually pressed "Review Incorrect Questions"
-                        String mode = getIntent().getStringExtra("mode");
                         if ("review_only_incorrect".equals(mode)) {
                             Toast.makeText(this, "🎉 All questions were answered correctly!", Toast.LENGTH_LONG).show();
                             Intent intent = new Intent(this, QuizProgressActivity.class);
@@ -351,7 +321,6 @@ public class QuizViewActivity extends AppCompatActivity {
             hasAnswered = true;
             boolean isCorrect = selectedAnswer.equals(correctAnswer);
 
-            // Highlight options
             for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
                 View child = linearLayoutOptions.getChildAt(i);
                 TextView tv = child.findViewById(R.id.tvOptionText);
@@ -436,28 +405,6 @@ public class QuizViewActivity extends AppCompatActivity {
                     })
                     .setCancelable(false)
                     .show();
-
-        }
-    }
-
-        private void resetQuizState() {
-        currentQuestionIndex = 0;
-        hasAnswered = false;
-        selectedAnswer = null;
-        correctAnswer = null;
-        userAnswersList.clear();
-        incorrectQuestions.clear();
-    }
-
-
-    private void highlightCorrectAnswer(String correctAnswer) {
-        for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
-            View child = linearLayoutOptions.getChildAt(i);
-            TextView tv = child.findViewById(R.id.tvOptionText);
-            MaterialCardView card = child.findViewById(R.id.cardOption);
-            if (tv.getText().toString().equals(correctAnswer)) {
-                card.setCardBackgroundColor(ContextCompat.getColor(this, R.color.vibrant_green));
-            }
         }
     }
 
@@ -506,10 +453,6 @@ public class QuizViewActivity extends AppCompatActivity {
                 .set(resultData);
     }
 
-    private int dpToPx(int dp) {
-        return Math.round(dp * getResources().getDisplayMetrics().density);
-    }
-
     @SuppressLint("MissingSuperCall")
     @Override
     public void onBackPressed() {
@@ -521,14 +464,9 @@ public class QuizViewActivity extends AppCompatActivity {
                 .setTitle("Exit Quiz")
                 .setMessage("Are you sure you want to exit the quiz?\nYour progress will not be saved.")
                 .setPositiveButton("Yes, Exit", (dialog, which) -> {
-                    QuizViewActivity.super.onBackPressed();
+                    QuizViewActivity.this.finish();
                 })
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton("No", null)
                 .show();
     }
-
 }
-
-
-
-

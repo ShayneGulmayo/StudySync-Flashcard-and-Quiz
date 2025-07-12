@@ -158,7 +158,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         privacyText = findViewById(R.id.privacy_txt);
         reminderTextView = findViewById(R.id.reminder_txt);
         reminderIcon = findViewById(R.id.reminder_icon);
-        saveSetBtn = findViewById(R.id.saveSetBtn);
+        saveSetBtn = findViewById(R.id.saveQuizBtn);
         downloadIcon = findViewById(R.id.download_icon);
         downloadTxt = findViewById(R.id.download_txt);
 

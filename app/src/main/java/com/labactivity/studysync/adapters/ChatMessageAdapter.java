@@ -126,7 +126,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             sharedDescription = itemView.findViewById(R.id.sharedDescription);
             timestampText = itemView.findViewById(R.id.timestampText);
             senderImage = itemView.findViewById(R.id.senderImage);
-            saveSetBtn = itemView.findViewById(R.id.saveSetBtn);
+            saveSetBtn = itemView.findViewById(R.id.saveQuizBtn);
             savedIndicator = itemView.findViewById(R.id.savedIndicator);
             btnViewSet = itemView.findViewById(R.id.btnViewSet);
 
@@ -359,7 +359,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             sharedDescription = itemView.findViewById(R.id.sharedDescription);
             timestampText = itemView.findViewById(R.id.timestampText);
             btnViewSet = itemView.findViewById(R.id.btnViewSet);
-            saveSetBtn = itemView.findViewById(R.id.saveSetBtn);
+            saveSetBtn = itemView.findViewById(R.id.saveQuizBtn);
             savedIndicator = itemView.findViewById(R.id.savedIndicator);
 
             itemView.setOnClickListener(v -> {
