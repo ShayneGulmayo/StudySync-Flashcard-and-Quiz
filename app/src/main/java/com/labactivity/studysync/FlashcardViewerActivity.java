@@ -43,6 +43,7 @@ public class FlashcardViewerActivity extends AppCompatActivity {
     private boolean isOffline = false;
     private Map<String, Object> setData;
     private ArrayList<Map<String, Object>> flashcardAttempts = new ArrayList<>();
+    private ArrayList<Map<String, Object>> offlineAttempts = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +59,13 @@ public class FlashcardViewerActivity extends AppCompatActivity {
         dontKnowFlashcards = new ArrayList<>();
         isOffline = getIntent().getBooleanExtra("isOffline", false);
         offlineFileName = getIntent().getStringExtra("offlineFileName");
+
+        if (isOffline && getIntent().hasExtra("offlineAttemptsJson")) {
+            String offlineAttemptsJson = getIntent().getStringExtra("offlineAttemptsJson");
+            Type listType = new TypeToken<ArrayList<Map<String, Object>>>() {}.getType();
+            offlineAttempts = new Gson().fromJson(offlineAttemptsJson, listType);
+        }
+
 
         frontCard = findViewById(R.id.front_card);
         backCard = findViewById(R.id.back_card);
@@ -149,14 +157,30 @@ public class FlashcardViewerActivity extends AppCompatActivity {
 
     private void addAttempt(boolean isCorrect) {
         Flashcard card = flashcards.get(currentIndex);
-        Map<String, Object> attempt = new HashMap<>();
-        attempt.put("term", card.getTerm());
-        attempt.put("definition", card.getDefinition());
-        attempt.put("photoUrl", card.getPhotoUrl());
-        attempt.put("isCorrect", isCorrect);
-        attempt.put("order", currentIndex + 1);
-        flashcardAttempts.add(attempt);
+        String term = card.getTerm();
+
+        // Check if existing attempt already recorded from offlineAttempts
+        boolean replaced = false;
+        for (int i = 0; i < flashcardAttempts.size(); i++) {
+            if (flashcardAttempts.get(i).get("term").equals(term)) {
+                flashcardAttempts.get(i).put("isCorrect", isCorrect);
+                replaced = true;
+                break;
+            }
+        }
+
+        if (!replaced) {
+            // If no existing attempt, create new
+            Map<String, Object> attempt = new HashMap<>();
+            attempt.put("term", term);
+            attempt.put("definition", card.getDefinition());
+            attempt.put("photoUrl", card.getPhotoUrl());
+            attempt.put("isCorrect", isCorrect);
+            attempt.put("order", currentIndex + 1);
+            flashcardAttempts.add(attempt);
+        }
     }
+
 
     private void loadOfflineSet(String fileName) {
         File file = new File(getFilesDir(), fileName);
@@ -213,6 +237,21 @@ public class FlashcardViewerActivity extends AppCompatActivity {
                     flashcards = filtered;
                 }
             }
+
+// Prefill flashcardAttempts from offlineAttempts
+            if (!offlineAttempts.isEmpty()) {
+                flashcardAttempts.clear();
+                flashcardAttempts.addAll(offlineAttempts);
+
+                // Re-count previous knowCount based on isCorrect values
+                knowCount = 0;
+                for (Map<String, Object> attempt : offlineAttempts) {
+                    if (Boolean.TRUE.equals(attempt.get("isCorrect"))) {
+                        knowCount++;
+                    }
+                }
+            }
+
 
             if (!flashcards.isEmpty()) {
                 currentIndex = 0;

@@ -133,40 +133,56 @@ public class FlashcardProgressActivity extends AppCompatActivity {
         });
 
         reviewQuestionsBtn.setOnClickListener(v -> {
-            if (isOffline) {
-                Toast.makeText(this, "Review only works in online mode.", Toast.LENGTH_SHORT).show();
+            ArrayList<String> dontKnowTerms = getIntent().getStringArrayListExtra("dontKnowTerms");
+            if (dontKnowTerms == null || dontKnowTerms.isEmpty()) {
+                Toast.makeText(this, "No attempt data to review.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            db.collection("flashcards").document(setId)
-                    .collection("flashcard_attempt")
-                    .document(userId)
-                    .get()
-                    .addOnSuccessListener(attemptDoc -> {
-                        if (attemptDoc.exists() && attemptDoc.contains("knowCount")) {
-                            Intent intent = new Intent(FlashcardProgressActivity.this, FlashcardViewerActivity.class);
-                            intent.putExtra("setId", setId);
-                            intent.putExtra("photoUrl", getIntent().getStringExtra("photoUrl"));
-                            intent.putExtra("mode", "review_only_incorrect");
-                            intent.putExtra("isOffline", isOffline);
-                            if (isOffline) intent.putExtra("offlineFileName", offlineFileName);
-                            intent.putExtra("totalItems", totalItems);
-                            intent.putExtra("knowCount", cappedKnowCount);
-                            intent.putExtra("isReviewingOnlyDontKnow", true);
-                            intent.putStringArrayListExtra("dontKnowTerms", getIntent().getStringArrayListExtra("dontKnowTerms"));
-                            startActivity(intent);
-                            finish();
-                        } else {
-                            Toast.makeText(this, "No attempt data to review.", Toast.LENGTH_SHORT).show();
+            ArrayList<Map<String, Object>> offlineAttempts = null;
+
+            if (isOffline) {
+                try {
+                    File file = new File(getFilesDir(), offlineFileName);
+                    if (file.exists()) {
+                        StringBuilder jsonBuilder = new StringBuilder();
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            jsonBuilder.append(line);
                         }
-                    }).addOnFailureListener(e -> {
-                        Toast.makeText(this, "Failed to load attempt data.", Toast.LENGTH_SHORT).show();
-                    });
+                        reader.close();
+
+                        String json = jsonBuilder.toString();
+                        Map<String, Object> setData = new Gson().fromJson(json, Map.class);
+                        offlineAttempts = (ArrayList<Map<String, Object>>) setData.get("attempts");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            Intent intent = new Intent(FlashcardProgressActivity.this, FlashcardViewerActivity.class);
+            intent.putExtra("setId", setId);
+            intent.putExtra("photoUrl", getIntent().getStringExtra("photoUrl"));
+            intent.putExtra("mode", "review_only_incorrect");
+            intent.putExtra("isOffline", isOffline);
+            if (isOffline) intent.putExtra("offlineFileName", offlineFileName);
+            intent.putExtra("totalItems", totalItems);
+            intent.putExtra("knowCount", knowCount);
+            intent.putExtra("isReviewingOnlyDontKnow", true);
+            intent.putStringArrayListExtra("dontKnowTerms", dontKnowTerms);
+
+            // Pass offline attempts if offline
+            if (isOffline && offlineAttempts != null) {
+                intent.putExtra("offlineAttemptsJson", new Gson().toJson(offlineAttempts));
+            }
+
+            startActivity(intent);
+            finish();
         });
 
     }
-
 
     private void updateProgressInFirestore(String setId, int progressValue) {
         if (isOffline || setId == null) return;
