@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
-    app:cardCornerRadius="20dp"
+    app:cardCornerRadius="15dp"
     app:cardElevation="4dp">
 
     <LinearLayout
@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:background="@drawable/green_stroke_bg"
         android:orientation="vertical"
-        android:paddingBottom="15dp">
+        android:paddingBottom="16dp">
 
         <!-- ✅ Answer Status -->
         <TextView
@@ -34,8 +34,8 @@
             android:id="@+id/question_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="15dp"
-            android:layout_marginBottom="12dp"
+            android:layout_marginLeft="16dp"
+            android:layout_marginBottom="16dp"
             android:text="@string/question"
             android:textColor="@color/black"
             android:textSize="16sp"
@@ -46,21 +46,20 @@
             android:id="@+id/answers_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingLeft="15dp"
-            android:paddingRight="15dp"
-            android:paddingBottom="10dp"
-            android:gravity="center_vertical">
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp">
 
             <!-- ✅ Correct Answer -->
             <LinearLayout
                 android:id="@+id/correct_answer_container"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="horizontal"
                 android:layout_marginEnd="8dp"
-                android:gravity="center_vertical">
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <ImageView
                     android:layout_width="30dp"
@@ -84,13 +83,13 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:visibility="gone"
-                android:gravity="center_vertical">
+                android:visibility="gone">
 
                 <ImageView
                     android:layout_width="30dp"
-                    android:layout_height="24dp"
+                    android:layout_height="30dp"
                     android:layout_marginEnd="8dp"
                     android:src="@drawable/x_circle" />
 

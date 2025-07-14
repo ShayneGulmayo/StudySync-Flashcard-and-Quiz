@@ -44,8 +44,8 @@
                 android:textSize="18sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/check_button"
-                app:layout_constraintStart_toEndOf="@id/back_button"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <ImageView
@@ -98,10 +98,9 @@
         <SearchView
             android:id="@+id/search_user"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
+            android:layout_height="50dp"
             android:layout_marginBottom="16dp"
             android:background="@drawable/green_stroke_bg"
-            android:searchHintIcon="@drawable/search_resized"
             android:searchIcon="@drawable/search_resized">
 
         </SearchView>

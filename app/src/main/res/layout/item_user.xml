@@ -15,7 +15,6 @@
             android:id="@+id/profile_image"
             android:layout_width="50dp"
             android:layout_height="50dp"
-            android:background="@drawable/circle_background"
             android:scaleType="centerCrop"
             android:src="@drawable/user_profile" />
 

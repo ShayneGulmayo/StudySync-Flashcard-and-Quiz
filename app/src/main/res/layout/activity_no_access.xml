@@ -53,7 +53,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:gravity="center"
-        android:padding="24dp"
+        android:padding="16dp"
         android:text="You do not have access to this set"
         android:textColor="@color/black"
         android:textSize="18sp"

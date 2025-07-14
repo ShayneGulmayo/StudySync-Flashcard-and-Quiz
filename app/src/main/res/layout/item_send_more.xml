@@ -9,12 +9,11 @@
     <TextView
         android:id="@+id/sendSet"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:drawableStart="@drawable/flashcard_resized"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/set_resized"
         android:drawablePadding="16dp"
         android:gravity="center_vertical"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:padding="16dp"
         android:text="Send a Set"
         android:textColor="@color/black"
         android:textSize="16sp" />
@@ -22,13 +21,12 @@
     <TextView
         android:id="@+id/sendFile"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="wrap_content"
         android:drawableStart="@drawable/attach_file_resized"
         android:drawablePadding="16dp"
         android:drawableTint="@color/black"
         android:gravity="center_vertical"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:padding="16dp"
         android:text="Send a File"
         android:textColor="@color/black"
         android:textSize="16sp" />

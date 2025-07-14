@@ -44,8 +44,9 @@
             android:layout_width="100dp"
             android:layout_height="100dp"
             android:layout_gravity="center"
-            android:scaleType="centerCrop"
+            android:layout_marginTop="16dp"
             android:contentDescription="Profile Image"
+            android:scaleType="centerCrop"
             app:srcCompat="@drawable/user_profile" />
 
         <TextView
@@ -57,7 +58,7 @@
             android:maxLines="1"
             android:text="Loading..."
             android:textColor="@color/black"
-            android:textSize="18dp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <TextView

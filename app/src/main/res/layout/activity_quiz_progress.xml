@@ -174,7 +174,7 @@
             <Button
                 android:id="@+id/review_questions_btn"
                 android:layout_width="300dp"
-                android:layout_height="wrap_content"
+                android:layout_height="50dp"
                 android:layout_marginTop="16dp"
                 android:backgroundTint="@color/primary"
                 android:text="@string/keep_reviewing_questions"
