@@ -35,6 +35,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -71,8 +72,8 @@ import com.google.firebase.firestore.ListenerRegistration;
 
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
-    private TextView titleTextView, ownerTextView, createdAtTextView, numberOfItemsTextView, privacyText, reminderTextView, downloadTxt;
-    private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, reminderIcon, saveSetBtn, downloadIcon, createdAtIcon;
+    private TextView titleTextView, ownerTextView, createdAtTextView, numberOfItemsTextView, privacyText;
+    private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, saveSetBtn, downloadIcon, createdAtIcon;
     private Button startFlashcardBtn;
     private ViewPager2 carouselViewPager;
     private String currentPrivacy, setId, currentReminder, offlineFileName, ownerUid;
@@ -118,7 +119,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 fetchSetFromFirestore(setId);
                 loadFlashcardSet();
                 loadFlashcards();
-                listenToReminderUpdates();
                 checkIfSaved();
             } else {
                 Toast.makeText(this, "No flashcard id provided.", Toast.LENGTH_SHORT).show();
@@ -146,73 +146,28 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         backButton = findViewById(R.id.back_button);
         titleTextView = findViewById(R.id.flashcard_title);
         ownerTextView = findViewById(R.id.owner_username);
-        createdAtTextView = findViewById(R.id.createdAt_txt);
-        createdAtIcon = findViewById(R.id.createdAt_icon);
         numberOfItemsTextView = findViewById(R.id.item_txt);
         ownerPhotoImageView = findViewById(R.id.owner_profile);
         carouselViewPager = findViewById(R.id.carousel_viewpager);
         dotsIndicator = findViewById(R.id.dots_indicator);
         startFlashcardBtn = findViewById(R.id.start_flashcard_btn);
         moreButton = findViewById(R.id.more_button);
-        privacyIcon = findViewById(R.id.privacy_icon);
-        privacyText = findViewById(R.id.privacy_txt);
-        reminderTextView = findViewById(R.id.reminder_txt);
-        reminderIcon = findViewById(R.id.reminder_icon);
         saveSetBtn = findViewById(R.id.saveQuizBtn);
-        downloadIcon = findViewById(R.id.download_icon);
-        downloadTxt = findViewById(R.id.download_txt);
+
+        MaterialButton downloadBtn = findViewById(R.id.downloadBtn);
+        MaterialButton setReminderBtn = findViewById(R.id.setReminderBtn);
 
         boolean fromNotification = getIntent().getBooleanExtra("fromNotification", false);
 
-        downloadIcon.setOnClickListener(v -> {
-            Intent intent = new Intent(FlashcardPreviewActivity.this, DownloadedSetsActivity.class);
-            startActivity(intent);
+        downloadBtn.setOnClickListener(v -> {
+            showDownloadOptionsDialog();
         });
 
-        downloadTxt.setOnClickListener(v -> {
-            Intent intent = new Intent(FlashcardPreviewActivity.this, DownloadedSetsActivity.class);
-            startActivity(intent);
-        });
-
-        privacyIcon.setOnClickListener(v -> {
-            startActivity(new Intent(this, PrivacyActivity.class).putExtra("setId", setId));
-        });
-
-        privacyText.setOnClickListener(v -> {
-            startActivity(new Intent(this, PrivacyActivity.class).putExtra("setId", setId));
-        });
-
-        reminderIcon.setOnClickListener(v -> {
+        setReminderBtn.setOnClickListener(v -> {
             showReminderDialog();
         });
-
-        reminderTextView.setOnClickListener(v -> {
-            showReminderDialog();
-        });
-
-        ownerTextView.setOnClickListener(v -> {
-            if (ownerUid != null) {
-                Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
-                intent.putExtra("userId", ownerUid);
-                startActivity(intent);
-            } else if (isOffline){
-                Toast.makeText(this, "You are Offline.", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "User Not Found.", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        ownerPhotoImageView.setOnClickListener(v -> {
-            if (ownerUid != null) {
-                Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
-                intent.putExtra("userId", ownerUid);
-                startActivity(intent);
-            } else if (isOffline){
-                Toast.makeText(this, "You are Offline.", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "User Not Found.", Toast.LENGTH_SHORT).show();
-            }
-        });
+        ownerTextView.setOnClickListener(v -> openUserProfile());
+        ownerPhotoImageView.setOnClickListener(v -> openUserProfile());
 
         backButton.setOnClickListener(v -> {
             if (fromNotification) {
@@ -223,9 +178,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             finish();
         });
 
-        saveSetBtn.setOnClickListener(view -> {
-            toggleSaveState();
-        });
+        saveSetBtn.setOnClickListener(view -> toggleSaveState());
 
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
 
@@ -245,6 +198,19 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             }
         });
     }
+    private void openUserProfile() {
+        if (ownerUid != null) {
+            Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
+            intent.putExtra("userId", ownerUid);
+            startActivity(intent);
+        } else if (isOffline) {
+            Toast.makeText(this, "You are Offline.", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "User Not Found.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
 
     private void showMoreBottomSheet() {
         if (isFinishing() || isDestroyed()) return;
@@ -871,27 +837,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         if (!isFinishing() && !isDestroyed()) datePickerDialog.show();
     }
 
-    private void listenToReminderUpdates() {
-        if (setId == null) return;
-
-        reminderListener = db.collection("flashcards").document(setId)
-                .addSnapshotListener((snapshot, error) -> {
-                    if (error != null || snapshot == null || !snapshot.exists()) {
-                        Log.e("ReminderListener", "Error or document missing");
-                        return;
-                    }
-
-                    String reminder = snapshot.getString("reminder");
-                    if (reminder != null && !reminder.isEmpty()) {
-                        reminderTextView.setText("Reminder: " + reminder);
-                        reminderIcon.setImageResource(R.drawable.notifications);
-                    } else {
-                        reminderTextView.setText("Reminder: None");
-                        reminderIcon.setImageResource(R.drawable.off_notifications);
-                    }
-                });
-    }
-
     @SuppressLint("ScheduleExactAlarm")
     private void setReminder(Calendar calendar) {
         String formattedDateTime = formatDateTime(calendar);
@@ -1022,7 +967,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             titleTextView.setText(title != null ? title : "Untitled");
 
             Long numberOfItems = setData.get("number_of_items") instanceof Number ? ((Number) setData.get("number_of_items")).longValue() : 0;
-            numberOfItemsTextView.setText(numberOfItems + (numberOfItems == 1 ? " item" : " items"));
+            numberOfItemsTextView.setText("| "+numberOfItems + (numberOfItems == 1 ? " terms" : " terms"));
 
             String ownerName = (String) setData.get("username");
             ownerTextView.setText(ownerName != null ? ownerName : "Unknown");
@@ -1038,30 +983,9 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 ownerPhotoImageView.setImageResource(R.drawable.user_profile);
             }
 
-            Object createdAtObj = setData.get("createdAt");
-            if (createdAtObj != null) {
-                createdAtTextView.setText(createdAtObj.toString());
-            } else {
-                createdAtTextView.setText("Unknown");
-            }
-
-            downloadIcon.setImageResource(R.drawable.downloaded);
-            downloadTxt.setText(R.string.downloaded);
-
-            if (currentReminder != null && !currentReminder.isEmpty()) {
-                reminderTextView.setText("Reminder: " + currentReminder);
-                reminderIcon.setImageResource(R.drawable.notifications);
-            } else {
-                reminderTextView.setText("Reminder: None");
-                reminderIcon.setImageResource(R.drawable.off_notifications);
-            }
 
             moreButton.setVisibility(View.GONE);
-            privacyText.setVisibility(View.GONE);
-            privacyIcon.setVisibility(View.GONE);
             saveSetBtn.setVisibility(View.GONE);
-            createdAtTextView.setVisibility(View.GONE);
-            createdAtIcon.setVisibility(View.GONE);
 
             accessLevel = "view";
 
@@ -1089,13 +1013,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         currentReminder = documentSnapshot.getString("reminder");
 
                         File file = new File(getFilesDir(), "set_" + setId + ".json");
-                        if (file.exists()) {
-                            downloadIcon.setImageResource(R.drawable.downloaded);
-                            downloadTxt.setText(R.string.downloaded);
-                        } else {
-                            downloadIcon.setImageResource(R.drawable.download);
-                            downloadTxt.setText(R.string.not_download);
-                        }
 
                         if (currentUser != null && ownerUid != null) {
                             if (ownerUid.equals(currentUser.getUid())) {
@@ -1113,25 +1030,9 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         loadFlashcards();
 
                         if (numberOfItems != null) {
-                            numberOfItemsTextView.setText(numberOfItems + (numberOfItems == 1 ? " item" : " items"));
+                            numberOfItemsTextView.setText("| "+numberOfItems + (numberOfItems == 1 ? " term" : " terms"));
                         } else {
-                            numberOfItemsTextView.setText("0 items");
-                        }
-
-                        if (currentReminder != null && !currentReminder.isEmpty()) {
-                            reminderTextView.setText("Reminder: " + currentReminder);
-                            reminderIcon.setImageResource(R.drawable.notifications);
-                        } else {
-                            reminderTextView.setText("Reminder: None");
-                            reminderIcon.setImageResource(R.drawable.off_notifications);
-                        }
-
-                        if ("private".equals(currentPrivacy)) {
-                            privacyIcon.setImageResource(R.drawable.lock);
-                            privacyText.setText("Private");
-                        } else {
-                            privacyIcon.setImageResource(R.drawable.public_icon);
-                            privacyText.setText("Public");
+                            numberOfItemsTextView.setText("| 0 terms");
                         }
 
                         if (ownerUid != null) {
@@ -1189,17 +1090,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         }
 
                         loadFlashcards();
-
-                        Object createdAtObj = documentSnapshot.get("createdAt");
-                        if (createdAtObj instanceof Timestamp) {
-                            Timestamp createdAtTimestamp = (Timestamp) createdAtObj;
-                            String formattedDate = new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault()).format(createdAtTimestamp.toDate());
-                            createdAtTextView.setText(formattedDate);
-                        } else if (createdAtObj instanceof String) {
-                            createdAtTextView.setText((String) createdAtObj);
-                        } else {
-                            createdAtTextView.setText("Unknown");
-                        }
                     })
                     .addOnFailureListener(e -> {
                         Toast.makeText(this, "Failed to load flashcard", Toast.LENGTH_SHORT).show();
