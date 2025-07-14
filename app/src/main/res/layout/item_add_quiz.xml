@@ -30,7 +30,7 @@
                 <Spinner
                     android:id="@+id/quiz_type_spinner"
                     android:layout_width="match_parent"
-                    android:layout_height="40dp"
+                    android:layout_height="wrap_content"
                     android:background="@drawable/quiz_spinner_bg"
                     android:clipToPadding="false"
                     android:paddingStart="12dp"
