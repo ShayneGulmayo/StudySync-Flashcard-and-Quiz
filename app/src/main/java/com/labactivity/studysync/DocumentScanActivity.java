@@ -1,12 +1,14 @@
 package com.labactivity.studysync;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
@@ -16,10 +18,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-import android.Manifest;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mlkit.vision.common.InputImage;
@@ -34,18 +32,19 @@ public class DocumentScanActivity extends AppCompatActivity {
     private TextRecognizer recognizer;
     private ImageCapture imageCapture;
     private String setType;
-    private boolean hasDetectedText = false;
+    private ImageView captureButton;
 
     private static final int REQUEST_CAMERA_PERMISSION = 101;
-
+    private String lastDetectedText = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_document_scan);
-        previewView = findViewById(R.id.previewView);
-        setType = getIntent().getStringExtra("setType");
 
+        previewView = findViewById(R.id.previewView);
+        captureButton = findViewById(R.id.captureButton);
+        setType = getIntent().getStringExtra("setType");
 
         recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
@@ -54,6 +53,14 @@ public class DocumentScanActivity extends AppCompatActivity {
         } else {
             startCamera();
         }
+
+        captureButton.setOnClickListener(v -> {
+            if (!lastDetectedText.isEmpty()) {
+                sendToAI(lastDetectedText);
+            } else {
+                Toast.makeText(this, "No text detected yet", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void startCamera() {
@@ -73,29 +80,31 @@ public class DocumentScanActivity extends AppCompatActivity {
                         .build();
 
                 imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), imageProxy -> {
-                    @SuppressLint("UnsafeOptInUsageError")
-                    InputImage image = InputImage.fromMediaImage(imageProxy.getImage(), imageProxy.getImageInfo().getRotationDegrees());
+                    if (imageProxy.getImage() != null) {
+                        @SuppressLint("UnsafeOptInUsageError")
+                        InputImage image = InputImage.fromMediaImage(
+                                imageProxy.getImage(),
+                                imageProxy.getImageInfo().getRotationDegrees()
+                        );
 
-                    recognizer.process(image)
-                            .addOnSuccessListener(result -> {
-                                String text = result.getText().trim();
-                                imageProxy.close();
-
-                                if (!text.isEmpty()) {
-                                    if (!hasDetectedText && !text.isEmpty()) {
-                                        hasDetectedText = true;
-                                        sendToAI(text);
+                        recognizer.process(image)
+                                .addOnSuccessListener(result -> {
+                                    String text = result.getText().trim();
+                                    if (!text.isEmpty()) {
+                                        lastDetectedText = text;
                                     }
-                                }
-                            })
-                            .addOnFailureListener(e -> {
-                                imageProxy.close();
-                                Toast.makeText(this, "Text recognition failed", Toast.LENGTH_SHORT).show();
-                            });
+                                    imageProxy.close();
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(this, "Text recognition failed", Toast.LENGTH_SHORT).show();
+                                    imageProxy.close();
+                                });
+                    } else {
+                        imageProxy.close();
+                    }
                 });
 
                 CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
-
                 cameraProvider.unbindAll();
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis, imageCapture);
 
@@ -113,6 +122,4 @@ public class DocumentScanActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
-
-
 }
