@@ -28,7 +28,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 public class LoginActivity extends AppCompatActivity {
 
     private EditText emailEditText, passwordEditText;
-    private TextView signUpRedirect;
+    private TextView signUpRedirect, forgotPassRedirect;
     private Button loginButton, googleButton;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
@@ -52,9 +52,15 @@ public class LoginActivity extends AppCompatActivity {
         passwordEditText = findViewById(R.id.editTxtPassword);
         loginButton = findViewById(R.id.btnLogin);
         googleButton = findViewById(R.id.googleLogin);
+        forgotPassRedirect = findViewById(R.id.txtForgotPass);
         signUpRedirect = findViewById(R.id.txtSignupRedirect);
 
         setupPasswordToggle(passwordEditText, () -> isPasswordVisible = !isPasswordVisible, () -> isPasswordVisible);
+
+        forgotPassRedirect.setOnClickListener(v -> {
+            startActivity(new Intent(LoginActivity.this, EmailResetPasswordActivity.class));
+            finish();
+        });
 
         signUpRedirect.setOnClickListener(v -> {
             startActivity(new Intent(LoginActivity.this, SignupActivity.class));
@@ -151,6 +157,16 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void signInWithGoogle() {
+        oneTapClient = Identity.getSignInClient(this);
+
+        signInRequest = BeginSignInRequest.builder()
+                .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                        .setSupported(true)
+                        .setServerClientId(getString(R.string.default_web_client_id))
+                        .setFilterByAuthorizedAccounts(false)
+                        .build())
+                .build();
+
         oneTapClient.beginSignIn(signInRequest)
                 .addOnSuccessListener(this, result -> {
                     try {
@@ -161,12 +177,15 @@ public class LoginActivity extends AppCompatActivity {
                         );
                     } catch (Exception e) {
                         Log.e("LoginActivity", "Couldn't start One Tap UI: " + e.getLocalizedMessage());
+                        Toast.makeText(this, "Error starting Google Sign-In.", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(this, e -> {
-                    Log.d("LoginActivity", "Google Sign-In failed: " + e.getLocalizedMessage());
+                    Log.e("LoginActivity", "Google Sign-In failed: " + e.getLocalizedMessage());
+                    Toast.makeText(this, "Google Sign-In not available: " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                 });
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {

@@ -6,7 +6,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:allowBackup="true"
@@ -19,7 +18,7 @@
         android:theme="@style/Theme.StudySync"
         tools:targetApi="31">
         <activity
-            android:name=".DocumentScanActivity"
+            android:name=".VerificationCodeActivity"
             android:exported="false" />
         <activity
             android:name=".InputPromptActivity"
@@ -54,6 +53,15 @@
         <activity
             android:name=".QuizPreviewActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".EmailResetPasswordActivity"
+            android:exported="false"/>
+
+        <activity
+            android:name=".ForgotPasswordActivity"
+            android:exported="false" />
+
         <activity
             android:name=".AddMembersActivity"
             android:exported="false" />
@@ -69,7 +77,7 @@
         <activity
             android:name=".QuizViewActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustPan" />
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".QuizProgressActivity"
             android:exported="false" />

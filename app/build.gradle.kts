@@ -84,6 +84,8 @@ dependencies {
     implementation ("androidx.navigation:navigation-ui-ktx:2.7.7")
     implementation ("com.itextpdf:itext7-core:7.1.18") // if using iText (or)
     implementation ("com.google.code.gson:gson:2.10.1")
+    implementation ("com.google.android.gms:play-services-auth:21.1.0")
+
 
 
 

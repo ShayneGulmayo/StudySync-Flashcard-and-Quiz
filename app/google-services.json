@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "663259425490-eiaq0j37k56ngatvv6p74d38ir8hb4lp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.labactivity.studysync",
+            "certificate_hash": "599dd5f2a68cb48a4c2fc81d3a7d7863c4060fcc"
+          }
+        },
+        {
           "client_id": "663259425490-4fnnc8ulc32vee3sp7p5u99ocnaoj3ei.apps.googleusercontent.com",
           "client_type": 3
         }
