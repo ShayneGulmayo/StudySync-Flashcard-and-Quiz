@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="3dp">
+    android:padding="3dp"
+    android:layout_marginRight="120dp">
 
     <ImageView
         android:id="@+id/senderImage"
@@ -21,8 +22,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:layout_marginRight="50dp">
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/senderName"
@@ -39,26 +39,29 @@
 
         <LinearLayout
             android:id="@+id/fileLayout"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:background="@drawable/bg_message_other_user"
             android:padding="12dp"
             android:layout_marginTop="4dp"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:weightSum="4">
 
             <ImageView
                 android:id="@+id/fileIcon"
-                android:layout_width="30dp"
+                android:layout_width="0dp"
                 android:layout_height="30dp"
-                android:src="@drawable/folder_filled"
+                android:src="@drawable/attach_file"
                 android:contentDescription="File Icon"
-                android:layout_marginEnd="10dp" />
+                android:layout_marginEnd="10dp"
+                android:layout_weight="1"/>
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:layout_weight="2">
 
                 <TextView
                     android:id="@+id/fileName"
@@ -76,18 +79,21 @@
                     android:layout_height="wrap_content"
                     android:text="PDF · 120 KB"
                     android:textColor="@color/text_gray"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:ellipsize="end"
+                    android:maxLines="1"/>
             </LinearLayout>
 
             <ImageView
                 android:id="@+id/saveFileButton"
-                android:layout_width="30dp"
+                android:layout_width="0dp"
                 android:layout_height="30dp"
                 android:layout_marginStart="12dp"
                 android:src="@drawable/download"
                 android:contentDescription="Save File"
                 android:clickable="true"
-                android:focusable="true" />
+                android:focusable="true"
+                android:layout_weight="1"/>
         </LinearLayout>
 
         <TextView
@@ -98,6 +104,7 @@
             android:layout_marginStart="8dp"
             android:text="12:00 PM"
             android:textColor="@color/text_gray"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            android:visibility="gone"/>
     </LinearLayout>
 </LinearLayout>

@@ -6,37 +6,40 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:padding="3dp"
-    android:gravity="end">
+    android:gravity="end"
+    android:layout_marginLeft="120dp">
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_marginLeft="50dp">
+        android:gravity="end">
 
         <LinearLayout
             android:id="@+id/fileLayout"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:background="@drawable/bg_message_current_user"
             android:padding="12dp"
             android:layout_marginTop="4dp"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:weightSum="4">
 
             <ImageView
                 android:id="@+id/fileIcon"
-                android:layout_width="30dp"
+                android:layout_width="0dp"
                 android:layout_height="30dp"
                 android:src="@drawable/attach_file"
                 android:contentDescription="File Icon"
-                android:layout_marginEnd="10dp"
-                app:tint="@color/white"/>
+                app:tint="@color/white"
+                android:layout_weight="1"/>
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:layout_weight="2">
 
                 <TextView
                     android:id="@+id/fileName"
@@ -45,7 +48,6 @@
                     android:text="example.pdf"
                     android:textColor="@color/white"
                     android:textSize="16sp"
-                    android:maxLines="1"
                     android:ellipsize="end" />
 
                 <TextView
@@ -54,19 +56,20 @@
                     android:layout_height="wrap_content"
                     android:text="PDF · 120 KB"
                     android:textColor="@color/light_gray"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:ellipsize="end"/>
             </LinearLayout>
 
             <ImageView
                 android:id="@+id/saveFileButton"
-                android:layout_width="30dp"
+                android:layout_width="0dp"
                 android:layout_height="30dp"
-                android:layout_marginStart="12dp"
                 android:src="@drawable/download"
                 android:contentDescription="Save File"
                 android:clickable="true"
                 android:focusable="true"
-                app:tint="@color/white"/>
+                app:tint="@color/white"
+                android:layout_weight="1"/>
         </LinearLayout>
 
         <TextView
@@ -77,6 +80,7 @@
             android:layout_marginEnd="8dp"
             android:text="12:00 PM"
             android:textColor="@color/text_gray"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            android:visibility="gone"/>
     </LinearLayout>
 </LinearLayout>

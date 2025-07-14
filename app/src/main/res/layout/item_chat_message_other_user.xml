@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="3dp">
+    android:padding="3dp"
+    android:layout_marginRight="120dp">
 
     <ImageView
         android:id="@+id/senderImage"
@@ -21,7 +22,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:layout_marginRight="50dp">
+>
 
         <TextView
             android:id="@+id/senderName"

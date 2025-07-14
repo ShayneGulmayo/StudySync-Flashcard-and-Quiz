@@ -1,8 +1,10 @@
 package com.labactivity.studysync;
 
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,6 +30,8 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.labactivity.studysync.adapters.ChatMessageAdapter;
 import com.labactivity.studysync.models.ChatMessage;
 import com.labactivity.studysync.utils.SupabaseUploader;
@@ -164,94 +168,91 @@ public class ChatRoomActivity extends AppCompatActivity {
     }
 
     private void uploadImageAndSendMessage(Uri imageUri) {
-        String filePath = FileUtils.getPath(this, imageUri);
-        if (filePath == null) {
-            Toast.makeText(this, "Failed to get file path", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        String imgName = System.currentTimeMillis() + "_image.jpg";
+        StorageReference storageRef = storage.getReference().child("chat_room_images/" + roomId + "/" + imgName);
 
-        File file = new File(filePath);
-        if (!file.exists()) {
-            Toast.makeText(this, "File not found", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        storageRef.putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                    String imageUrl = uri.toString();
 
-        String fileName = System.currentTimeMillis() + "_" + file.getName();
-        String path = "chat-room-images/" + roomId + "/" + fileName;
-        String bucket = "chat-room-photos";
+                    db.collection("users").document(currentUser.getUid())
+                            .get()
+                            .addOnSuccessListener(userDoc -> {
+                                String senderName = userDoc.getString("firstName") + " " + userDoc.getString("lastName");
+                                String photoUrl = userDoc.getString("photoUrl");
 
-        SupabaseUploader.uploadFile(file, bucket, path, (success, message, publicUrl) -> runOnUiThread(() -> {
-            if (success && publicUrl != null) {
-                db.collection("users").document(currentUser.getUid())
-                        .get()
-                        .addOnSuccessListener(userDoc -> {
-                            String senderName = userDoc.getString("firstName") + " " + userDoc.getString("lastName");
-                            String photoUrl = userDoc.getString("photoUrl");
+                                ChatMessage chatMessage = new ChatMessage(
+                                        currentUser.getUid(), senderName, photoUrl, null, new Date()
+                                );
+                                chatMessage.setType("image");
+                                chatMessage.setImageUrl(imageUrl);
 
-                            ChatMessage chatMessage = new ChatMessage(
-                                    currentUser.getUid(),
-                                    senderName,
-                                    photoUrl,
-                                    null,
-                                    new Date()
-                            );
-                            chatMessage.setType("image");
-                            chatMessage.setImageUrl(publicUrl);
-
-                            messagesRef.add(chatMessage);
-                            updateChatRoomLastMessage("Sent an image", "image", senderName);
-                        });
-            } else {
-                Toast.makeText(ChatRoomActivity.this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
-            }
-        }));
+                                messagesRef.add(chatMessage);
+                                updateChatRoomLastMessage("sent an image", "image", senderName);
+                            });
+                }))
+                .addOnFailureListener(e -> Toast.makeText(this, "Image upload failed", Toast.LENGTH_SHORT).show());
     }
+
 
     private void uploadFileAndSendMessage(Uri fileUri) {
-        String filePath = FileUtils.getPath(this, fileUri);
-        if (filePath == null) {
-            Toast.makeText(this, "Failed to get file path", Toast.LENGTH_SHORT).show();
+        if (fileUri == null) {
+            Toast.makeText(this, "Invalid file selected", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        File file = new File(filePath);
-        if (!file.exists()) {
-            Toast.makeText(this, "File not found", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        final String[] fileName = {"unknown_file"};
+        final long[] fileSize = {0};
 
-        String fileName = System.currentTimeMillis() + "_" + file.getName();
-        String path = "chat-room-files/" + roomId + "/" + fileName;
-        String bucket = "chat-room-files";
+        try (Cursor cursor = getContentResolver().query(fileUri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
 
-        SupabaseUploader.uploadFile(file, bucket, path, (success, message, publicUrl) -> runOnUiThread(() -> {
-            if (success && publicUrl != null) {
-                db.collection("users").document(currentUser.getUid()).get().addOnSuccessListener(userDoc -> {
-                    String senderName = userDoc.getString("firstName") + " " + userDoc.getString("lastName");
-                    String photoUrl = userDoc.getString("photoUrl");
+                if (nameIndex != -1) {
+                    fileName[0] = cursor.getString(nameIndex);
+                }
 
-                    ChatMessage fileMessage = new ChatMessage(
-                            currentUser.getUid(),
-                            senderName,
-                            photoUrl,
-                            null,
-                            new Date()
-                    );
-                    fileMessage.setType("file");
-                    fileMessage.setFileUrl(publicUrl);
-                    fileMessage.setFileName(file.getName());
-                    fileMessage.setFileSize(file.length());
-                    fileMessage.setFileType(SupabaseUploader.getMimeType(file));
-                    fileMessage.setFilePath(path);
-
-                    messagesRef.add(fileMessage);
-                    updateChatRoomLastMessage("Sent a file", "file", senderName);
-                });
-            } else {
-                Toast.makeText(ChatRoomActivity.this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
+                if (sizeIndex != -1) {
+                    fileSize[0] = cursor.getLong(sizeIndex);
+                }
             }
-        }));
+        } catch (Exception e) {
+            Toast.makeText(this, "Failed to read file metadata", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
+
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        String filePath = "chat-room-files/" + roomId + "/" + System.currentTimeMillis() + "_" + fileName;
+        StorageReference storageRef = storage.getReference().child(filePath);
+
+        storageRef.putFile(fileUri)
+                .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                    String fileUrl = uri.toString();
+
+                    db.collection("users").document(currentUser.getUid()).get().addOnSuccessListener(userDoc -> {
+                        String senderName = userDoc.getString("firstName") + " " + userDoc.getString("lastName");
+                        String photoUrl = userDoc.getString("photoUrl");
+
+                        ChatMessage fileMessage = new ChatMessage(
+                                currentUser.getUid(), senderName, photoUrl, null, new Date()
+                        );
+                        fileMessage.setType("file");
+                        fileMessage.setFileUrl(fileUrl);
+                        fileMessage.setFileName(fileName[0]);
+                        fileMessage.setFileSize(fileSize[0]);
+                        fileMessage.setFileType(getContentResolver().getType(fileUri));
+                        fileMessage.setFilePath(filePath);
+
+                        messagesRef.add(fileMessage);
+                        updateChatRoomLastMessage("sent a file", "file", senderName);
+                    });
+                }))
+                .addOnFailureListener(e -> Toast.makeText(this, "File upload failed", Toast.LENGTH_SHORT).show());
     }
+
+
 
     private void showSendMorePopup() {
         View popupView = LayoutInflater.from(this).inflate(R.layout.item_send_more, null);

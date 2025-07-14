@@ -6,6 +6,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -37,6 +38,7 @@ public class BrowseActivity extends AppCompatActivity {
     private boolean filterPeople = false, filterFlashcards = false, filterQuizzes = false;
     private EditText searchInput;
     private TextView noResultsText;
+    private ImageView cancelBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +49,7 @@ public class BrowseActivity extends AppCompatActivity {
         if (layout != null) {
             ViewCompat.setOnApplyWindowInsetsListener(layout, (v, insets) -> insets);
         }
+        cancelBtn = findViewById(R.id.cancelBtn);
 
         MaterialButton toggleFiltersButton = findViewById(R.id.toggleFiltersButton);
         LinearLayout filterButtonsContainer = findViewById(R.id.filterButtonsContainer);
@@ -57,6 +60,8 @@ public class BrowseActivity extends AppCompatActivity {
             toggleFiltersButton.setText(visible ? R.string.show_filter : R.string.hide_filter);
             toggleFiltersButton.setIconResource(visible ? R.drawable.drop_down_icon : R.drawable.arrow_up);
         });
+
+
 
         recyclerView = findViewById(R.id.browseRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -93,6 +98,8 @@ public class BrowseActivity extends AppCompatActivity {
             filterQuizzes = !filterQuizzes;
             filterBy();
         });
+
+        cancelBtn.setOnClickListener(view -> finish());
 
         searchInput.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}

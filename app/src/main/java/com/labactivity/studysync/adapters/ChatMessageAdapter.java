@@ -1,5 +1,7 @@
 package com.labactivity.studysync.adapters;
 
+import static android.view.View.VISIBLE;
+
 import android.content.Intent;
 import android.icu.text.DateFormat;
 import android.net.Uri;
@@ -131,7 +133,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             btnViewSet = itemView.findViewById(R.id.btnViewSet);
 
             itemView.setOnClickListener(v -> {
-                timestampText.setVisibility(timestampText.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? View.GONE : VISIBLE);
             });
 
         }
@@ -220,10 +222,10 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     updateBookmarkIcon(true);
                     saveSetBtn.setEnabled(false);
                     saveSetBtn.setClickable(false);
-                    savedIndicator.setVisibility(View.VISIBLE);
+                    savedIndicator.setVisibility(VISIBLE);
                 } else {
                     updateBookmarkIcon(isSaved.get());
-                    savedIndicator.setVisibility(isSaved.get() ? View.VISIBLE : View.GONE);
+                    savedIndicator.setVisibility(isSaved.get() ? VISIBLE : View.GONE);
 
                     saveSetBtn.setOnClickListener(v -> {
                         Map<String, Object> setData = new HashMap<>();
@@ -246,7 +248,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                                         Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show();
                                         isSaved.set(true);
                                         updateBookmarkIcon(true);
-                                        savedIndicator.setVisibility(View.VISIBLE);
+                                        savedIndicator.setVisibility(VISIBLE);
                                     });
                         }
                     });
@@ -298,6 +300,9 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             fileDetails.setText(message.getFileType().toUpperCase() + " · " + readableFileSize(message.getFileSize()));
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
 
+            itemView.setOnClickListener(view -> {
+                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? View.GONE : VISIBLE);
+            });
             saveFileButton.setOnClickListener(v -> {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse(message.getFileUrl()));
@@ -325,12 +330,16 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             fileDetails.setText(message.getFileType().toUpperCase() + " · " + readableFileSize(message.getFileSize()));
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
 
+
             senderName.setText(message.getSenderName());
             Glide.with(itemView.getContext())
                     .load(message.getSenderPhotoUrl())
                     .placeholder(R.drawable.user_profile)
                     .circleCrop()
                     .into(senderImage);
+            itemView.setOnClickListener(view -> {
+                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? View.GONE : VISIBLE);
+            });
 
             senderImage.setOnClickListener(v -> {
                 Intent intent = new Intent(itemView.getContext(), UserProfileActivity.class);
@@ -363,7 +372,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             savedIndicator = itemView.findViewById(R.id.savedIndicator);
 
             itemView.setOnClickListener(v -> {
-                timestampText.setVisibility(timestampText.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? View.GONE : VISIBLE);
             });
         }
 
@@ -437,10 +446,10 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     updateBookmarkIcon(true);
                     saveSetBtn.setEnabled(false);
                     saveSetBtn.setClickable(false);
-                    savedIndicator.setVisibility(View.VISIBLE);
+                    savedIndicator.setVisibility(VISIBLE);
                 } else {
                     updateBookmarkIcon(isSaved.get());
-                    savedIndicator.setVisibility(isSaved.get() ? View.VISIBLE : View.GONE);
+                    savedIndicator.setVisibility(isSaved.get() ? VISIBLE : View.GONE);
 
                     saveSetBtn.setOnClickListener(v -> {
                         Map<String, Object> setData = new HashMap<>();
@@ -463,7 +472,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                                         Toast.makeText(itemView.getContext(), "Set saved!", Toast.LENGTH_SHORT).show();
                                         isSaved.set(true);
                                         updateBookmarkIcon(true);
-                                        savedIndicator.setVisibility(View.VISIBLE);
+                                        savedIndicator.setVisibility(VISIBLE);
                                     });
                         }
                     });
@@ -524,7 +533,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             if ("image".equals(message.getType())) {
                 messageText.setVisibility(View.GONE);
-                imageView.setVisibility(View.VISIBLE);
+                imageView.setVisibility(VISIBLE);
                 Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
 
                 imageView.setOnClickListener(v -> {
@@ -534,7 +543,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
             } else if ("file".equals(message.getType())) {
                 imageView.setVisibility(View.GONE);
-                messageText.setVisibility(View.VISIBLE);
+                messageText.setVisibility(VISIBLE);
                 messageText.setText("\uD83D\uDCCE " + message.getText());
 
                 messageText.setOnClickListener(v -> {
@@ -544,13 +553,13 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
             } else {
                 imageView.setVisibility(View.GONE);
-                messageText.setVisibility(View.VISIBLE);
+                messageText.setVisibility(VISIBLE);
                 messageText.setText(message.getText());
             }
 
             itemView.setOnClickListener(v -> {
                 timestampVisible = !timestampVisible;
-                timestampText.setVisibility(timestampVisible ? View.VISIBLE : View.GONE);
+                timestampText.setVisibility(timestampVisible ? VISIBLE : View.GONE);
             });
         }
     }
@@ -575,7 +584,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             if ("image".equals(message.getType())) {
                 messageText.setVisibility(View.GONE);
-                imageView.setVisibility(View.VISIBLE);
+                imageView.setVisibility(VISIBLE);
                 Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
 
                 imageView.setOnClickListener(v -> {
@@ -585,7 +594,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
             } else if ("file".equals(message.getType())) {
                 imageView.setVisibility(View.GONE);
-                messageText.setVisibility(View.VISIBLE);
+                messageText.setVisibility(VISIBLE);
                 messageText.setText("\uD83D\uDCCE " + message.getText());
 
                 messageText.setOnClickListener(v -> {
@@ -595,7 +604,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
             } else {
                 imageView.setVisibility(View.GONE);
-                messageText.setVisibility(View.VISIBLE);
+                messageText.setVisibility(VISIBLE);
                 messageText.setText(message.getText());
             }
 
@@ -604,8 +613,8 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 senderImage.setVisibility(View.INVISIBLE);
             } else {
                 senderName.setText(message.getSenderName());
-                senderName.setVisibility(View.VISIBLE);
-                senderImage.setVisibility(View.VISIBLE);
+                senderName.setVisibility(VISIBLE);
+                senderImage.setVisibility(VISIBLE);
                 Glide.with(itemView.getContext())
                         .load(message.getSenderPhotoUrl())
                         .circleCrop()
@@ -620,7 +629,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             itemView.setOnClickListener(v -> {
                 timestampVisible = !timestampVisible;
-                timestampText.setVisibility(timestampVisible ? View.VISIBLE : View.GONE);
+                timestampText.setVisibility(timestampVisible ? VISIBLE : View.GONE);
             });
         }
     }

@@ -7,24 +7,39 @@
     android:layout_height="match_parent"
     android:background="@color/white"
     android:orientation="vertical"
-    android:padding="20dp"
-    tools:context=".BrowseActivity">
+    tools:context=".BrowseActivity"
+    android:padding="16dp">
 
-
-    <!-- Search Bar -->
-    <EditText
-        android:id="@+id/searchEditText"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:background="@drawable/green_stroke_bg"
-        android:drawableLeft="@drawable/search_resized"
-        android:drawablePadding="8dp"
-        android:hint="@string/search_hint"
-        android:inputType="text"
-        android:paddingStart="16dp"
-        android:textSize="16sp" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        android:gravity="center">
 
-    <!-- Toggle Button to Show/Hide Filters -->
+        <EditText
+            android:id="@+id/searchEditText"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1.94"
+            android:background="@drawable/green_stroke_bg"
+            android:drawableLeft="@drawable/search_resized"
+            android:drawablePadding="8dp"
+            android:hint="@string/search_hint"
+            android:inputType="text"
+            android:paddingStart="16dp"
+            android:textSize="16sp" />
+
+        <ImageView
+            android:id="@+id/cancelBtn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_weight=".06"
+            android:src="@drawable/x_button"/>
+    </LinearLayout>
+
+
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/toggleFiltersButton"
         style="@style/Widget.MaterialComponents.Button.TextButton"
