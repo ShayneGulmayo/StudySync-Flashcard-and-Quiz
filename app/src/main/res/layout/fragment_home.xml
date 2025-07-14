@@ -30,7 +30,7 @@
                 android:background="@drawable/green_stroke_bg"
                 android:clickable="true"
                 android:cursorVisible="false"
-                android:drawableLeft="@drawable/search"
+                android:drawableLeft="@drawable/search_resized"
                 android:drawablePadding="10dp"
                 android:focusable="false"
                 android:hint="Browse..."
@@ -102,7 +102,7 @@
                     <ImageView
                         android:layout_width="30dp"
                         android:layout_height="30dp"
-                        android:src="@drawable/flashcard_home"
+                        android:src="@drawable/flashcard"
                         app:tint="@color/white" />
 
                     <TextView
@@ -176,7 +176,7 @@
                     <ImageView
                         android:layout_width="30dp"
                         android:layout_height="30dp"
-                        android:src="@drawable/messenger"
+                        android:src="@drawable/chat"
                         app:tint="@color/white" />
 
                     <TextView

@@ -50,5 +50,5 @@
         android:backgroundTint="#00FFFFFF"
         android:contentDescription="Delete Option"
         android:rotation="45"
-        android:src="@drawable/add_circle" />
+        android:src="@drawable/add_circle_resized" />
 </LinearLayout>

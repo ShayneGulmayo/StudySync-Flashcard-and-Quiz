@@ -17,7 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:background="@drawable/green_stroke_bg"
-        android:drawableLeft="@drawable/search"
+        android:drawableLeft="@drawable/search_resized"
         android:drawablePadding="8dp"
         android:hint="@string/search_hint"
         android:inputType="text"

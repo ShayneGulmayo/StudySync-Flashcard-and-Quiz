@@ -350,7 +350,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                     } else {
                         statusLabel.setText(R.string.dont_know_term_text);
                         statusLabel.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_light_red));
-                        linearLayout.setBackground(ContextCompat.getDrawable(this, R.drawable.warning_stroke_bg));
+                        linearLayout.setBackground(ContextCompat.getDrawable(this, R.drawable.light_red_stroke_bg));
                         termIcon.setImageResource(R.drawable.x_circle);
                         termIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.white)));
                     }
@@ -414,7 +414,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                                 } else {
                                     statusLabel.setText(R.string.dont_know_term_text);
                                     statusLabel.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_light_red));
-                                    linearLayout.setBackground(ContextCompat.getDrawable(this, R.drawable.warning_stroke_bg));
+                                    linearLayout.setBackground(ContextCompat.getDrawable(this, R.drawable.light_red_stroke_bg));
                                     termIcon.setImageResource(R.drawable.x_circle);
                                     termIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.white)));
                                 }

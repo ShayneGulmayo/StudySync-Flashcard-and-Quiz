@@ -43,29 +43,31 @@
     <EditText
         android:id="@+id/chatRoomNameEdttxt"
         android:layout_width="0dp"
-        android:layout_height="48dp"
+        android:layout_height="40dp"
         android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
         android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/custom_edittxt"
         android:hint="Chat Room Name"
         android:padding="10dp"
-        android:background="@drawable/custom_edittxt"
-        app:layout_constraintTop_toBottomOf="@id/navigationView"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/navigationView" />
 
     <androidx.appcompat.widget.SearchView
         android:id="@+id/search_view"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginTop="12dp"
-        android:queryHint="Search users"
         android:background="@drawable/custom_edittxt"
-        app:layout_constraintTop_toBottomOf="@id/chatRoomNameEdttxt"
+        android:queryHint="Search users"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/chatRoomNameEdttxt"
+        app:searchHintIcon="@drawable/search_resized"
+        app:searchIcon="@drawable/search_resized" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:padding="5dp"
@@ -85,10 +87,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
         android:text="Add Members"
         android:textColor="@color/black"
-        android:textSize="12dp"
+        android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -98,11 +101,14 @@
         android:id="@+id/users_recyclerview"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
         android:padding="8dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintTop_toBottomOf="@id/txtAddMembers"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/txtAddMembers" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

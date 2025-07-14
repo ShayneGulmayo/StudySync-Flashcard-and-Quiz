@@ -82,10 +82,10 @@ public class LoginActivity extends AppCompatActivity {
                     toggleState.run();
                     if (isVisibleSupplier.get()) {
                         editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-                        editText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye, 0);
+                        editText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_resized, 0);
                     } else {
                         editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-                        editText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_closed, 0);
+                        editText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_closed_resized, 0);
                     }
                     editText.setSelection(editText.getText().length());
                     return true;

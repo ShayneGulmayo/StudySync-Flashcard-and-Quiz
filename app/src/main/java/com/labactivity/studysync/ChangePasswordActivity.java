@@ -4,14 +4,11 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.MotionEvent;
-import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -21,7 +18,6 @@ public class ChangePasswordActivity extends AppCompatActivity {
 
     private EditText currentPass, newPass, confirmPass;
     private TextView saveTxt;
-
     private ImageView backButton;
 
     private boolean isCurrentVisible = false;
@@ -61,10 +57,10 @@ public class ChangePasswordActivity extends AppCompatActivity {
                     toggleState.run();
                     if (isVisibleSupplier.get()) {
                         editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-                        editText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye, 0);
+                        editText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_resized, 0);
                     } else {
                         editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-                        editText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_closed, 0);
+                        editText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_closed_resized, 0);
                     }
                     editText.setSelection(editText.getText().length());
                     return true;
@@ -73,7 +69,6 @@ public class ChangePasswordActivity extends AppCompatActivity {
             return false;
         });
         editText.setHapticFeedbackEnabled(false);
-
     }
 
     private void validateAndChangePassword() {

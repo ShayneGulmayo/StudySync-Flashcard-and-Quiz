@@ -7,5 +7,5 @@
         android:icon="@drawable/notifications"/>
     <item android:id="@+id/menu_settings"
         android:title="Chat Room Settings"
-        android:icon="@drawable/room_settings"/>
+        android:icon="@drawable/settings"/>
 </menu>

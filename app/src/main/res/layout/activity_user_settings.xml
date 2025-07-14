@@ -81,7 +81,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/keyboard_arrow_up" />
+                app:srcCompat="@drawable/arrow_right" />
 
             <TextView
                 android:id="@+id/username_value"
@@ -143,7 +143,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/keyboard_arrow_up"
+                app:srcCompat="@drawable/arrow_right"
                 tools:ignore="DuplicateIds" />
 
             <TextView
@@ -206,7 +206,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/keyboard_arrow_up"
+                app:srcCompat="@drawable/arrow_right"
                 tools:ignore="DuplicateIds" />
 
             <TextView
@@ -272,7 +272,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/keyboard_arrow_up"
+                app:srcCompat="@drawable/arrow_right"
                 app:tint="@color/warning"
                 tools:ignore="DuplicateIds" />
 

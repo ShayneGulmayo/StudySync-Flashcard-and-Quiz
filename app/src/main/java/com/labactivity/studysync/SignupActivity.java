@@ -86,10 +86,10 @@ public class SignupActivity extends AppCompatActivity {
                     isPasswordVisible = !isPasswordVisible;
                     if (isPasswordVisible) {
                         passwordField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-                        passwordField.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye, 0);
+                        passwordField.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_resized, 0);
                     } else {
                         passwordField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-                        passwordField.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_closed, 0);
+                        passwordField.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.eye_closed_resized, 0);
                     }
                     passwordField.setSelection(passwordField.getText().length());
                     return true;

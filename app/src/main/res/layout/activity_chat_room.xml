@@ -106,8 +106,8 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginRight="10dp"
-            android:background="?attr/selectableItemBackground"
-            android:src="@drawable/add_circle"
+            android:background="@color/white"
+            android:src="@drawable/add_circle_resized"
             app:tint="@color/primary" />
 
         <ImageButton
@@ -116,7 +116,7 @@
             android:layout_height="30dp"
             android:layout_marginRight="10dp"
             android:background="?attr/selectableItemBackground"
-            android:src="@drawable/image"
+            android:src="@drawable/image_resized"
             app:tint="@color/primary" />
 
         <EditText
@@ -143,7 +143,7 @@
             android:layout_marginLeft="10dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Send"
-            android:src="@drawable/send"
+            android:src="@drawable/send_resized"
             app:tint="@color/primary" />
     </LinearLayout>
 

@@ -39,7 +39,7 @@
         android:layout_height="16dp"
         android:layout_margin="2dp"
         android:contentDescription="Remove"
-        android:src="@drawable/plain_x_button"
+        android:src="@drawable/x_button"
         android:background="@drawable/remove_button_background"
         android:padding="2dp"
         app:layout_constraintTop_toTopOf="@id/profile_image"
