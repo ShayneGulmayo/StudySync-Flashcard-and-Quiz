@@ -13,6 +13,10 @@ public class Quiz {
     private int progress;
     private Date created_at;
     private List<Question> questions;
+    private String photoUrl;
+    private String reminder;
+    private long lastAccessed;
+
 
 
     public Quiz() {
@@ -92,7 +96,6 @@ public class Quiz {
         return "public".equalsIgnoreCase(privacy);
     }
 
-
     public void setCreated_at(Date created_at) {
         this.created_at = created_at;
     }
@@ -103,6 +106,30 @@ public class Quiz {
 
     public void setQuestions(List<Question> questions) {
         this.questions = questions;
+    }
+
+    public String getPhotoUrl() {
+        return photoUrl;
+    }
+
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
+    }
+
+    public String getReminder() {
+        return reminder;
+    }
+
+    public void setReminder(String reminder) {
+        this.reminder = reminder;
+    }
+
+    public long getLastAccessed() {
+        return lastAccessed;
+    }
+
+    public void setLastAccessed(long lastAccessed) {
+        this.lastAccessed = lastAccessed;
     }
 
     // Inner class for Question

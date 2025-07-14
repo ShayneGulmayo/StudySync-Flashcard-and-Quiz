@@ -67,7 +67,7 @@
         <activity
             android:name=".QuizViewActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustPan" />
         <activity
             android:name=".QuizProgressActivity"
             android:exported="false" />

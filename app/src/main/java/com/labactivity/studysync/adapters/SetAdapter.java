@@ -103,28 +103,10 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
             holder.statsProgressBar.setProgress(0);
             holder.progressPercentageText.setText("...");
 
-            db.collection("quiz_attempts")
-                    .document(set.getId())
-                    .collection("users")
-                    .document(currentUserId)
-                    .get()
-                    .addOnSuccessListener(attempt -> {
-                        if (attempt.exists()) {
-                            Long score = attempt.getLong("score");
-                            Long total = attempt.getLong("total");
-                            if (score != null && total != null && total > 0) {
-                                int percent = Math.round((score.floatValue() / total) * 100);
-                                holder.statsProgressBar.setProgress(percent);
-                                holder.progressPercentageText.setText(percent + "%");
-                            } else {
-                                holder.statsProgressBar.setProgress(0);
-                                holder.progressPercentageText.setText("0%");
-                            }
-                        } else {
-                            holder.statsProgressBar.setProgress(0);
-                            holder.progressPercentageText.setText("0%");
-                        }
-                    });
+            int progressValue = set.getProgress();
+            holder.statsProgressBar.setProgress(progressValue);
+            holder.progressPercentageText.setText(progressValue + "%");
+
 
             if (set.getReminder() != null && !set.getReminder().isEmpty()) {
                 holder.setReminderTextView.setVisibility(View.VISIBLE);

@@ -26,6 +26,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 public class QuizViewActivity extends AppCompatActivity {
 
@@ -88,6 +89,8 @@ public class QuizViewActivity extends AppCompatActivity {
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         Object raw = documentSnapshot.get("questions");
+                        List<?> fullList = (List<?>) documentSnapshot.get("questions");
+                        originalQuestionCount = fullList != null ? fullList.size() : 0;
                         questions = new ArrayList<>();
 
                         if (raw instanceof List<?>) {
@@ -126,7 +129,10 @@ public class QuizViewActivity extends AppCompatActivity {
 
         if (currentQuestionIndex >= questions.size()) {
             Toast.makeText(this, "🎉 Quiz Completed!", Toast.LENGTH_LONG).show();
-            saveQuizAttempt(userAnswersList, score);
+
+            if (!userAnswersList.isEmpty()) {
+                saveQuizAttempt(userAnswersList, score);
+            }
 
             Intent intent = new Intent(this, QuizProgressActivity.class);
             intent.putExtra("quizId", quizId);
@@ -134,6 +140,7 @@ public class QuizViewActivity extends AppCompatActivity {
             finish();
             return;
         }
+
 
         txtViewItems.setText((currentQuestionIndex + 1) + "/" + questions.size());
 
@@ -201,7 +208,7 @@ public class QuizViewActivity extends AppCompatActivity {
     }
 
     private void displayEnumeration(Map<String, Object> questionData) {
-        chooseAnswerLabel.setText("Type your answer");
+        chooseAnswerLabel.setText("Type your answers");
         selectedAnswer = null;
         hasAnswered = false;
 
@@ -212,13 +219,31 @@ public class QuizViewActivity extends AppCompatActivity {
         quizQuestionTextView.setText(questionText);
         linearLayoutOptions.removeAllViews();
 
-        View singleInputView = LayoutInflater.from(this)
-                .inflate(R.layout.item_quiz_enumeration_blanks, linearLayoutOptions, false);
-        EditText input = singleInputView.findViewById(R.id.enum_answer_input);
-        input.setHint("Enter your answer");
+        List<String> correctAnswers;
+        try {
+            correctAnswers = (List<String>) questionData.get("correctAnswer");
+        } catch (ClassCastException e) {
+            Toast.makeText(this, "Invalid format for correct answers.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        linearLayoutOptions.addView(singleInputView);
+        if (correctAnswers == null || correctAnswers.isEmpty()) {
+            Toast.makeText(this, "No correct answers found for this enumeration.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Add one EditText for each correct answer
+        for (int i = 0; i < correctAnswers.size(); i++) {
+            View inputView = LayoutInflater.from(this)
+                    .inflate(R.layout.item_quiz_enumeration_blanks, linearLayoutOptions, false);
+            EditText input = inputView.findViewById(R.id.enum_answer_input);
+
+
+            input.setHint("Enter answer " + (i + 1));
+            linearLayoutOptions.addView(inputView);
+        }
     }
+
 
     private void addOptionView(String optionText, String correctAnswer) {
         View optionView = LayoutInflater.from(this).inflate(R.layout.item_quiz_options, linearLayoutOptions, false);
@@ -272,8 +297,9 @@ public class QuizViewActivity extends AppCompatActivity {
                                 reconstructed.put("correctAnswer", q.get("correct"));
                                 reconstructed.put("choices", q.get("choices"));
                             } else if ("enumeration".equals(type)) {
-                                reconstructed.put("choices", q.get("correct"));
+                                reconstructed.put("correctAnswer", q.get("correct"));
                             }
+
 
                             incorrectQuestions.add(reconstructed);
                         }
@@ -312,7 +338,7 @@ public class QuizViewActivity extends AppCompatActivity {
                 ? currentQuestion.get("type").toString().toLowerCase()
                 : detectFallbackType(currentQuestion);
 
-        if (type.equals("multiple choice")) {
+        if ("multiple choice".equals(type)) {
             if (selectedAnswer == null || selectedAnswer.trim().isEmpty()) {
                 Toast.makeText(this, "Please select an answer.", Toast.LENGTH_SHORT).show();
                 return;
@@ -345,6 +371,7 @@ public class QuizViewActivity extends AppCompatActivity {
             answer.put("choices", currentQuestion.get("choices"));
             answer.put("order", currentQuestionIndex);
             userAnswersList.add(answer);
+
             if (isCorrect) score++;
 
             linearLayoutOptions.postDelayed(() -> {
@@ -353,60 +380,122 @@ public class QuizViewActivity extends AppCompatActivity {
                 selectedAnswer = null;
             }, 1000);
 
-        } else if (type.equals("enumeration")) {
-            View child = linearLayoutOptions.getChildAt(0);
-            EditText input = child.findViewById(R.id.enum_answer_input);
-            if (input == null) {
-                Toast.makeText(this, "Answer input missing.", Toast.LENGTH_SHORT).show();
+        } else if ("enumeration".equals(type)) {
+            List<String> userAnswers = new ArrayList<>();
+            List<String> rawUserAnswers = new ArrayList<>();
+
+            int totalInputs = 0;
+            int filledInputs = 0;
+
+            for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
+                View child = linearLayoutOptions.getChildAt(i);
+                EditText input = child.findViewById(R.id.enum_answer_input);
+                if (input != null) {
+                    totalInputs++;
+                    String ansRaw = input.getText().toString().trim();
+                    if (!ansRaw.isEmpty()) {
+                        filledInputs++;
+                        rawUserAnswers.add(ansRaw);
+                        userAnswers.add(ansRaw.toLowerCase());
+                    }
+                }
+            }
+
+            if (userAnswers.isEmpty()) {
+                Toast.makeText(this, "Please fill in at least one blank.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            String userAnswer = input.getText().toString().trim().toLowerCase();
-            if (userAnswer.isEmpty()) {
-                Toast.makeText(this, "Please enter an answer.", Toast.LENGTH_SHORT).show();
-                return;
+            Runnable processCheck = () -> {
+                List<String> correctAnswers;
+                try {
+                    correctAnswers = (List<String>) currentQuestion.get("correctAnswer");
+                } catch (ClassCastException e) {
+                    Toast.makeText(this, "Invalid format for correct answers.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                List<String> correctLower = new ArrayList<>();
+                List<String> correctDisplay = new ArrayList<>();
+                for (String ans : correctAnswers) {
+                    correctLower.add(ans.trim().toLowerCase());
+                    correctDisplay.add(ans.trim());
+                }
+
+                List<String> matched = new ArrayList<>();
+                List<String> missed = new ArrayList<>(correctLower);
+                List<String> incorrectInputs = new ArrayList<>();
+
+                for (String userAns : userAnswers) {
+                    if (correctLower.contains(userAns)) {
+                        matched.add(userAns);
+                        missed.remove(userAns);
+                    } else {
+                        incorrectInputs.add(userAns);
+                    }
+                }
+
+                boolean isCompletelyCorrect = matched.size() == correctLower.size();
+                if (!matched.isEmpty()) score++;
+
+                Map<String, Object> answer = new HashMap<>();
+                answer.put("question", currentQuestion.get("question"));
+                answer.put("type", "enumeration");
+                answer.put("selected", rawUserAnswers);
+                answer.put("correct", correctDisplay);
+                answer.put("matched", matched);
+                answer.put("missed", missed);
+                answer.put("isCorrect", isCompletelyCorrect);
+                answer.put("choices", correctDisplay);
+                answer.put("order", currentQuestionIndex);
+                answer.put("incorrectInputs", incorrectInputs);
+                userAnswersList.add(answer);
+
+                hasAnswered = true;
+
+                StringBuilder feedback = new StringBuilder();
+                feedback.append("Your Answer: ").append(TextUtils.join(", ", rawUserAnswers)).append("\n");
+
+                if (!matched.isEmpty()) {
+                    feedback.append("Matched: ").append(TextUtils.join(", ", matched)).append("\n");
+                }
+
+                if (!missed.isEmpty()) {
+                    feedback.append("Missed: ").append(TextUtils.join(", ", missed)).append("\n");
+                }
+
+                if (!correctDisplay.isEmpty()) {
+                    feedback.append("Correct Answer: ").append(TextUtils.join(", ", correctDisplay));
+                }
+
+                new AlertDialog.Builder(this)
+                        .setTitle(isCompletelyCorrect ? "✅ Correct!" : (!matched.isEmpty() ? "🟠 Partially Correct" : "❌ Incorrect"))
+                        .setMessage(feedback.toString())
+                        .setPositiveButton("Next", (dialog, which) -> {
+                            currentQuestionIndex++;
+                            displayNextValidQuestion();
+                        })
+                        .setCancelable(false)
+                        .show();
+            };
+
+            if (filledInputs < totalInputs) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Incomplete Answer")
+                        .setMessage("Some blanks are still unanswered. Do you want to check your answer anyway?")
+                        .setPositiveButton("Yes", (dialog, which) -> processCheck.run())
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            } else {
+                processCheck.run();
             }
-
-            List<String> correctAnswers;
-            try {
-                correctAnswers = (List<String>) currentQuestion.get("correctAnswer");
-            } catch (ClassCastException e) {
-                Toast.makeText(this, "Invalid format for correct answers.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            List<String> correctLower = new ArrayList<>();
-            for (String ans : correctAnswers) {
-                correctLower.add(ans.trim().toLowerCase());
-            }
-
-            boolean isCorrect = correctLower.contains(userAnswer);
-            if (isCorrect) score++;
-
-            Map<String, Object> answer = new HashMap<>();
-            answer.put("question", currentQuestion.get("question"));
-            answer.put("type", "enumeration");
-            answer.put("selected", userAnswer);
-            answer.put("correct", correctLower);
-            answer.put("isCorrect", isCorrect);
-            answer.put("choices", correctLower);
-            answer.put("order", currentQuestionIndex);
-            userAnswersList.add(answer);
-
-            hasAnswered = true;
-
-            new AlertDialog.Builder(this)
-                    .setTitle(isCorrect ? "✅ Correct!" : "❌ Incorrect")
-                    .setMessage("You answered: " + userAnswer + "\n\n" +
-                            "Accepted answers: " + TextUtils.join(", ", correctLower))
-                    .setPositiveButton("Next", (dialog, which) -> {
-                        currentQuestionIndex++;
-                        displayNextValidQuestion();
-                    })
-                    .setCancelable(false)
-                    .show();
         }
     }
+
+
+
+
+
 
     private void resetOptionColors() {
         for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
@@ -432,32 +521,128 @@ public class QuizViewActivity extends AppCompatActivity {
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : "anonymous";
 
-        int finalScore = 0;
-        for (Map<String, Object> answer : newAnswers) {
-            Boolean isCorrect = (Boolean) answer.get("isCorrect");
-            if (isCorrect != null && isCorrect) finalScore++;
-        }
-
-        Map<String, Object> resultData = new HashMap<>();
-        resultData.put("quizId", quizId);
-        resultData.put("userId", userId);
-        resultData.put("score", finalScore);
-        resultData.put("total", originalQuestionCount);
-        resultData.put("answeredQuestions", newAnswers);
-        resultData.put("timestamp", FieldValue.serverTimestamp());
-
         db.collection("quiz")
                 .document(quizId)
                 .collection("quiz_attempt")
                 .document(userId)
-                .set(resultData);
+                .get()
+                .addOnSuccessListener(existingDoc -> {
+                    Map<String, Map<String, Object>> answerMap = new HashMap<>();
+
+                    // Merge old answers by question text
+                    if (existingDoc.exists()) {
+                        List<Map<String, Object>> oldAnswers = (List<Map<String, Object>>) existingDoc.get("answeredQuestions");
+                        if (oldAnswers != null) {
+                            for (Map<String, Object> ans : oldAnswers) {
+                                String question = (String) ans.get("question");
+                                if (question != null) {
+                                    answerMap.put(question.trim().toLowerCase(), ans);
+                                }
+                            }
+                        }
+                    }
+
+                    // Merge/replace new answers
+                    for (Map<String, Object> ans : newAnswers) {
+                        String question = (String) ans.get("question");
+                        if (question != null) {
+                            answerMap.put(question.trim().toLowerCase(), ans);
+                        }
+                    }
+
+                    List<Map<String, Object>> combinedAnswers = new ArrayList<>(answerMap.values());
+                    Collections.sort(combinedAnswers, (a, b) -> {
+                        Object orderA = a.get("order");
+                        Object orderB = b.get("order");
+                        if (orderA instanceof Number && orderB instanceof Number) {
+                            return Integer.compare(((Number) orderA).intValue(), ((Number) orderB).intValue());
+                        }
+                        return 0;
+                    });
+
+                    for (int i = 0; i < combinedAnswers.size(); i++) {
+                        combinedAnswers.get(i).put("order", i);
+                    }
+
+                    int finalScore = 0;
+                    for (Map<String, Object> ans : combinedAnswers) {
+                        Boolean correct = (Boolean) ans.get("isCorrect");
+                        if (correct != null && correct) finalScore++;
+                    }
+
+                    int percentage = Math.round((finalScore / (float) originalQuestionCount) * 100);
+
+                    Map<String, Object> resultData = new HashMap<>();
+                    resultData.put("quizId", quizId);
+                    resultData.put("userId", userId);
+                    resultData.put("score", finalScore);
+                    resultData.put("total", originalQuestionCount);
+                    resultData.put("answeredQuestions", combinedAnswers);
+                    resultData.put("timestamp", FieldValue.serverTimestamp());
+                    resultData.put("percentage", percentage);
+
+                    db.collection("quiz")
+                            .document(quizId)
+                            .collection("quiz_attempt")
+                            .document(userId)
+                            .set(resultData)
+                            .addOnSuccessListener(unused -> {
+                                // Update percentage to both owned_sets and saved_sets
+                                Map<String, Object> percentData = new HashMap<>();
+                                percentData.put("percentage", percentage);
+
+                            });
+
+                    db.collection("users").document(userId)
+                            .get()
+                            .addOnSuccessListener(userDoc -> {
+                                if (!userDoc.exists()) return;
+
+                                // ✅ Use "progress" instead of "percentage"
+                                Map<String, Object> progressMap = new HashMap<>();
+                                progressMap.put("progress", percentage);
+
+                                List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userDoc.get("owned_sets");
+                                List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
+
+                                boolean updated = false;
+
+                                if (ownedSets != null) {
+                                    for (Map<String, Object> item : ownedSets) {
+                                        if (quizId.equals(item.get("id"))) {
+                                            item.put("progress", percentage); // ✅ renamed here
+                                            updated = true;
+                                            break;
+                                        }
+                                    }
+                                    if (updated) {
+                                        db.collection("users").document(userId)
+                                                .update("owned_sets", ownedSets);
+                                        return;
+                                    }
+                                }
+
+                                if (savedSets != null) {
+                                    for (Map<String, Object> item : savedSets) {
+                                        if (quizId.equals(item.get("id"))) {
+                                            item.put("progress", percentage); // ✅ renamed here
+                                            updated = true;
+                                            break;
+                                        }
+                                    }
+                                    if (updated) {
+                                        db.collection("users").document(userId)
+                                                .update("saved_sets", savedSets);
+                                    }
+                                }
+                            });
+
+
+                });
     }
 
-    @SuppressLint("MissingSuperCall")
-    @Override
-    public void onBackPressed() {
-        showExitConfirmationDialog();
-    }
+
+
 
     private void showExitConfirmationDialog() {
         new AlertDialog.Builder(this)

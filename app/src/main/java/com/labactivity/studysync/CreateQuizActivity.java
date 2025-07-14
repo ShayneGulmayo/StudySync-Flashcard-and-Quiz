@@ -284,7 +284,6 @@ public class CreateQuizActivity extends AppCompatActivity {
         quizData.put("owner_uid", auth.getCurrentUser().getUid());
         quizData.put("owner_username", username);
         quizData.put("number_of_items", questionCount);
-        quizData.put("progress", 0);
         quizData.put("questions", questionList);
         quizData.put("created_at", Timestamp.now());
 

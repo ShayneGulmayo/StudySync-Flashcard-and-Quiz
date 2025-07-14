@@ -142,14 +142,8 @@ public class QuizProgressActivity extends AppCompatActivity {
                             int correct = score.intValue();
                             int totalItems = total.intValue();
 
-                            Long originalCount = doc.getLong("number_of_items");
-                            if (originalCount != null && originalCount > 0) {
-                                totalItems = originalCount.intValue();
-                            }
-
                             int incorrect = totalItems - correct;
                             int percentage = Math.round((correct / (float) totalItems) * 100);
-
 
                             correctText.setText(correct + " Items");
                             incorrectText.setText(incorrect + " Items");
@@ -173,6 +167,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to load attempt data", Toast.LENGTH_SHORT).show();
                 });
     }
+
     private void displayAnsweredQuestions() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);

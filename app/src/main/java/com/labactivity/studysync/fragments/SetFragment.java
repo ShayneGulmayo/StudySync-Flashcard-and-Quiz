@@ -288,6 +288,8 @@ public class SetFragment extends Fragment {
                             set.setProgress(progress.intValue());
                             set.setLastAccessed(lastAccessed);
                             allSets.add(set);
+
+
                         }
                     }
                 });
@@ -321,13 +323,23 @@ public class SetFragment extends Fragment {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         if (!setAlreadyExists(doc.getId())) {
-                            Flashcard set = parseSet(doc);
+                            Flashcard set = new Flashcard(
+                                    doc.getId(),
+                                    doc.getString("title"),
+                                    doc.getLong("number_of_items") != null ? doc.getLong("number_of_items").intValue() : 0,
+                                    doc.getString("owner_username"),
+                                    0,
+                                    null
+                            );
                             set.setType("quiz");
                             set.setPhotoUrl(currentUserPhotoUrl);
                             set.setReminder(doc.getString("reminder"));
+                            set.setPrivacy(doc.getString("privacy"));
+                            set.setOwnerUid(doc.getString("owner_uid"));
                             allSets.add(set);
                         }
                     }
+
                     collectionsLoaded++;
                     checkAndApplyInitialFilter();
                 })

@@ -32,21 +32,40 @@
             app:cardPreventCornerOverlap="true"
             app:cardUseCompatPadding="false">
 
-            <TextView
-                android:id="@+id/question_text"
+            <LinearLayout
+                android:id="@+id/front_content_layout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@drawable/card_background"
-                android:ellipsize="end"
+                android:orientation="horizontal"
                 android:gravity="center"
-                android:lineSpacingExtra="4dp"
-                android:maxLines="6"
-                android:padding="24dp"
-                android:text="Question?"
-                android:textAlignment="center"
-                android:textColor="@color/black"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:padding="24dp">
+
+                <ImageView
+                    android:id="@+id/question_image"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:scaleType="centerCrop"
+                    android:adjustViewBounds="true"
+                    android:visibility="gone"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/question_text"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:lineSpacingExtra="4dp"
+                    android:maxLines="6"
+                    android:text="Question?"
+                    android:textAlignment="center"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </androidx.cardview.widget.CardView>
 
         <!-- Back of card -->
@@ -60,21 +79,40 @@
             app:cardPreventCornerOverlap="true"
             app:cardUseCompatPadding="false">
 
-
-            <TextView
-                android:id="@+id/answer_text"
+            <LinearLayout
+                android:id="@+id/back_content_layout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@drawable/card_background"
-                android:ellipsize="end"
+                android:orientation="horizontal"
                 android:gravity="center"
-                android:lineSpacingExtra="4dp"
-                android:maxLines="6"
-                android:text="Answer"
-                android:textAlignment="center"
-                android:textColor="@color/black"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:padding="24dp">
+
+                <ImageView
+                    android:id="@+id/answer_image"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:scaleType="centerCrop"
+                    android:adjustViewBounds="true"
+                    android:visibility="gone"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/answer_text"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:lineSpacingExtra="4dp"
+                    android:maxLines="6"
+                    android:text="Answer"
+                    android:textAlignment="center"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </androidx.cardview.widget.CardView>
 
     </FrameLayout>
