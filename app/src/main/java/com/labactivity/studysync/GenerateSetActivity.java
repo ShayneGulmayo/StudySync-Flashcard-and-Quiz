@@ -132,9 +132,10 @@ public class GenerateSetActivity extends AppCompatActivity {
         });
 
         scanDocument.setOnClickListener(view -> {
+            Intent intent = new Intent(this, DocumentScanActivity.class);
+            intent.putExtra("setType", setType);
+            startActivity(intent);
         });
-
-
     }
 
     private void checkUserAuthentication() {
