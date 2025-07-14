@@ -10,7 +10,6 @@
         android:id="@+id/image_group_photo"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:background="@drawable/circle_background"
         android:clipToOutline="true"
         android:contentDescription="@string/group_photo"
         android:scaleType="centerCrop"

@@ -782,7 +782,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // Now fetch the original flashcard set
                     db.collection("flashcards").document(setId)
                             .get()
                             .addOnSuccessListener(documentSnapshot -> {
@@ -805,6 +804,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                 copyData.put("privacyRole", "view");
                                 copyData.put("accessUsers", new HashMap<String, Object>());
 
+                                String originalTitle = (String) originalData.get("title");
+                                if (originalTitle == null) originalTitle = "Untitled Set";
+                                copyData.put("title", originalTitle + " (Copy)");
+
                                 db.collection("flashcards").add(copyData)
                                         .addOnSuccessListener(newDocRef -> {
                                             Map<String, Object> ownedSetData = new HashMap<>();
@@ -814,7 +817,11 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                             db.collection("users").document(userId)
                                                     .update("owned_sets", FieldValue.arrayUnion(ownedSetData))
                                                     .addOnSuccessListener(unused -> {
-                                                        Toast.makeText(this, "Flashcard set copied successfully!", Toast.LENGTH_SHORT).show();
+                                                        Toast.makeText(this, "Flashcard set copied!", Toast.LENGTH_SHORT).show();
+
+                                                        Intent intent = new Intent(this, FlashcardPreviewActivity.class);
+                                                        intent.putExtra("setId", newDocRef.getId());
+                                                        startActivity(intent);
                                                     })
                                                     .addOnFailureListener(e -> {
                                                         Toast.makeText(this, "Copy succeeded but failed to update owned sets.", Toast.LENGTH_SHORT).show();

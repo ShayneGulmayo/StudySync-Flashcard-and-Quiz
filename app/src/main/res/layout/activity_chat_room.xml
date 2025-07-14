@@ -50,12 +50,11 @@
             android:layout_height="40dp"
             android:layout_gravity="center"
             android:scaleType="centerCrop"
-            android:background="@drawable/circle_background"
-            app:srcCompat="@drawable/user_profile"
-            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/txtChatRoomName"
             app:layout_constraintStart_toEndOf="@id/back_button"
-            app:layout_constraintBottom_toBottomOf="parent"/>
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/user_profile" />
 
         <TextView
             android:id="@+id/txtChatRoomName"

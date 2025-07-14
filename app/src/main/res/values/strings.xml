@@ -4,6 +4,7 @@
     <string name="search_sets">Search Sets</string>
     <string name="flashcard_name">Flashcard Set Name</string>
     <string name="items">Items</string>
+    <string name="forgot_password">Forgot Password?</string>
     <string name="dont_know_text">Don\'t Know</string>
     <string name="know_term_text">Term Known</string>
     <string name="dont_know_term_text">Term Needs Review</string>
