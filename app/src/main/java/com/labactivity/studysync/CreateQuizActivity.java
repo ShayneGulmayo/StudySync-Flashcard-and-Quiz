@@ -18,6 +18,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -207,16 +208,20 @@ public class CreateQuizActivity extends AppCompatActivity {
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri sourceUri = result.getData().getData();
-                        File file = new File(getCacheDir(), UUID.randomUUID().toString() + ".jpg");
-                        Uri destUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", file);
 
-                        UCrop.of(sourceUri, destUri)
-                                .withAspectRatio(1, 1)
-                                .withMaxResultSize(512, 512)
-                                .start(this);
+                        CropImageOptions cropOptions = new CropImageOptions();
+                        cropOptions.aspectRatioX = 1;
+                        cropOptions.aspectRatioY = 1;
+                        cropOptions.fixAspectRatio = true;
+                        cropOptions.maxCropResultWidth = 512;
+                        cropOptions.maxCropResultHeight = 512;
+
+                        CropImageContractOptions options = new CropImageContractOptions(sourceUri, cropOptions);
+                        cropImageLauncher.launch(options);
                     }
                 }
         );
+
 
 
 
@@ -239,17 +244,29 @@ public class CreateQuizActivity extends AppCompatActivity {
             questionData.put("question", questionInput.getText().toString().trim());
             questionData.put("type", quizType);
 
+            // ✅ Handle image metadata
             ImageView imageView = quizItem.findViewById(R.id.add_image_button);
-            String photoUrl = imageView.getTag() != null ? imageView.getTag().toString() : null;
-            String fileName = (String) imageView.getContentDescription();
+            String photoUrl = null;
+            String photoPath = null;
+
+            Object tagObj = imageView.getTag();               // should contain download URL
+            Object descObj = imageView.getContentDescription(); // should contain filename
+
+            if (tagObj != null && tagObj.toString().startsWith("http")) {
+                photoUrl = tagObj.toString();
+            }
+            if (descObj != null && !descObj.toString().equals("pending")) {
+                photoPath = descObj.toString();
+            }
 
             if (photoUrl != null) {
                 questionData.put("photoUrl", photoUrl);
-                if (fileName != null) {
-                    questionData.put("photoFileName", fileName);
-                }
+            }
+            if (photoPath != null) {
+                questionData.put("photoPath", photoPath);
             }
 
+            // ✅ Question choices and answers
             if (quizType.equals("multiple choice")) {
                 List<String> choices = new ArrayList<>();
                 String correctAnswer = "";
@@ -265,6 +282,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                 }
                 questionData.put("choices", choices);
                 questionData.put("correctAnswer", correctAnswer);
+
             } else if (quizType.equals("enumeration")) {
                 List<String> answers = new ArrayList<>();
                 for (int j = 0; j < optionsContainer.getChildCount(); j++) {
@@ -273,12 +291,13 @@ public class CreateQuizActivity extends AppCompatActivity {
                     answers.add(answerInput.getText().toString().trim());
                 }
                 questionData.put("choices", answers);
-                questionData.put("correctAnswer", answers);  // ✅ ADD THIS
+                questionData.put("correctAnswer", answers);
             }
 
             questionList.add(questionData);
         }
 
+        // ✅ Quiz metadata
         Map<String, Object> quizData = new HashMap<>();
         quizData.put("title", quizTitleInput.getText().toString().trim());
         quizData.put("owner_uid", auth.getCurrentUser().getUid());
@@ -286,9 +305,6 @@ public class CreateQuizActivity extends AppCompatActivity {
         quizData.put("number_of_items", questionCount);
         quizData.put("questions", questionList);
         quizData.put("created_at", Timestamp.now());
-
-
-
 
         Map<String, Object> accessUsers = new HashMap<>();
         accessUsers.put(auth.getCurrentUser().getUid(), "Owner");
@@ -303,17 +319,16 @@ public class CreateQuizActivity extends AppCompatActivity {
             quizData.put("privacyRole", "");
         }
 
-
         DocumentReference quizRef;
         if (quizId == null) {
-            quizRef = db.collection("quiz").document(); // auto-generates ID
-            quizId = quizRef.getId(); // set it for image uploads etc.
+            quizRef = db.collection("quiz").document(); // auto-generate ID
+            quizId = quizRef.getId();
         } else {
-            quizRef = db.collection("quiz").document(quizId); // use existing one for update
+            quizRef = db.collection("quiz").document(quizId);
         }
+
         quizRef.get().addOnSuccessListener(doc -> {
             if (doc.exists()) {
-                // 🔁 UPDATE
                 quizRef.update(quizData)
                         .addOnSuccessListener(documentReference -> {
                             Toast.makeText(this, "Quiz updated successfully!", Toast.LENGTH_SHORT).show();
@@ -321,7 +336,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                         })
                         .addOnFailureListener(e -> Toast.makeText(this, "Failed to update quiz", Toast.LENGTH_SHORT).show());
             } else {
-                // 🆕 CREATE
                 quizRef.set(quizData)
                         .addOnSuccessListener(unused -> {
                             for (Map.Entry<View, Uri> entry : pendingUploads.entrySet()) {
@@ -362,6 +376,7 @@ public class CreateQuizActivity extends AppCompatActivity {
             }
         });
     }
+
 
     private void showExitConfirmation() {
         new AlertDialog.Builder(this)
@@ -407,10 +422,11 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         ImageView addImageButton = quizItem.findViewById(R.id.add_image_button);
         addImageButton.setOnClickListener(v -> {
-            currentQuizItemView = quizItem;
+            currentQuizItemView = quizItem; // ⬅️ THIS LINE IS MISSING IN addQuizView()!
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.setType("image/*");
-            pickQuizImageLauncher.launch(Intent.createChooser(intent, "Select Image"));
+            startActivityForResult(Intent.createChooser(intent, "Select Image"), 1010); // use any request code you like
+
         });
 
 
@@ -718,10 +734,11 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         ImageView addImageButton = quizItem.findViewById(R.id.add_image_button);
         addImageButton.setOnClickListener(v -> {
+            currentQuizItemView = quizItem; // ⬅️ THIS LINE IS MISSING IN addQuizView()!
             currentQuizItemView = quizItem;
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.setType("image/*");
-            pickQuizImageLauncher.launch(Intent.createChooser(intent, "Select Image"));
+            startActivityForResult(Intent.createChooser(intent, "Select Image"), 1010); // use any request code you like
         });
 
         Object photoUrlObj = questionData.get("photoUrl");
@@ -817,45 +834,62 @@ public class CreateQuizActivity extends AppCompatActivity {
     }
 
     private void uploadQuizImage(Uri imageUri, String ownerUid, String quizId, View quizItemView) {
-        if (ownerUid == null || quizId == null) {
-            Toast.makeText(this, "Missing user or quiz ID", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (imageUri == null || quizItemView == null) return;
 
-        try {
-            File file = getFileFromUri(this, imageUri);
-            if (file.length() > 5 * 1024 * 1024) {
-                Toast.makeText(this, "Image too large (max 5MB)", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        String fileName = "quiz_" + UUID.randomUUID().toString() + ".jpg";
+        String storagePath = "quiz_images/" + ownerUid + "/" + quizId + "/" + fileName;
 
-            String mimeType = getContentResolver().getType(imageUri);
-            String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
-            if (ext == null) ext = "jpg";
+        FirebaseStorage.getInstance()
+                .getReference(storagePath)
+                .putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    taskSnapshot.getStorage().getDownloadUrl().addOnSuccessListener(downloadUrl -> {
+                        ImageView imageView = quizItemView.findViewById(R.id.add_image_button);
+                        if (imageView != null && !isFinishing() && !isDestroyed()) {
+                            Glide.with(CreateQuizActivity.this).load(downloadUrl).into(imageView);
+                            imageView.setTag(downloadUrl.toString()); // ✅ this is correct
+                            imageView.setContentDescription(fileName); // ✅ also correct
+                        }
 
-            String fileName = UUID.randomUUID().toString() + "." + ext;
-            String path = "quiz_images/" + ownerUid + "/" + quizId + "/" + fileName;
-
-            FirebaseStorage.getInstance().getReference().child(path)
-                    .putFile(imageUri)
-                    .addOnSuccessListener(taskSnapshot -> {
-                        taskSnapshot.getStorage().getDownloadUrl()
-                                .addOnSuccessListener(uri -> {
-                                    ImageView imageView = quizItemView.findViewById(R.id.add_image_button);
-                                    Glide.with(this).load(uri).into(imageView);
-                                    imageView.setTag(uri.toString());
-                                    imageView.setContentDescription(fileName);
-                                    Toast.makeText(this, "Image uploaded", Toast.LENGTH_SHORT).show();
-                                });
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Upload failed", Toast.LENGTH_SHORT).show();
+                        // ✅ NOW update Firestore here
+                        updateQuestionImageInFirestore(quizItemView, downloadUrl.toString(), fileName);
+                    }).addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to get image URL", Toast.LENGTH_SHORT).show();
                     });
-
-        } catch (Exception e) {
-            Toast.makeText(this, "Image error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Upload failed", Toast.LENGTH_SHORT).show();
+                });
     }
+
+    private void updateQuestionImageInFirestore(View quizItemView, String photoUrl, String photoPath) {
+        EditText questionInput = quizItemView.findViewById(R.id.quiz_question_input);
+        String questionText = questionInput.getText().toString().trim();
+
+        db.collection("quiz").document(quizId).get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        List<Map<String, Object>> questions = (List<Map<String, Object>>) doc.get("questions");
+                        if (questions != null) {
+                            for (Map<String, Object> question : questions) {
+                                if (questionText.equals(question.get("question"))) {
+                                    question.put("photoUrl", photoUrl);
+                                    question.put("photoPath", photoPath);
+                                    break;
+                                }
+                            }
+
+                            // 🔁 Write back the updated questions list
+                            db.collection("quiz").document(quizId)
+                                    .update("questions", questions)
+                                    .addOnSuccessListener(aVoid -> Log.d("FIRESTORE", "Photo info saved"))
+                                    .addOnFailureListener(e -> Log.e("FIRESTORE", "Failed to update photo info"));
+                        }
+                    }
+                });
+    }
+
+
 
 
     public static File getFileFromUri(Context context, Uri uri) throws Exception {
@@ -877,6 +911,7 @@ public class CreateQuizActivity extends AppCompatActivity {
         return tempFile;
     }
 
+
     private final ActivityResultLauncher<CropImageContractOptions> cropImageLauncher =
             registerForActivityResult(new CropImageContract(), result -> {
                 if (result.isSuccessful() && result.getUriContent() != null && currentQuizItemView != null) {
@@ -897,25 +932,67 @@ public class CreateQuizActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
+        if (requestCode == 1010 && resultCode == RESULT_OK && data != null) {
+            Uri sourceUri = data.getData();
+            Uri destinationUri = Uri.fromFile(new File(getCacheDir(), "cropped_" + System.currentTimeMillis() + ".jpg"));
+
+            Uri safeUri = copyToCacheAndGetUri(sourceUri);
+
+            UCrop.Options options = new UCrop.Options();
+            options.setCompressionFormat(Bitmap.CompressFormat.JPEG);
+            options.setCompressionQuality(90);
+            options.withAspectRatio(1, 1);
+
+            UCrop.of(safeUri, destinationUri)
+                    .withOptions(options)
+                    .withMaxResultSize(512, 512)
+                    .start(this);
+        }
+
+
         if (requestCode == UCrop.REQUEST_CROP && resultCode == RESULT_OK && data != null) {
             Uri resultUri = UCrop.getOutput(data);
-            if (resultUri != null && currentQuizItemView != null) {
-                if (currentQuizItemView != null) {
-                    ImageView imageView = currentQuizItemView.findViewById(R.id.add_image_button);
-                    Glide.with(this).load(resultUri).into(imageView);
-                    imageView.setTag(resultUri.toString());
-                    imageView.setContentDescription("pending"); // optional
+            if (resultUri != null) {
+                if (currentQuizItemView == null) {
+                    Toast.makeText(this, "Could not link image to question view", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                ImageView imageView = currentQuizItemView.findViewById(R.id.add_image_button);
+                Glide.with(this).load(resultUri).into(imageView);
+                imageView.setTag(resultUri.toString());
+                imageView.setContentDescription("pending"); // optional
 
-                    if (quizId == null) {
-                        pendingUploads.put(currentQuizItemView, resultUri);
-                        Toast.makeText(this, "Image ready to upload after quiz is saved", Toast.LENGTH_SHORT).show();
-                    } else {
-                        uploadQuizImage(resultUri, ownerUid, quizId, currentQuizItemView);
-                    }
+                if (quizId == null) {
+                    pendingUploads.put(currentQuizItemView, resultUri);
+                    Toast.makeText(this, "Image ready to upload after quiz is saved", Toast.LENGTH_SHORT).show();
+                } else {
+                    uploadQuizImage(resultUri, ownerUid, quizId, currentQuizItemView);
                 }
             }
         }
     }
+
+    private Uri copyToCacheAndGetUri(Uri sourceUri) {
+        try {
+            File cacheDir = getCacheDir();
+            File tempFile = new File(cacheDir, "temp_crop_" + System.currentTimeMillis() + ".jpg");
+            InputStream in = getContentResolver().openInputStream(sourceUri);
+            OutputStream out = new FileOutputStream(tempFile);
+            byte[] buffer = new byte[4096];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+            in.close();
+            out.close();
+            return FileProvider.getUriForFile(this, getPackageName() + ".provider", tempFile);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
 
 
 
