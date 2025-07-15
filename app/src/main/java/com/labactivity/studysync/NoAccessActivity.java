@@ -1,9 +1,5 @@
 package com.labactivity.studysync;
 
-import android.app.AlarmManager;
-import android.app.DatePickerDialog;
-import android.app.PendingIntent;
-import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -14,14 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.labactivity.studysync.receivers.ReminderReceiver;
-import org.json.JSONObject;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public class NoAccessActivity extends AppCompatActivity {
@@ -32,8 +21,6 @@ public class NoAccessActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
-    private DatePickerDialog datePickerDialog;
-    private TimePickerDialog timePickerDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +30,7 @@ public class NoAccessActivity extends AppCompatActivity {
 
         initializeViews();
         db = FirebaseFirestore.getInstance();
+
 
         if (getIntent().hasExtra("setId")) {
             setId = getIntent().getStringExtra("setId");
@@ -58,19 +46,8 @@ public class NoAccessActivity extends AppCompatActivity {
         moreButton = findViewById(R.id.more_button);
         backButton = findViewById(R.id.back_button);
 
-        backButton.setOnClickListener(v -> onBackPressed());
+        backButton.setOnClickListener(v -> finish());
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
-    }
-
-    @Override
-    public void onBackPressed() {
-        boolean fromNotification = getIntent().getBooleanExtra("fromNotification", false);
-        if (fromNotification) {
-            Intent intent = new Intent(this, MainActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(intent);
-        }
-        super.onBackPressed();
     }
 
     private void showMoreBottomSheet() {

@@ -1,6 +1,7 @@
 package com.labactivity.studysync;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -27,6 +28,7 @@ public class PrivacyActivity extends AppCompatActivity {
     private SearchView searchView;
     private RecyclerView selectedRecyclerView, searchResultsRecycler;
 
+    private boolean accessChecked = false;
     private boolean isPublic = true;
     private final List<UserWithRole> selectedUserList = new ArrayList<>();
     private final List<User> allUsers = new ArrayList<>();

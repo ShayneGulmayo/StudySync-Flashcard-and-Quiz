@@ -74,11 +74,11 @@ public class BrowseActivity extends AppCompatActivity {
             switch (item.getType()) {
                 case "user":
                     intent = new Intent(this, UserProfileActivity.class);
-                    intent.putExtra("uid", item.getUser().getUid());
+                    intent.putExtra("userId", item.getUser().getUid());
                     break;
                 case "flashcard":
                     intent = new Intent(this, FlashcardPreviewActivity.class);
-                    intent.putExtra("flashcardId", item.getFlashcard().getId());
+                    intent.putExtra("setId", item.getFlashcard().getId());
                     break;
                 case "quiz":
                     intent = new Intent(this, QuizPreviewActivity.class);
@@ -89,8 +89,6 @@ public class BrowseActivity extends AppCompatActivity {
             }
             startActivity(intent);
         });
-
-
 
         recyclerView.setAdapter(adapter);
 
@@ -225,10 +223,6 @@ public class BrowseActivity extends AppCompatActivity {
         });
     }
 
-
-
-
-
     private String getUsernameFromUsers(String uid) {
         User user = userMap.get(uid);
         return (user != null) ? user.getUsername() : "unknown";
@@ -279,6 +273,4 @@ public class BrowseActivity extends AppCompatActivity {
             noResultsText.setVisibility(View.GONE);
         }
     }
-
-
 }

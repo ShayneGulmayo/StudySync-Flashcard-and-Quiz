@@ -88,6 +88,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private TimePickerDialog timePickerDialog;
     private boolean isSaved = false;
     private boolean isDownloaded = false;
+    private boolean isRedirecting = false;
     private boolean isOffline;
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private Map<String, Object> setData;
@@ -198,6 +199,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             }
         });
     }
+
     private void openUserProfile() {
         if (ownerUid != null) {
             Intent intent = new Intent(FlashcardPreviewActivity.this, UserProfileActivity.class);
@@ -210,10 +212,12 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
     }
 
-
+    private boolean canNavigate() {
+        return !isRedirecting && !isFinishing() && !isDestroyed();
+    }
 
     private void showMoreBottomSheet() {
-        if (isFinishing() || isDestroyed()) return;
+        if (isRedirecting || isFinishing() || isDestroyed()) return;
 
         bottomSheetDialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_more_preview, null);
@@ -269,26 +273,31 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
 
         downloadBtn.setOnClickListener(v -> {
+            if (!canNavigate()) return;
             showDownloadOptionsDialog();
             bottomSheetDialog.dismiss();
         });
 
         copyBtn.setOnClickListener(v -> {
+            if (!canNavigate()) return;
             makeCopy();
             bottomSheetDialog.dismiss();
         });
 
         privacyBtn.setOnClickListener(v -> {
+            if (!canNavigate()) return;
             bottomSheetDialog.dismiss();
             startActivity(new Intent(this, PrivacyActivity.class).putExtra("setId", setId));
         });
 
         reminderBtn.setOnClickListener(v -> {
+            if (!canNavigate()) return;
             bottomSheetDialog.dismiss();
             showReminderDialog();
         });
 
         sendToChatBtn.setOnClickListener(v -> {
+            if (!canNavigate()) return;
             bottomSheetDialog.dismiss();
             Intent intent = new Intent(this, ChatRoomPickerActivity.class);
             intent.putExtra("setId", setId);
@@ -297,6 +306,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         });
 
         editBtn.setOnClickListener(v -> {
+            if (!canNavigate()) return;
             bottomSheetDialog.dismiss();
             Intent intent = new Intent(this, CreateFlashcardActivity.class);
             intent.putExtra("setId", setId);
@@ -304,16 +314,19 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         });
 
         deleteBtn.setOnClickListener(v -> {
+            if (!canNavigate()) return;
             bottomSheetDialog.dismiss();
             showDeleteConfirmationDialog();
         });
 
         reqEditBtn.setOnClickListener(v -> {
-            Toast.makeText(this, "Requst Edit clicked", Toast.LENGTH_SHORT).show();
+            if (!canNavigate()) return;
+            Toast.makeText(this, "Request Edit clicked", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
         });
 
         reqAccessBtn.setOnClickListener(v -> {
+            if (!canNavigate()) return;
             Toast.makeText(this, "Request Access clicked", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
         });
@@ -1082,12 +1095,16 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         }
 
                         if ("none".equals(accessLevel)) {
+                            if (isRedirecting) return;
+                            isRedirecting = true;
+
                             Intent intent = new Intent(this, NoAccessActivity.class);
                             intent.putExtra("setId", setId);
                             startActivity(intent);
                             finish();
                             return;
                         }
+
 
                         loadFlashcards();
                     })
@@ -1178,10 +1195,12 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         db.collection("users").document(ownerUid)
                 .get()
                 .addOnSuccessListener(userDoc -> {
+                    if (isFinishing() || isDestroyed()) return; // prevent crash if Activity is gone
+
                     if (userDoc.exists()) {
                         String photoUrl = userDoc.getString("photoUrl");
                         if (photoUrl != null && !photoUrl.isEmpty()) {
-                            Glide.with(this)
+                            Glide.with(FlashcardPreviewActivity.this) // explicitly use activity reference
                                     .load(photoUrl)
                                     .placeholder(R.drawable.user_profile)
                                     .circleCrop()
@@ -1193,7 +1212,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         ownerPhotoImageView.setImageResource(R.drawable.user_profile);
                     }
                 })
-                .addOnFailureListener(e -> ownerPhotoImageView.setImageResource(R.drawable.user_profile));
+                .addOnFailureListener(e -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    ownerPhotoImageView.setImageResource(R.drawable.user_profile);
+                });
     }
 
     private void setupCarousel() {

@@ -21,7 +21,7 @@ public class UserSettingsActivity extends AppCompatActivity {
     private TextView usernameValue, fullnameValue, emailValue;
     private ImageView backButton;
 
-    private CardView cardViewUsername, cardViewFullname, cardViewEmail, cardViewPassword;
+    private CardView cardViewUsername, cardViewFullname, cardViewEmail, cardViewPassword, cardViewDeleteAccount;
 
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
@@ -33,7 +33,6 @@ public class UserSettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         setContentView(R.layout.activity_user_settings);
-
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
@@ -48,10 +47,9 @@ public class UserSettingsActivity extends AppCompatActivity {
         cardViewFullname = findViewById(R.id.cardView_fullname);
         cardViewEmail = findViewById(R.id.cardView_email);
         cardViewPassword = findViewById(R.id.cardView_password);
+        cardViewDeleteAccount = findViewById(R.id.cardView_delete_account);
 
         backButton.setOnClickListener(v -> finish());
-
-
 
         if (currentUser != null) {
             loadUserData(currentUser.getUid());
@@ -87,6 +85,9 @@ public class UserSettingsActivity extends AppCompatActivity {
                 startActivity(new Intent(UserSettingsActivity.this, ChangePasswordActivity.class));
             }
         });
+
+        cardViewDeleteAccount.setOnClickListener(v ->
+            startActivity(new Intent(UserSettingsActivity.this, DeleteAccountActivity.class)));
     }
 
     private void loadUserData(String uid) {
@@ -102,7 +103,6 @@ public class UserSettingsActivity extends AppCompatActivity {
                         fullnameValue.setText((firstName != null && lastName != null) ?
                                 firstName + " " + lastName : "-");
 
-                        // ✅ Get email directly from Firebase Authentication
                         emailValue.setText(currentUser.getEmail() != null ? currentUser.getEmail() : "email");
 
                     } else {
