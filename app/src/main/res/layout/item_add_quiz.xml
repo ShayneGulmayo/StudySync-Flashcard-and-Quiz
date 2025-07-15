@@ -24,26 +24,25 @@
 
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp">
+                android:layout_height="wrap_content">
 
                 <Spinner
                     android:id="@+id/quiz_type_spinner"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="50dp"
+                    android:layout_gravity="center_vertical"
                     android:background="@drawable/quiz_spinner_bg"
                     android:clipToPadding="false"
-                    android:paddingStart="12dp"
-                    android:paddingTop="12dp"
-                    android:paddingEnd="40dp"
-                    android:paddingBottom="12dp" />
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
 
                 <ImageView
                     android:id="@+id/drop_down_icon"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
                     android:layout_gravity="end|center_vertical"
-                    android:layout_marginEnd="20dp"
+                    android:layout_marginEnd="16dp"
                     android:clickable="false"
                     android:contentDescription="Dropdown icon"
                     android:focusable="false"
@@ -53,7 +52,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginTop="16dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -73,7 +72,7 @@
                         android:gravity="top|start"
                         android:maxLines="10"
                         android:minHeight="96dp"
-                        android:padding="12dp"
+                        android:padding="16dp"
                         android:textColor="@color/black"
                         android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
@@ -116,11 +115,13 @@
                 android:id="@+id/answer_choices_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:orientation="vertical" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 

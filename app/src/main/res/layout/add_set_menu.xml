@@ -23,8 +23,8 @@
         android:focusable="true">
 
         <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:contentDescription="Flashcard"
             android:src="@drawable/flashcard" />
 
@@ -53,8 +53,8 @@
         android:focusable="true">
 
         <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:contentDescription="Quiz"
             android:src="@drawable/quiz" />
 

@@ -130,7 +130,7 @@
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/set_name"
                     android:layout_width="match_parent"
-                    android:layout_height="40dp"
+                    android:layout_height="50dp"
                     android:minHeight="48dp"
                     android:padding="12dp"
                     android:textColor="@color/black"
@@ -156,15 +156,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:contentDescription="Add"
         android:clickable="true"
+        android:contentDescription="Add"
+        android:foregroundGravity="center"
         app:backgroundTint="@color/primary"
-        app:srcCompat="@drawable/add"
-        app:tint="@android:color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintVertical_bias="1.0" />
+        app:srcCompat="@drawable/add"
+        app:tint="@android:color/white" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

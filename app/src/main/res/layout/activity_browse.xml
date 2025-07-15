@@ -21,6 +21,7 @@
             android:id="@+id/searchEditText"
             android:layout_width="0dp"
             android:layout_height="50dp"
+            android:layout_marginEnd="16dp"
             android:layout_weight="1.94"
             android:background="@drawable/green_stroke_bg"
             android:drawableLeft="@drawable/search_resized"
@@ -28,16 +29,16 @@
             android:hint="@string/search_hint"
             android:inputType="text"
             android:paddingStart="16dp"
+            android:paddingEnd="16dp"
             android:textSize="16sp" />
 
         <ImageView
             android:id="@+id/cancelBtn"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_weight=".06"
-            android:src="@drawable/x_button"/>
+            android:src="@drawable/x_button" />
     </LinearLayout>
-
 
 
     <com.google.android.material.button.MaterialButton
@@ -49,7 +50,7 @@
         android:gravity="center"
         android:text="@string/show_filter"
         android:textAllCaps="false"
-        android:textSize="16sp"
+        android:textSize="18sp"
         app:icon="@drawable/drop_down_icon"
         app:iconGravity="end"
         app:iconPadding="10dp" />
