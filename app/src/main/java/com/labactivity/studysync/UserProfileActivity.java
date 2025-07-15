@@ -26,6 +26,7 @@ public class UserProfileActivity extends AppCompatActivity {
 
     private ImageView profileImage, backButton;
     private TextView userFullName, usernameTxt;
+    private TextView ownedCountTxt, savedCountTxt;
     private RecyclerView recyclerView;
     private SetCardAdapter adapter;
 
@@ -50,11 +51,14 @@ public class UserProfileActivity extends AppCompatActivity {
         usernameTxt = findViewById(R.id.usernameTxt);
         recyclerView = findViewById(R.id.recyclerView);
         backButton = findViewById(R.id.backButton);
+        ownedCountTxt = findViewById(R.id.owned_sets_count);
+        savedCountTxt = findViewById(R.id.saved_sets_count);
 
         backButton.setOnClickListener(v -> finish());
 
         fetchUserData(userId);
         loadPublicOwnedSets(userId);
+        countOwnedAndSavedSets(userId);
     }
 
     private void fetchUserData(String userId) {
@@ -81,6 +85,24 @@ public class UserProfileActivity extends AppCompatActivity {
         });
     }
 
+    private void countOwnedAndSavedSets(String userId) {
+        db.collection("users").document(userId).get().addOnSuccessListener(snapshot -> {
+            if (snapshot.exists()) {
+                List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) snapshot.get("owned_sets");
+                List<Map<String, Object>> savedSets = (List<Map<String, Object>>) snapshot.get("saved_sets");
+
+                int ownedCount = (ownedSets != null) ? ownedSets.size() : 0;
+                int savedCount = (savedSets != null) ? savedSets.size() : 0;
+
+                ownedCountTxt.setText(ownedCount + " Owned Sets");
+                savedCountTxt.setText(savedCount + " Saved Sets");
+            }
+        }).addOnFailureListener(e -> {
+            ownedCountTxt.setText("0 Owned Sets");
+            savedCountTxt.setText("0 Saved Sets");
+        });
+    }
+
     private void loadPublicOwnedSets(String userId) {
         db.collection("users").document(userId).get().addOnSuccessListener(snapshot -> {
             List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) snapshot.get("owned_sets");
@@ -88,7 +110,7 @@ public class UserProfileActivity extends AppCompatActivity {
 
             List<Object> combinedSets = new ArrayList<>();
             int totalSets = ownedSets.size();
-            final int[] loadedCount = {0}; // counter
+            final int[] loadedCount = {0};
 
             for (Map<String, Object> map : ownedSets) {
                 String id = (String) map.get("id");
@@ -139,5 +161,4 @@ public class UserProfileActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
     }
-
 }
