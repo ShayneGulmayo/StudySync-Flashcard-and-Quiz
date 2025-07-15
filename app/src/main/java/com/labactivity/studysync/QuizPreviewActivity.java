@@ -247,6 +247,16 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     } else {
                         ownerProfileImage.setImageResource(R.drawable.user_profile);
                     }
+
+                    View.OnClickListener profileClickListener = v -> {
+                        Intent intent = new Intent(this, UserProfileActivity.class);
+                        intent.putExtra("userId", ownerUid);
+                        startActivity(intent);
+                    };
+
+                    ownerProfileImage.setOnClickListener(profileClickListener);
+                    ownerUsernameTxt.setOnClickListener(profileClickListener);
+                    
                 })
                 .addOnFailureListener(e -> {
                     ownerProfileImage.setImageResource(R.drawable.user_profile);
