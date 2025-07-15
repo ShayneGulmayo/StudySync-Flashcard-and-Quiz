@@ -70,12 +70,27 @@ public class BrowseActivity extends AppCompatActivity {
 
 
         adapter = new BrowseContentAdapter(filteredItems, item -> {
-            if ("user".equals(item.getType())) {
-                Intent intent = new Intent(this, UserProfileActivity.class);
-                intent.putExtra("uid", item.getUser().getUid());
-                startActivity(intent);
+            Intent intent;
+            switch (item.getType()) {
+                case "user":
+                    intent = new Intent(this, UserProfileActivity.class);
+                    intent.putExtra("uid", item.getUser().getUid());
+                    break;
+                case "flashcard":
+                    intent = new Intent(this, FlashcardPreviewActivity.class);
+                    intent.putExtra("flashcardId", item.getFlashcard().getId());
+                    break;
+                case "quiz":
+                    intent = new Intent(this, QuizPreviewActivity.class);
+                    intent.putExtra("quizId", item.getQuiz().getQuizId());
+                    break;
+                default:
+                    return;
             }
+            startActivity(intent);
         });
+
+
 
         recyclerView.setAdapter(adapter);
 
@@ -116,64 +131,103 @@ public class BrowseActivity extends AppCompatActivity {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         allItems.clear();
 
+        // Step 1: Load all users
         db.collection("users").get().addOnSuccessListener(userSnap -> {
             for (DocumentSnapshot doc : userSnap) {
                 User user = doc.toObject(User.class);
                 if (user != null) {
                     user.setUid(doc.getId());
+                    user.setUsername(doc.getString("username"));
+                    user.setPhotoUrl(doc.getString("photoUrl"));
+                    user.setFirstName(doc.getString("firstName"));
+                    user.setLastName(doc.getString("lastName"));
+
                     allItems.add(BrowseContent.fromUser(user));
                     userMap.put(user.getUid(), user);
                 }
             }
 
+            // Step 2: Load flashcards (after users are cached)
             db.collection("flashcards").get().addOnSuccessListener(flashcardSnap -> {
                 for (DocumentSnapshot doc : flashcardSnap) {
-                    String ownerUid = doc.getString("owner_uid");
-                    String title = doc.getString("title");
                     String privacy = doc.getString("privacy");
-                    int termCount = doc.contains("terms") ? ((Map<?, ?>) doc.get("terms")).size() : 0;
-                    String ownerUsername = getUsernameFromUsers(ownerUid);
-
                     if (!"public".equalsIgnoreCase(privacy)) continue;
 
+                    final String flashcardId = doc.getId();
+                    final String title = doc.getString("title");
+                    final String ownerUid = doc.getString("owner_uid");
+                    final int termCount = doc.contains("terms") ? ((Map<?, ?>) doc.get("terms")).size() : 0;
+
+                    if (flashcardId == null || flashcardId.trim().isEmpty()) continue;
+                    if (ownerUid == null || ownerUid.trim().isEmpty()) continue;
+
+                    String ownerUsername = getUsernameFromUsers(ownerUid);
                     Flashcard fc = new Flashcard();
+                    fc.setId(flashcardId);
                     fc.setTitle(title);
                     fc.setOwnerUid(ownerUid);
                     fc.setTermCount(termCount);
-                    fc.setOwnerUsername(ownerUsername);
-                    allItems.add(BrowseContent.fromFlashcard(fc));
+                    fc.setPrivacy(privacy);
+
+                    if (!"unknown".equals(ownerUsername)) {
+                        fc.setOwnerUsername(ownerUsername);
+                        allItems.add(BrowseContent.fromFlashcard(fc));
+                    } else {
+                        // Fetch user from Firestore and update map
+                        db.collection("users").document(ownerUid).get().addOnSuccessListener(userDoc -> {
+                            if (userDoc.exists()) {
+                                User fetchedUser = userDoc.toObject(User.class);
+                                if (fetchedUser != null) {
+                                    fetchedUser.setUid(userDoc.getId());
+                                    fetchedUser.setUsername(userDoc.getString("username"));
+                                    fetchedUser.setPhotoUrl(userDoc.getString("photoUrl"));
+                                    fetchedUser.setFirstName(userDoc.getString("firstName"));
+                                    fetchedUser.setLastName(userDoc.getString("lastName"));
+
+                                    userMap.put(ownerUid, fetchedUser);
+
+                                    fc.setOwnerUsername(fetchedUser.getUsername());
+                                    allItems.add(BrowseContent.fromFlashcard(fc));
+                                    adapter.notifyItemInserted(allItems.size() - 1);
+                                }
+                            }
+                        });
+                    }
                 }
 
+                // Step 3: Load quizzes
                 db.collection("quiz").get().addOnSuccessListener(quizSnap -> {
                     for (DocumentSnapshot doc : quizSnap) {
+                        String privacy = doc.getString("privacy");
+                        if (!"public".equalsIgnoreCase(privacy)) continue;
 
                         String title = doc.getString("title");
+                        String quizId = doc.getId();
                         String ownerUid = doc.getString("owner_uid");
                         String ownerUsername = doc.getString("owner_username");
-                        String privacy = doc.getString("privacy");
-
-                        if (title == null || ownerUid == null || ownerUsername == null || privacy == null) continue;
-                        if (!privacy.equalsIgnoreCase("public")) continue;
-
                         int questionCount = doc.contains("questions") ? ((List<?>) doc.get("questions")).size() : 0;
 
                         Quiz quiz = new Quiz();
+                        quiz.setQuizId(quizId);
                         quiz.setTitle(title);
                         quiz.setOwner_uid(ownerUid);
                         quiz.setOwnerUsername(ownerUsername);
                         quiz.setNumber_of_items(questionCount);
                         quiz.setPrivacy(privacy);
-                        quiz.setQuizId(doc.getId());
 
                         allItems.add(BrowseContent.fromQuiz(quiz));
                     }
 
+                    // Step 4: Display filtered list
                     filterBy();
                 });
-
             });
         });
     }
+
+
+
+
 
     private String getUsernameFromUsers(String uid) {
         User user = userMap.get(uid);

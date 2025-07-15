@@ -1,7 +1,8 @@
 package com.labactivity.studysync.models;
-
+import com.google.firebase.firestore.IgnoreExtraProperties;
 import com.google.firebase.firestore.PropertyName;
 
+@IgnoreExtraProperties
 public class Flashcard {
     private String term;
     private String definition;
