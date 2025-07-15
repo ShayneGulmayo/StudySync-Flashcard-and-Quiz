@@ -43,12 +43,13 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.labactivity.studysync.adapters.FlashcardCarouselAdapter;
 import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.receivers.ReminderReceiver;
-import com.labactivity.studysync.utils.SupabaseUploader;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -68,17 +69,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+
 import com.google.firebase.firestore.ListenerRegistration;
 
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
-    private TextView titleTextView, ownerTextView, numberOfItemsTextView;
-    private ImageView ownerPhotoImageView, backButton, moreButton, saveSetBtn;
+    private TextView titleTextView, ownerTextView, numberOfItemsTextView, privacyText;
+    private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, saveSetBtn, downloadIcon;
     private Button startFlashcardBtn;
     private ViewPager2 carouselViewPager;
     private String currentPrivacy, setId, currentReminder, offlineFileName, ownerUid;
     private String accessLevel = "none";
     private SpringDotsIndicator dotsIndicator;
+    private ListenerRegistration reminderListener;
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private BottomSheetDialog bottomSheetDialog;
@@ -91,8 +95,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private boolean isOffline;
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private Map<String, Object> setData;
-
-    private MaterialButton downloadBtn, setReminderBtn, convertBtn, shareToChatBtn;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -137,6 +139,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (reminderListener != null) reminderListener.remove();
         if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) bottomSheetDialog.dismiss();
         if (deleteConfirmationDialog != null && deleteConfirmationDialog.isShowing()) deleteConfirmationDialog.dismiss();
         if (datePickerDialog != null && datePickerDialog.isShowing()) datePickerDialog.dismiss();
@@ -154,31 +157,18 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         startFlashcardBtn = findViewById(R.id.start_flashcard_btn);
         moreButton = findViewById(R.id.more_button);
         saveSetBtn = findViewById(R.id.saveQuizBtn);
-        convertBtn = findViewById(R.id.convertToQuizBtn);
-        downloadBtn = findViewById(R.id.downloadBtn);
-        setReminderBtn = findViewById(R.id.setReminderBtn);
-        shareToChatBtn = findViewById(R.id.shareToChat);
+
+        MaterialButton downloadBtn = findViewById(R.id.downloadBtn);
+        MaterialButton setReminderBtn = findViewById(R.id.setReminderBtn);
 
         boolean fromNotification = getIntent().getBooleanExtra("fromNotification", false);
 
-        shareToChatBtn.setOnClickListener(view -> {
-            Intent intent = new Intent(this, ChatRoomPickerActivity.class);
-            intent.putExtra("setId", setId);
-            intent.putExtra("setType", "flashcard");
-            startActivity(intent);
-        });
-        convertBtn.setOnClickListener(view -> {
-            Intent intent = new Intent(FlashcardPreviewActivity.this, LoadingSetActivity.class);
-            intent.putExtra("convertFromId", setId);
-            intent.putExtra("originalType", "flashcard");
-            startActivity(intent);
-        });
         downloadBtn.setOnClickListener(v -> {
             showDownloadOptionsDialog();
         });
 
         setReminderBtn.setOnClickListener(v -> {
-            //TODO add reminder function
+            showReminderDialog();
         });
         ownerTextView.setOnClickListener(v -> openUserProfile());
         ownerPhotoImageView.setOnClickListener(v -> openUserProfile());
@@ -306,7 +296,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         reminderBtn.setOnClickListener(v -> {
             if (!canNavigate()) return;
             bottomSheetDialog.dismiss();
-
+            showReminderDialog();
         });
 
         sendToChatBtn.setOnClickListener(v -> {
@@ -762,7 +752,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         startActivity(Intent.createChooser(intent, "Open PDF File"));
     }
-
     private void makeCopy() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DocumentReference userRef = db.collection("users").document(userId);
@@ -800,28 +789,82 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                 if (originalTitle == null) originalTitle = "Untitled Set";
                                 copyData.put("title", originalTitle + " (Copy)");
 
-                                db.collection("flashcards").add(copyData)
-                                        .addOnSuccessListener(newDocRef -> {
-                                            Map<String, Object> ownedSetData = new HashMap<>();
-                                            ownedSetData.put("id", newDocRef.getId());
-                                            ownedSetData.put("type", "flashcard");
+                                Map<String, Object> originalTerms = (Map<String, Object>) originalData.get("terms");
+                                Map<String, Object> copiedTerms = new HashMap<>();
 
-                                            db.collection("users").document(userId)
-                                                    .update("owned_sets", FieldValue.arrayUnion(ownedSetData))
-                                                    .addOnSuccessListener(unused -> {
-                                                        Toast.makeText(this, "Flashcard set copied!", Toast.LENGTH_SHORT).show();
+                                // If no flashcards — skip
+                                if (originalTerms == null || originalTerms.isEmpty()) {
+                                    copyData.put("terms", copiedTerms);
+                                    saveCopiedFlashcardSet(copyData, userId);
+                                    return;
+                                }
 
-                                                        Intent intent = new Intent(this, FlashcardPreviewActivity.class);
-                                                        intent.putExtra("setId", newDocRef.getId());
-                                                        startActivity(intent);
-                                                    })
-                                                    .addOnFailureListener(e -> {
-                                                        Toast.makeText(this, "Copy succeeded but failed to update owned sets.", Toast.LENGTH_SHORT).show();
-                                                    });
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            Toast.makeText(this, "Failed to copy flashcard set.", Toast.LENGTH_SHORT).show();
-                                        });
+                                // Track how many images we need to copy
+                                final int[] remainingUploads = {originalTerms.size()};
+
+                                for (Map.Entry<String, Object> entry : originalTerms.entrySet()) {
+                                    String key = entry.getKey();
+                                    Map<String, Object> originalCard = (Map<String, Object>) entry.getValue();
+                                    Map<String, Object> copiedCard = new HashMap<>(originalCard);
+
+                                    String oldPhotoPath = (String) originalCard.get("photoPath");
+
+                                    if (oldPhotoPath != null && !oldPhotoPath.isEmpty()) {
+                                        // Download and re-upload the image to generate new photoPath and downloadUrl
+                                        StorageReference oldRef = FirebaseStorage.getInstance().getReference("flashcard-images/" + oldPhotoPath);
+
+                                        oldRef.getBytes(5 * 1024 * 1024) // max 5MB
+                                                .addOnSuccessListener(bytes -> {
+                                                    String newFileName = "flashcard_" + UUID.randomUUID() + ".jpg";
+                                                    StorageReference newRef = FirebaseStorage.getInstance().getReference("flashcard-images/" + newFileName);
+
+                                                    newRef.putBytes(bytes)
+                                                            .addOnSuccessListener(taskSnapshot -> newRef.getDownloadUrl()
+                                                                    .addOnSuccessListener(newUri -> {
+                                                                        copiedCard.put("photoUrl", newUri.toString());
+                                                                        copiedCard.put("photoPath", newFileName);
+                                                                        copiedTerms.put(key, copiedCard);
+
+                                                                        remainingUploads[0]--;
+                                                                        if (remainingUploads[0] == 0) {
+                                                                            copyData.put("terms", copiedTerms);
+                                                                            saveCopiedFlashcardSet(copyData, userId);
+                                                                        }
+                                                                    }))
+                                                            .addOnFailureListener(e -> {
+                                                                Log.e("CopyFlashcard", "Failed to upload copied image: " + oldPhotoPath);
+                                                                copiedCard.remove("photoUrl");
+                                                                copiedCard.remove("photoPath");
+                                                                copiedTerms.put(key, copiedCard);
+                                                                remainingUploads[0]--;
+                                                                if (remainingUploads[0] == 0) {
+                                                                    copyData.put("terms", copiedTerms);
+                                                                    saveCopiedFlashcardSet(copyData, userId);
+                                                                }
+                                                            });
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    Log.e("CopyFlashcard", "Failed to download original image bytes: " + oldPhotoPath);
+                                                    copiedCard.remove("photoUrl");
+                                                    copiedCard.remove("photoPath");
+                                                    copiedTerms.put(key, copiedCard);
+                                                    remainingUploads[0]--;
+                                                    if (remainingUploads[0] == 0) {
+                                                        copyData.put("terms", copiedTerms);
+                                                        saveCopiedFlashcardSet(copyData, userId);
+                                                    }
+                                                });
+
+                                    } else {
+                                        // No image to copy
+                                        copiedTerms.put(key, copiedCard);
+                                        remainingUploads[0]--;
+                                        if (remainingUploads[0] == 0) {
+                                            copyData.put("terms", copiedTerms);
+                                            saveCopiedFlashcardSet(copyData, userId);
+                                        }
+                                    }
+                                }
                             })
                             .addOnFailureListener(e -> {
                                 Toast.makeText(this, "Error fetching original flashcard set.", Toast.LENGTH_SHORT).show();
@@ -830,6 +873,101 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Error fetching user data.", Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void saveCopiedFlashcardSet(Map<String, Object> copyData, String userId) {
+        db.collection("flashcards").add(copyData)
+                .addOnSuccessListener(newDocRef -> {
+                    Map<String, Object> ownedSetData = new HashMap<>();
+                    ownedSetData.put("id", newDocRef.getId());
+                    ownedSetData.put("type", "flashcard");
+
+                    db.collection("users").document(userId)
+                            .update("owned_sets", FieldValue.arrayUnion(ownedSetData))
+                            .addOnSuccessListener(unused -> {
+                                Toast.makeText(this, "Flashcard set copied!", Toast.LENGTH_SHORT).show();
+
+                                Intent intent = new Intent(this, FlashcardPreviewActivity.class);
+                                intent.putExtra("setId", newDocRef.getId());
+                                startActivity(intent);
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Copy succeeded but failed to update owned sets.", Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to copy flashcard set.", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+
+    private void showReminderDialog() {
+        if (isFinishing() || isDestroyed()) return;
+
+        Calendar calendar = Calendar.getInstance();
+
+        datePickerDialog = new DatePickerDialog(this, R.style.DialogTheme, (view, year, month, dayOfMonth) -> {
+            calendar.set(Calendar.YEAR, year);
+            calendar.set(Calendar.MONTH, month);
+            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+
+            timePickerDialog = new TimePickerDialog(this, R.style.DialogTheme, (timeView, hourOfDay, minute) -> {
+                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                calendar.set(Calendar.MINUTE, minute);
+                calendar.set(Calendar.SECOND, 0);
+
+                if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
+                    Toast.makeText(this, "Please select a future time.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                setReminder(calendar);
+
+            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
+
+            if (!isFinishing() && !isDestroyed()) timePickerDialog.show();
+
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
+
+        if (!isFinishing() && !isDestroyed()) datePickerDialog.show();
+    }
+
+    @SuppressLint("ScheduleExactAlarm")
+    private void setReminder(Calendar calendar) {
+        String formattedDateTime = formatDateTime(calendar);
+
+        db.collection("flashcards").document(setId)
+                .update("reminder", formattedDateTime)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Reminder set for " + formattedDateTime, Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to set reminder.", Toast.LENGTH_SHORT).show();
+                });
+
+        Intent intent = new Intent(this, ReminderReceiver.class);
+        intent.putExtra("setId", setId);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this, setId.hashCode(), intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.cancel(pendingIntent);
+
+            alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.getTimeInMillis(),
+                    pendingIntent
+            );
+        }
+    }
+
+    private String formatDateTime(Calendar calendar) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy | hh:mm a", Locale.getDefault());
+        return dateFormat.format(calendar.getTime());
     }
 
     private void showDeleteConfirmationDialog() {
@@ -844,7 +982,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         deleteConfirmationDialog.show();
     }
-
     private void deleteFlashcardSet() {
         db.collection("flashcards").document(setId)
                 .get()
@@ -864,23 +1001,21 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                 if (value instanceof Map) {
                                     Map<String, Object> termEntry = (Map<String, Object>) value;
                                     String photoPath = termEntry.get("photoPath") != null ? termEntry.get("photoPath").toString() : null;
+
                                     if (photoPath != null && !photoPath.isEmpty()) {
-                                        SupabaseUploader.deleteFile("flashcard-images", photoPath, new SupabaseUploader.UploadCallback() {
-                                            @Override
-                                            public void onUploadComplete(boolean success, String message, String publicUrl) {
-                                                if (success) {
-                                                    Log.d("Supabase", "Deleted image: " + photoPath);
-                                                } else {
-                                                    Log.e("Supabase", "Failed to delete image: " + photoPath + " Reason: " + message);
-                                                }
-                                            }
-                                        });
+                                        StorageReference photoRef = FirebaseStorage.getInstance()
+                                                .getReference("flashcard-images/" + photoPath);
+
+                                        photoRef.delete()
+                                                .addOnSuccessListener(aVoid -> Log.d("FirebaseStorage", "Deleted image: " + photoPath))
+                                                .addOnFailureListener(e -> Log.e("FirebaseStorage", "Failed to delete image: " + photoPath + " Reason: " + e.getMessage()));
                                     }
                                 }
                             }
                         }
                     }
 
+                    // Now delete the flashcard set document itself
                     db.collection("flashcards").document(setId)
                             .delete()
                             .addOnSuccessListener(aVoid -> {
@@ -917,6 +1052,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     Toast.makeText(this, "Error fetching flashcard set.", Toast.LENGTH_SHORT).show();
                 });
     }
+
 
     private void loadFlashcardSet() {
         if (isOffline) {

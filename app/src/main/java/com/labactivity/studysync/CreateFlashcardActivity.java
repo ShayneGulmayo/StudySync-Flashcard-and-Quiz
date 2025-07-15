@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.EditText;
@@ -23,7 +24,9 @@ import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.labactivity.studysync.utils.SupabaseUploader;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.yalantis.ucrop.UCrop;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -201,9 +204,15 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                             definitionEditText.setText((String) termData.get("definition"));
 
                             String photoUrl = (String) termData.get("photoUrl");
+                            String photoPath = (String) termData.get("photoPath");
+
                             if (photoUrl != null && !photoUrl.isEmpty()) {
                                 Glide.with(this).load(photoUrl).into(imageButton);
-                                imageButton.setTag(photoUrl);
+
+                                Map<String, String> imageData = new HashMap<>();
+                                imageData.put("photoUrl", photoUrl);
+                                if (photoPath != null) imageData.put("photoPath", photoPath);
+                                imageButton.setTag(imageData);
                             }
 
                             ImageButton deleteButton = flashcardView.findViewById(R.id.delete_btn);
@@ -228,6 +237,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to load flashcard set", Toast.LENGTH_SHORT).show());
     }
+
 
     private void saveFlashcardSet(String username) {
         String setName = setNameEditText.getText().toString().trim();
@@ -367,30 +377,39 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 return;
             }
 
-            String mimeType = getMimeType(Uri.fromFile(file));
-            String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
-            if (ext == null) ext = "jpg";
+            ImageView imageView = flashcardView.findViewById(R.id.upload_image_button);
 
-            String filename = "flashcard_" + UUID.randomUUID() + "." + ext;
-            String bucket = "flashcard-images";
+            // If there’s an existing image — delete it first
+            Object tag = imageView.getTag();
+            if (tag instanceof Map) {
+                Map<String, String> imageData = (Map<String, String>) tag;
+                String oldPhotoPath = imageData.get("photoPath");
+                if (oldPhotoPath != null && !oldPhotoPath.isEmpty()) {
+                    FirebaseStorage.getInstance().getReference("flashcard-images/" + oldPhotoPath)
+                            .delete()
+                            .addOnSuccessListener(aVoid -> Log.d("FirebaseStorage", "Old image deleted: " + oldPhotoPath))
+                            .addOnFailureListener(e -> Log.e("FirebaseStorage", "Failed to delete old image: " + oldPhotoPath));
+                }
+            }
 
-            SupabaseUploader.uploadFile(file, bucket, filename, (success, message, publicUrl) -> {
-                runOnUiThread(() -> {
-                    if (success) {
-                        ImageView imageView = flashcardView.findViewById(R.id.upload_image_button);
-                        Glide.with(this).load(publicUrl).into(imageView);
+            // Upload new image
+            String fileName = "flashcard_" + UUID.randomUUID() + ".jpg";
+            StorageReference storageRef = FirebaseStorage.getInstance().getReference("flashcard-images/" + fileName);
 
-                        Map<String, String> imageData = new HashMap<>();
-                        imageData.put("photoUrl", publicUrl);
-                        imageData.put("photoPath", filename);
-                        imageView.setTag(imageData);
+            storageRef.putFile(Uri.fromFile(file))
+                    .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl()
+                            .addOnSuccessListener(uri -> {
+                                String newPhotoUrl = uri.toString();
+                                Glide.with(this).load(newPhotoUrl).into(imageView);
 
-                        Toast.makeText(this, "Image uploaded", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            });
+                                Map<String, String> newImageData = new HashMap<>();
+                                newImageData.put("photoUrl", newPhotoUrl);
+                                newImageData.put("photoPath", fileName);
+                                imageView.setTag(newImageData);
+
+                                Toast.makeText(this, "Image uploaded", Toast.LENGTH_SHORT).show();
+                            }))
+                    .addOnFailureListener(e -> Toast.makeText(this, "Upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
 
         } catch (Exception e) {
             Toast.makeText(this, "Image error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
