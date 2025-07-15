@@ -108,14 +108,6 @@ public class Quiz {
         this.questions = questions;
     }
 
-    public String getPhotoUrl() {
-        return photoUrl;
-    }
-
-    public void setPhotoUrl(String photoUrl) {
-        this.photoUrl = photoUrl;
-    }
-
     public String getReminder() {
         return reminder;
     }
@@ -139,6 +131,7 @@ public class Quiz {
         private List<String> choices;
         private Object correctAnswer;
         private String reminder;
+        private String photoUrl;
 
         public Question() {}
 
@@ -157,6 +150,10 @@ public class Quiz {
         public void setType(String type) {
             this.type = type;
         }
+
+        public String getPhotoUrl() {return photoUrl;}
+
+        public void setPhotoUrl(String photoUrl) {this.photoUrl = photoUrl;}
 
         public List<String> getChoices() {
             return choices;

@@ -193,6 +193,8 @@ public class QuizPreviewActivity extends AppCompatActivity {
                             question.setQuestion((String) q.get("question"));
                             question.setType((String) q.get("type"));
                             question.setChoices((List<String>) q.get("choices"));
+                            question.setPhotoUrl((String) q.get("photoUrl"));
+
 
                             Object correctAnsRaw = q.get("correctAnswer");
                             if (correctAnsRaw instanceof String) {

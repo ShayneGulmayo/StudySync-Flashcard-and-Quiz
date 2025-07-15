@@ -4,11 +4,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.models.Quiz;
 
@@ -25,7 +28,7 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_quiz_carousel, parent, false); // Use your new flippable layout here
+                .inflate(R.layout.item_quiz_carousel, parent, false);
         return new ViewHolder(view);
     }
 
@@ -36,6 +39,27 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
 
         String correctAnswer = question.getCorrectAnswerAsString();
         holder.answerText.setText(correctAnswer.isEmpty() ? "N/A" : correctAnswer);
+
+        String imageUrl = question.getPhotoUrl();
+
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            holder.questionImage.setVisibility(View.VISIBLE);
+            //holder.answerImage.setVisibility(View.VISIBLE);
+
+            Glide.with(holder.itemView.getContext())
+                    .load(imageUrl)
+                    .fitCenter() // Replaced centerCrop with fitCenter to prevent zoomed-in effect
+                    .into(holder.questionImage);
+
+            //Glide.with(holder.itemView.getContext())
+            //        .load(imageUrl)
+            //        .fitCenter()
+            //        .into(holder.answerImage);
+        } else {
+            holder.questionImage.setVisibility(View.GONE);
+            //holder.answerImage.setVisibility(View.GONE);
+        }
+
 
         float scale = holder.itemView.getContext().getResources().getDisplayMetrics().density;
         holder.cardFront.setCameraDistance(8000 * scale);
@@ -81,8 +105,6 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
         });
     }
 
-
-
     @Override
     public int getItemCount() {
         return questions.size();
@@ -92,6 +114,8 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
         CardView cardFront, cardBack;
         TextView questionText, answerText;
         FrameLayout cardContainer;
+        ImageView questionImage;
+        //ImageView answerImage;
 
         ViewHolder(View itemView) {
             super(itemView);
@@ -99,9 +123,9 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
             cardBack = itemView.findViewById(R.id.card_back);
             questionText = itemView.findViewById(R.id.question_text);
             answerText = itemView.findViewById(R.id.answer_text);
-            cardContainer = itemView.findViewById(R.id.card_container); // ✅ Add this line
+            cardContainer = itemView.findViewById(R.id.card_container);
+            questionImage = itemView.findViewById(R.id.question_image);
+            //answerImage = itemView.findViewById(R.id.answer_image);
         }
     }
-
-
 }
