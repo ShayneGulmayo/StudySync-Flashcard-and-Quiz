@@ -72,14 +72,13 @@ import com.google.firebase.firestore.ListenerRegistration;
 
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
-    private TextView titleTextView, ownerTextView, createdAtTextView, numberOfItemsTextView, privacyText;
-    private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, saveSetBtn, downloadIcon, createdAtIcon;
+    private TextView titleTextView, ownerTextView, numberOfItemsTextView;
+    private ImageView ownerPhotoImageView, backButton, moreButton, saveSetBtn;
     private Button startFlashcardBtn;
     private ViewPager2 carouselViewPager;
     private String currentPrivacy, setId, currentReminder, offlineFileName, ownerUid;
     private String accessLevel = "none";
     private SpringDotsIndicator dotsIndicator;
-    private ListenerRegistration reminderListener;
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private BottomSheetDialog bottomSheetDialog;
@@ -92,6 +91,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private boolean isOffline;
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private Map<String, Object> setData;
+
+    private MaterialButton downloadBtn, setReminderBtn, convertBtn, shareToChatBtn;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -136,7 +137,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (reminderListener != null) reminderListener.remove();
         if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) bottomSheetDialog.dismiss();
         if (deleteConfirmationDialog != null && deleteConfirmationDialog.isShowing()) deleteConfirmationDialog.dismiss();
         if (datePickerDialog != null && datePickerDialog.isShowing()) datePickerDialog.dismiss();
@@ -154,18 +154,31 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         startFlashcardBtn = findViewById(R.id.start_flashcard_btn);
         moreButton = findViewById(R.id.more_button);
         saveSetBtn = findViewById(R.id.saveQuizBtn);
-
-        MaterialButton downloadBtn = findViewById(R.id.downloadBtn);
-        MaterialButton setReminderBtn = findViewById(R.id.setReminderBtn);
+        convertBtn = findViewById(R.id.convertToQuizBtn);
+        downloadBtn = findViewById(R.id.downloadBtn);
+        setReminderBtn = findViewById(R.id.setReminderBtn);
+        shareToChatBtn = findViewById(R.id.shareToChat);
 
         boolean fromNotification = getIntent().getBooleanExtra("fromNotification", false);
 
+        shareToChatBtn.setOnClickListener(view -> {
+            Intent intent = new Intent(this, ChatRoomPickerActivity.class);
+            intent.putExtra("setId", setId);
+            intent.putExtra("setType", "flashcard");
+            startActivity(intent);
+        });
+        convertBtn.setOnClickListener(view -> {
+            Intent intent = new Intent(FlashcardPreviewActivity.this, LoadingSetActivity.class);
+            intent.putExtra("convertFromId", setId);
+            intent.putExtra("originalType", "flashcard");
+            startActivity(intent);
+        });
         downloadBtn.setOnClickListener(v -> {
             showDownloadOptionsDialog();
         });
 
         setReminderBtn.setOnClickListener(v -> {
-            showReminderDialog();
+            //TODO add reminder function
         });
         ownerTextView.setOnClickListener(v -> openUserProfile());
         ownerPhotoImageView.setOnClickListener(v -> openUserProfile());
@@ -293,7 +306,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         reminderBtn.setOnClickListener(v -> {
             if (!canNavigate()) return;
             bottomSheetDialog.dismiss();
-            showReminderDialog();
+
         });
 
         sendToChatBtn.setOnClickListener(v -> {
@@ -817,75 +830,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Error fetching user data.", Toast.LENGTH_SHORT).show();
                 });
-    }
-
-    private void showReminderDialog() {
-        if (isFinishing() || isDestroyed()) return;
-
-        Calendar calendar = Calendar.getInstance();
-
-        datePickerDialog = new DatePickerDialog(this, R.style.DialogTheme, (view, year, month, dayOfMonth) -> {
-            calendar.set(Calendar.YEAR, year);
-            calendar.set(Calendar.MONTH, month);
-            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-
-            timePickerDialog = new TimePickerDialog(this, R.style.DialogTheme, (timeView, hourOfDay, minute) -> {
-                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
-                calendar.set(Calendar.MINUTE, minute);
-                calendar.set(Calendar.SECOND, 0);
-
-                if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
-                    Toast.makeText(this, "Please select a future time.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                setReminder(calendar);
-
-            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
-
-            if (!isFinishing() && !isDestroyed()) timePickerDialog.show();
-
-        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
-
-        if (!isFinishing() && !isDestroyed()) datePickerDialog.show();
-    }
-
-    @SuppressLint("ScheduleExactAlarm")
-    private void setReminder(Calendar calendar) {
-        String formattedDateTime = formatDateTime(calendar);
-
-        db.collection("flashcards").document(setId)
-                .update("reminder", formattedDateTime)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Reminder set for " + formattedDateTime, Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to set reminder.", Toast.LENGTH_SHORT).show();
-                });
-
-        Intent intent = new Intent(this, ReminderReceiver.class);
-        intent.putExtra("setId", setId);
-
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                this, setId.hashCode(), intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        if (alarmManager != null) {
-            alarmManager.cancel(pendingIntent);
-
-            alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    calendar.getTimeInMillis(),
-                    pendingIntent
-            );
-        }
-    }
-
-    private String formatDateTime(Calendar calendar) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy | hh:mm a", Locale.getDefault());
-        return dateFormat.format(calendar.getTime());
     }
 
     private void showDeleteConfirmationDialog() {

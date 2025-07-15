@@ -55,40 +55,44 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.navigation.NavigationView>
 
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/navigationView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+
     <TextView
         android:id="@+id/flashcard_title"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
         android:layout_marginTop="24dp"
         android:layout_marginEnd="16dp"
         android:ellipsize="end"
-        android:maxLines="2"
+        android:maxLines="3"
         android:text="@string/flashcard_name"
         android:textColor="@color/black"
         android:textSize="28sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/navigationView" />
+        android:textStyle="bold" />
 
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/flashcard_title"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        android:orientation="horizontal">
 
         <ImageView
             android:id="@+id/owner_profile"
             android:layout_width="22dp"
             android:layout_height="22dp"
             android:layout_marginStart="20dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/flashcard_title"
             app:srcCompat="@drawable/user_profile" />
 
         <TextView
@@ -100,6 +104,8 @@
             android:textColor="@color/black"
             android:textSize="16sp"
             android:layout_marginEnd="10dp"
+            android:maxLines="1"
+            android:ellipsize="end"
             />
 
         <TextView
@@ -110,21 +116,20 @@
             android:textSize="16sp"
             android:layout_marginTop="10dp"
             android:layout_marginBottom="10dp"
-            android:textColor="@color/black"/>
+            android:textColor="@color/black"
+            android:maxLines="1"
+            android:ellipsize="end"/>
 
     </LinearLayout>
 
-    <!-- Carousel ViewPager2 with dots -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/carousel_viewpager"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:background="@color/white"
-        app:layout_constraintBottom_toTopOf="@+id/dots_indicator"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
+        android:layout_marginEnd="10dp"
+        android:layout_marginStart="10dp"/>
 
 
     <com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator
@@ -135,35 +140,46 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="5dp"
         android:layout_marginEnd="16dp"
-        app:dotsSize="10dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/carousel_viewpager" />
+        app:dotsSize="10dp" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/downloadBtn"
-        android:layout_width="match_parent"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="5dp"
-        android:layout_height="60dp"
-        android:text="Download set"
-        android:textAlignment="textStart"
-        android:textColor="@color/primary"
-        android:textSize="16sp"
-        app:backgroundTint="@color/white"
-        app:cornerRadius="16dp"
-        app:icon="@drawable/download"
-        app:iconGravity="start"
-        app:iconPadding="32dp"
-        app:iconSize="24dp"
-        app:iconTint="@color/primary"
-        app:strokeColor="@color/primary"
-        app:strokeWidth="2dp"
-        tools:ignore="RtlCompat"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/setReminderBtn"/>
+            <Button
+                android:id="@+id/start_flashcard_btn"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginBottom="5dp"
+                android:layout_marginTop="20dp"
+                android:height="62dp"
+                android:maxWidth="350dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:text="Study this set"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                app:cornerRadius="15dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/convertToQuizBtn"
+                android:layout_width="match_parent"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="5dp"
+                android:layout_height="60dp"
+                android:text="Convert to quiz set"
+                android:textAlignment="textStart"
+                android:textColor="@color/primary"
+                android:textSize="16sp"
+                app:backgroundTint="@color/white"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/convert"
+                app:iconGravity="start"
+                app:iconPadding="32dp"
+                app:iconSize="24dp"
+                app:iconTint="@color/primary"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="2dp"
+                tools:ignore="RtlCompat"/>
+
+
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/setReminderBtn"
@@ -185,26 +201,53 @@
         app:iconTint="@color/primary"
         app:strokeColor="@color/primary"
         app:strokeWidth="2dp"
-        tools:ignore="RtlCompat"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/start_flashcard_btn"/>
+        tools:ignore="RtlCompat"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/shareToChat"
+                android:layout_width="match_parent"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="5dp"
+                android:layout_height="60dp"
+                android:text="Send to Chat Room"
+                android:textAlignment="textStart"
+                android:textColor="@color/primary"
+                android:textSize="16sp"
+                app:backgroundTint="@color/white"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/send"
+                app:iconGravity="start"
+                app:iconPadding="32dp"
+                app:iconSize="24dp"
+                app:iconTint="@color/primary"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="2dp"
+                tools:ignore="RtlCompat"/>
 
-    <Button
-        android:id="@+id/start_flashcard_btn"
-        android:layout_width="0dp"
-        android:layout_height="60dp"
-        android:layout_margin="16dp"
-        android:layout_marginBottom="16dp"
-        android:height="62dp"
-        android:maxWidth="350dp"
-        android:text="Study this set"
-        android:textColor="@color/white"
-        android:textSize="18sp"
-        app:cornerRadius="15dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.456"
-        app:layout_constraintStart_toStartOf="parent" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/downloadBtn"
+                android:layout_width="match_parent"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="100dp"
+                android:layout_height="60dp"
+                android:text="Download set"
+                android:textAlignment="textStart"
+                android:textColor="@color/primary"
+                android:textSize="16sp"
+                app:backgroundTint="@color/white"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/download"
+                app:iconGravity="start"
+                app:iconPadding="32dp"
+                app:iconSize="24dp"
+                app:iconTint="@color/primary"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="2dp"
+                tools:ignore="RtlCompat"/>
+
+
+        </LinearLayout>
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

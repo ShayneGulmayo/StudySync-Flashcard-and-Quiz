@@ -23,6 +23,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -48,8 +49,8 @@ import java.util.Map;
 
 public class QuizPreviewActivity extends AppCompatActivity {
 
-    private TextView quizTitleTxt, ownerUsernameTxt, itemTxt, createdAtTxt, privacyTxt, reminderTxt;
-    private ImageView privacyIcon, ownerProfileImage, backButton, moreButton, reminderIcon, saveQuizBtn;
+    private TextView quizTitleTxt, ownerUsernameTxt, itemTxt;
+    private ImageView ownerProfileImage, backButton, moreButton, saveQuizBtn;
     private boolean isSaved = false;
     private FirebaseFirestore db;
     private String quizId, photoUrl, currentReminder, accessLevel = "owner";
@@ -57,6 +58,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
     private SpringDotsIndicator dotsIndicator;
     private List<Quiz.Question> quizQuestions = new ArrayList<>();
     private Switch shuffleSwitch, shuffleOptionsSwitch;
+    private Button startQuizBtn;
+    private MaterialButton downloadBtn, setReminderBtn, convertBtn, shareToChatBtn;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,30 +77,49 @@ public class QuizPreviewActivity extends AppCompatActivity {
         quizTitleTxt = findViewById(R.id.quiz_title);
         ownerUsernameTxt = findViewById(R.id.owner_username);
         itemTxt = findViewById(R.id.item_txt);
-        createdAtTxt = findViewById(R.id.createdAt_txt);
-        privacyTxt = findViewById(R.id.privacy_txt);
-        privacyIcon = findViewById(R.id.privacy_icon);
         ownerProfileImage = findViewById(R.id.owner_profile);
         backButton = findViewById(R.id.back_button);
         moreButton = findViewById(R.id.more_button);
-        reminderTxt = findViewById(R.id.reminder_txt);
-        reminderIcon = findViewById(R.id.reminder_icon);
         carouselViewPager = findViewById(R.id.carousel_viewpager);
         dotsIndicator = findViewById(R.id.dots_indicator);
         shuffleSwitch = findViewById(R.id.shuffle_switch);
         shuffleOptionsSwitch = findViewById(R.id.shuffle_options_switch);
         saveQuizBtn = findViewById(R.id.saveQuizBtn);
-        Button startQuizBtn = findViewById(R.id.start_quiz_btn);
+        startQuizBtn = findViewById(R.id.start_quiz_btn);
+        convertBtn = findViewById(R.id.convertToQuizBtn);
+        downloadBtn = findViewById(R.id.downloadBtn);
+        setReminderBtn = findViewById(R.id.setReminderBtn);
+        shareToChatBtn = findViewById(R.id.shareToChat);
 
-        // 🔧 FIX: initialize Firestore and quizId BEFORE checkIfSaved()
         db = FirebaseFirestore.getInstance();
         quizId = getIntent().getStringExtra("quizId");
         photoUrl = getIntent().getStringExtra("photoUrl");
 
         saveQuizBtn.setOnClickListener(v -> toggleSaveState());
 
+
+        shareToChatBtn.setOnClickListener(view -> {
+            Intent intent = new Intent(this, ChatRoomPickerActivity.class);
+            intent.putExtra("setId", quizId);
+            intent.putExtra("setType", "quiz");
+            startActivity(intent);
+        });
+        convertBtn.setOnClickListener(view -> {
+            Intent intent = new Intent(QuizPreviewActivity.this, LoadingSetActivity.class);
+            intent.putExtra("convertFromId", quizId);
+            intent.putExtra("originalType", "quiz");
+            startActivity(intent);
+        });
+        downloadBtn.setOnClickListener(v -> {
+            //TODO add download function
+        });
+
+        setReminderBtn.setOnClickListener(v -> {
+            //TODO add reminders function
+        });
+
         if (quizId != null) {
-            checkIfSaved(); // ✅ now safe to call here
+            checkIfSaved();
             checkIfSaved();
             loadQuizData(quizId);
         } else {
@@ -141,24 +164,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     Long items = doc.getLong("number_of_items");
                     itemTxt.setText((items != null ? items : 0) + ((items != null && items == 1) ? " item" : " items"));
 
-
-                    Timestamp createdAt = doc.getTimestamp("created_at");
-                    if (createdAt != null) {
-                        createdAtTxt.setText(new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault())
-                                .format(createdAt.toDate()));
-                    }
-
-                    updatePrivacyUI(doc.getString("privacy"));
-
-                    String reminder = doc.getString("reminder");
-                    if (reminder != null && !reminder.isEmpty()) {
-                        currentReminder = reminder;
-                        reminderTxt.setText("Reminder: " + reminder);
-                        reminderIcon.setImageResource(R.drawable.notifications);
-                    } else {
-                        reminderTxt.setText("Reminder: None");
-                        reminderIcon.setImageResource(R.drawable.off_notifications);
-                    }
 
                     loadOwnerProfile(doc.getString("owner_uid"));
 
@@ -208,16 +213,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     }
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to load quiz data", Toast.LENGTH_SHORT).show());
-    }
-
-    private void updatePrivacyUI(String privacy) {
-        if ("private".equalsIgnoreCase(privacy)) {
-            privacyTxt.setText("Private");
-            privacyIcon.setImageResource(R.drawable.lock);
-        } else {
-            privacyTxt.setText("Public");
-            privacyIcon.setImageResource(R.drawable.public_icon);
-        }
     }
 
     private void loadOwnerProfile(String ownerUid) {
@@ -284,7 +279,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         switch (accessLevel) {
             case "owner":
-                // all buttons shown
                 break;
 
             case "edit":
@@ -339,7 +333,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
             String newQuizId = db.collection("quiz").document().getId(); // generate new ID
             String userId = currentUser.getUid();
 
-            // Fetch the original quiz
             db.collection("quiz").document(quizId)
                     .get()
                     .addOnSuccessListener(doc -> {
@@ -410,7 +403,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         reminderBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            showReminderDialog();
         });
 
         sendToChatBtn.setOnClickListener(v -> {
@@ -446,50 +438,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
         bottomSheetDialog.show();
     }
 
-
-
-    private void showReminderDialog() {
-        Calendar calendar = Calendar.getInstance();
-
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this, R.style.DialogTheme, (view, year, month, day) -> {
-            calendar.set(year, month, day);
-            TimePickerDialog timePickerDialog = new TimePickerDialog(this, R.style.DialogTheme, (timeView, hour, minute) -> {
-                calendar.set(Calendar.HOUR_OF_DAY, hour);
-                calendar.set(Calendar.MINUTE, minute);
-                setReminder(calendar);
-            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
-            timePickerDialog.show();
-        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
-
-        datePickerDialog.show();
-    }
-
-    @SuppressLint("ScheduleExactAlarm")
-    private void setReminder(Calendar calendar) {
-        String formattedDateTime = new SimpleDateFormat("MMMM dd, yyyy | hh:mm a", Locale.getDefault())
-                .format(calendar.getTime());
-
-        db.collection("quiz").document(quizId)
-                .update("reminder", formattedDateTime)
-                .addOnSuccessListener(aVoid -> {
-                    reminderTxt.setText("Reminder: " + formattedDateTime);
-                    reminderIcon.setImageResource(R.drawable.notifications);
-                    Toast.makeText(this, "Reminder set for " + formattedDateTime, Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to set reminder.", Toast.LENGTH_SHORT).show());
-
-        Intent intent = new Intent(this, ReminderReceiver.class);
-        intent.putExtra("quizId", quizId);
-
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        if (alarmManager != null) {
-            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
-                    AlarmManager.INTERVAL_DAY * 7, pendingIntent);
-        }
-    }
 
     private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)

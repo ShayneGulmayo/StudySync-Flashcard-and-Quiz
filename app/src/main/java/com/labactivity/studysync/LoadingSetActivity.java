@@ -47,6 +47,15 @@ public class LoadingSetActivity extends AppCompatActivity {
         setType = getIntent().getStringExtra("setType");
         String fileType = getIntent().getStringExtra("type");
 
+        String convertFromId = getIntent().getStringExtra("convertFromId");
+        String originalType = getIntent().getStringExtra("originalType");
+
+        if (convertFromId != null && originalType != null) {
+            setType = "quiz".equals(originalType) ? "flashcard" : "quiz";
+            convertExistingSet(originalType, convertFromId);
+            return;
+        }
+
         if ("text".equals(fileType)) {
             String userPrompt = getIntent().getStringExtra("textPrompt");
             if (userPrompt == null || userPrompt.trim().isEmpty()) {
@@ -78,6 +87,53 @@ public class LoadingSetActivity extends AppCompatActivity {
             }
         }
     }
+    public void convertExistingSet(String originalType, String setId) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        String collection = "flashcard".equals(originalType) ? "flashcards" : "quiz";
+        db.collection(collection).document(setId).get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        showError("Original set not found.");
+                        return;
+                    }
+
+                    StringBuilder inputBuilder = new StringBuilder();
+                    inputBuilder.append("Title: ").append(doc.getString("title")).append("\n");
+
+                    if ("quiz".equals(originalType)) {
+                        List<Map<String, Object>> questions = (List<Map<String, Object>>) doc.get("questions");
+                        if (questions != null) {
+                            for (Map<String, Object> q : questions) {
+                                inputBuilder.append("Q: ").append(q.get("question")).append("\n");
+
+                                Object correct = q.get("correctAnswer");
+                                if (correct instanceof List) {
+                                    List<String> correctAnswers = (List<String>) correct;
+                                    inputBuilder.append("A: ").append(String.join(", ", correctAnswers)).append("\n");
+                                } else {
+                                    inputBuilder.append("A: ").append(correct.toString()).append("\n");
+                                }
+                            }
+                        }
+                    } else {
+                        Map<String, Map<String, String>> terms = (Map<String, Map<String, String>>) doc.get("terms");
+                        if (terms != null) {
+                            for (Map<String, String> entry : terms.values()) {
+                                inputBuilder.append("Q: What is ").append(entry.get("term")).append("?\n");
+                                inputBuilder.append("A: ").append(entry.get("definition")).append("\n");
+                            }
+                        }
+                    }
+
+                    runGeminiTextPrompt(inputBuilder.toString());
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error fetching original set", e);
+                    showError("Failed to fetch original set.");
+                });
+    }
+
 
     private void runGeminiModel(byte[] data, String mimeType) {
         GenerativeModel ai = FirebaseAI.getInstance(

@@ -8,8 +8,6 @@
     android:background="@color/white"
     tools:context=".QuizPreviewActivity">
 
-    <!-- HEADER BAR -->
-
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="0dp"
@@ -22,7 +20,7 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/linearLayout2"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="70dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:padding="16dp">
@@ -40,7 +38,7 @@
                 android:id="@+id/saveQuizBtn"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginRight="10dp"
                 android:src="@drawable/bookmark"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/more_button"
@@ -57,240 +55,233 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.navigation.NavigationView>
 
-    <TextView
-        android:id="@+id/quiz_title"
-        android:layout_width="0dp"
+    <ScrollView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:ellipsize="end"
-        android:gravity="center"
-        android:maxLines="2"
-        android:text="@string/quiz_title"
-        android:textAlignment="center"
-        android:textColor="@color/black"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/navigationView"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/navigationView" />
-
-
-    <ImageView
-        android:id="@+id/owner_profile"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/quiz_title"
-        app:srcCompat="@drawable/user_profile" />
-
-    <TextView
-        android:id="@+id/owner_username"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="16dp"
-        android:text="@string/owner_username"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        app:layout_constraintStart_toEndOf="@+id/owner_profile"
-        app:layout_constraintTop_toBottomOf="@+id/quiz_title" />
-
-    <TextView
-        android:id="@+id/item_txt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="16dp"
-        android:text="@string/items"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/quiz_title" />
-
-    <!-- CAROUSEL (ViewPager2) -->
-    <androidx.viewpager2.widget.ViewPager2
-        android:id="@+id/carousel_viewpager"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:overScrollMode="never"
-        android:paddingStart="5dp"
-        android:paddingEnd="5dp"
-        app:layout_constraintBottom_toTopOf="@id/dots_indicator"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/owner_username" />
-
-    <!-- DOTS -->
-    <com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator
-        android:id="@+id/dots_indicator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="5dp"
-        android:layout_marginEnd="16dp"
-        app:dotsSize="10dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/carousel_viewpager" />
-
-    <!-- DOWNLOAD -->
-    <ImageView
-        android:id="@+id/download_icon"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginStart="16dp"
-        app:layout_constraintTop_toBottomOf="@id/dots_indicator"
-        app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/download" />
-
-    <TextView
-        android:id="@+id/download_txt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginStart="8dp"
-        android:text="@string/not_download"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/dots_indicator"
-        app:layout_constraintStart_toEndOf="@id/download_icon" />
-
-    <!-- PRIVACY -->
-    <ImageView
-        android:id="@+id/privacy_icon"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="8dp"
-        app:layout_constraintTop_toBottomOf="@id/dots_indicator"
-        app:layout_constraintEnd_toStartOf="@id/privacy_txt"
-        app:srcCompat="@drawable/public_icon" />
-
-    <TextView
-        android:id="@+id/privacy_txt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:text="@string/privacy_public"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/dots_indicator"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- CREATED AT -->
-    <ImageView
-        android:id="@+id/createdAt_icon"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginStart="16dp"
-        app:layout_constraintTop_toBottomOf="@id/download_icon"
-        app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/history" />
-
-    <TextView
-        android:id="@+id/createdAt_txt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginStart="8dp"
-        android:text="@string/created_at"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/download_txt"
-        app:layout_constraintStart_toEndOf="@id/createdAt_icon" />
-
-    <!-- REMINDER -->
-    <ImageView
-        android:id="@+id/reminder_icon"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginStart="16dp"
-        app:layout_constraintTop_toBottomOf="@id/createdAt_icon"
-        app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/notifications" />
-
-    <TextView
-        android:id="@+id/reminder_txt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginStart="8dp"
-        android:text="@string/reminder"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/createdAt_txt"
-        app:layout_constraintStart_toEndOf="@id/reminder_icon" />
-
-    <!-- START QUIZ -->
-
-    <Button
-        android:id="@+id/start_quiz_btn"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:text="@string/stats_quiz"
-        android:textColor="@color/white"
-        android:textSize="18sp"
-        app:cornerRadius="15dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.508"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/shuffle_row"
-        android:layout_width="351dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        app:layout_constraintBottom_toTopOf="@id/start_quiz_btn"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
-        <Switch
-            android:id="@+id/shuffle_switch"
-            android:layout_width="0dp"
+        app:layout_constraintEnd_toEndOf="parent">
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/green_stroke_bg"
-            android:padding="16dp"
-            android:text="Shuffle Questions"
-            android:textColor="@color/black"
-            android:textSize="16sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/shuffle_options_switch"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:orientation="vertical">
 
-        <Switch
-            android:id="@+id/shuffle_options_switch"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:background="@drawable/green_stroke_bg"
-            android:padding="16dp"
-            android:text="Shuffle Options"
-            android:textColor="@color/black"
-            android:textSize="16sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/shuffle_switch"
-            app:layout_constraintTop_toTopOf="parent" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            <TextView
+                android:id="@+id/quiz_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginEnd="16dp"
+                android:ellipsize="end"
+                android:maxLines="3"
+                android:text="Quiz Set Title"
+                android:textColor="@color/black"
+                android:textSize="28sp"
+                android:textStyle="bold" />
 
+            <LinearLayout
+                android:id="@+id/linearLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/owner_profile"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginStart="20dp"
+                    app:srcCompat="@drawable/user_profile" />
+
+                <TextView
+                    android:id="@+id/owner_username"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/owner_username"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:layout_marginEnd="10dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    />
+
+                <TextView
+                    android:id="@+id/item_txt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Items"
+                    android:textSize="16sp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:textColor="@color/black"
+                    android:maxLines="1"
+                    android:ellipsize="end"/>
+
+            </LinearLayout>
+
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/carousel_viewpager"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@color/white"
+                android:layout_marginEnd="10dp"
+                android:layout_marginStart="10dp"/>
+
+
+            <com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator
+                android:id="@+id/dots_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="5dp"
+                android:layout_marginEnd="16dp"
+                app:dotsSize="10dp" />
+
+            <Button
+                android:id="@+id/start_quiz_btn"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginBottom="5dp"
+                android:layout_marginTop="20dp"
+                android:height="62dp"
+                android:maxWidth="350dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:text="Study this set"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                app:cornerRadius="15dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="2"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="10dp">
+
+                <Switch
+                    android:id="@+id/shuffle_switch"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="5dp"
+                    android:background="@drawable/green_stroke_bg"
+                    android:padding="16dp"
+                    android:text="Shuffle Questions"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:layout_weight="1"/>
+
+                <Switch
+                    android:id="@+id/shuffle_options_switch"
+                    android:layout_width="0dp"
+                    android:layout_marginStart="5dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/green_stroke_bg"
+                    android:padding="16dp"
+                    android:text="Shuffle Options"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:layout_weight="1" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/convertToQuizBtn"
+                android:layout_width="match_parent"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="5dp"
+                android:layout_height="60dp"
+                android:text="Convert to flashcard set"
+                android:textAlignment="textStart"
+                android:textColor="@color/primary"
+                android:textSize="16sp"
+                app:backgroundTint="@color/white"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/convert"
+                app:iconGravity="start"
+                app:iconPadding="32dp"
+                app:iconSize="24dp"
+                app:iconTint="@color/primary"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="2dp"
+                tools:ignore="RtlCompat"/>
+
+
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/setReminderBtn"
+                android:layout_width="match_parent"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="5dp"
+                android:layout_height="60dp"
+                android:text="Set a reminder"
+                android:textAlignment="textStart"
+                android:textColor="@color/primary"
+                android:textSize="16sp"
+                app:backgroundTint="@color/white"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/notifications"
+                app:iconGravity="start"
+                app:iconPadding="32dp"
+                app:iconSize="24dp"
+                app:iconTint="@color/primary"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="2dp"
+                tools:ignore="RtlCompat"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/shareToChat"
+                android:layout_width="match_parent"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="5dp"
+                android:layout_height="60dp"
+                android:text="Send to Chat Room"
+                android:textAlignment="textStart"
+                android:textColor="@color/primary"
+                android:textSize="16sp"
+                app:backgroundTint="@color/white"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/send"
+                app:iconGravity="start"
+                app:iconPadding="32dp"
+                app:iconSize="24dp"
+                app:iconTint="@color/primary"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="2dp"
+                tools:ignore="RtlCompat"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/downloadBtn"
+                android:layout_width="match_parent"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="100dp"
+                android:layout_height="60dp"
+                android:text="Download set"
+                android:textAlignment="textStart"
+                android:textColor="@color/primary"
+                android:textSize="16sp"
+                app:backgroundTint="@color/white"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/download"
+                app:iconGravity="start"
+                app:iconPadding="32dp"
+                app:iconSize="24dp"
+                app:iconTint="@color/primary"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="2dp"
+                tools:ignore="RtlCompat"/>
+
+
+        </LinearLayout>
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
