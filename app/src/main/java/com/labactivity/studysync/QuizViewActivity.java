@@ -339,6 +339,9 @@ public class QuizViewActivity extends AppCompatActivity {
                                 reconstructed.put("correctAnswer", q.get("correct"));
                             }
 
+                            if (q.containsKey("photoUrl")) {
+                                reconstructed.put("photoUrl", q.get("photoUrl"));
+                            }
 
                             incorrectQuestions.add(reconstructed);
                         }
