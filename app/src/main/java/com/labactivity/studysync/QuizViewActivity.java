@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -22,6 +23,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FieldValue;
@@ -47,6 +49,8 @@ public class QuizViewActivity extends AppCompatActivity {
     private List<Map<String, Object>> incorrectQuestions = new ArrayList<>();
     private int originalQuestionCount = 0;
     private boolean shouldShuffle = false;
+    private ImageView questionImage;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +70,7 @@ public class QuizViewActivity extends AppCompatActivity {
         txtViewItems = findViewById(R.id.txt_view_items);
         linearLayoutOptions = findViewById(R.id.linear_layout_options);
         chooseAnswerLabel = findViewById(R.id.choose_answer_label);
+        questionImage = findViewById(R.id.question_image);
         Button btnCheck = findViewById(R.id.btn_check_answer);
         btnCheck.setOnClickListener(v -> handleAnswerCheck());
 
@@ -180,6 +185,23 @@ public class QuizViewActivity extends AppCompatActivity {
                 : "No question text";
 
         quizQuestionTextView.setText(questionText);
+
+        // Handle question image
+        if (questionData.containsKey("photoUrl")) {
+            String photoUrl = questionData.get("photoUrl").toString();
+            if (!photoUrl.trim().isEmpty()) {
+                questionImage.setVisibility(View.VISIBLE);
+                Glide.with(this)
+                        .load(photoUrl)
+                        .centerCrop()
+                        .into(questionImage);
+            } else {
+                questionImage.setVisibility(View.GONE);
+            }
+        } else {
+            questionImage.setVisibility(View.GONE);
+        }
+
         linearLayoutOptions.removeAllViews();
 
         correctAnswer = questionData.get("correctAnswer") != null
@@ -217,6 +239,23 @@ public class QuizViewActivity extends AppCompatActivity {
                 : "No question text";
 
         quizQuestionTextView.setText(questionText);
+
+        // Handle question image
+        if (questionData.containsKey("photoUrl")) {
+            String photoUrl = questionData.get("photoUrl").toString();
+            if (!photoUrl.trim().isEmpty()) {
+                questionImage.setVisibility(View.VISIBLE);
+                Glide.with(this)
+                        .load(photoUrl)
+                        .centerCrop()
+                        .into(questionImage);
+            } else {
+                questionImage.setVisibility(View.GONE);
+            }
+        } else {
+            questionImage.setVisibility(View.GONE);
+        }
+
         linearLayoutOptions.removeAllViews();
 
         List<String> correctAnswers;
@@ -607,20 +646,35 @@ public class QuizViewActivity extends AppCompatActivity {
 
                                 boolean updated = false;
 
+                                boolean ownedUpdated = false;
+                                boolean savedUpdated = false;
+
                                 if (ownedSets != null) {
                                     for (Map<String, Object> item : ownedSets) {
                                         if (quizId.equals(item.get("id"))) {
-                                            item.put("progress", percentage); // ✅ renamed here
-                                            updated = true;
+                                            item.put("progress", percentage);
+                                            ownedUpdated = true;
                                             break;
                                         }
                                     }
-                                    if (updated) {
-                                        db.collection("users").document(userId)
-                                                .update("owned_sets", ownedSets);
-                                        return;
+                                }
+                                if (savedSets != null) {
+                                    for (Map<String, Object> item : savedSets) {
+                                        if (quizId.equals(item.get("id"))) {
+                                            item.put("progress", percentage);
+                                            savedUpdated = true;
+                                            break;
+                                        }
                                     }
                                 }
+
+                                if (ownedUpdated) {
+                                    db.collection("users").document(userId).update("owned_sets", ownedSets);
+                                }
+                                if (savedUpdated) {
+                                    db.collection("users").document(userId).update("saved_sets", savedSets);
+                                }
+
 
                                 if (savedSets != null) {
                                     for (Map<String, Object> item : savedSets) {
