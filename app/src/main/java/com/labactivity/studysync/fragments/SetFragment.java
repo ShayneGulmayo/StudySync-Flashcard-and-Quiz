@@ -31,6 +31,8 @@ import com.labactivity.studysync.CreateFlashcardActivity;
 import com.labactivity.studysync.CreateQuizActivity;
 import com.labactivity.studysync.FlashcardPreviewActivity;
 import com.labactivity.studysync.GenerateSetActivity;
+import com.labactivity.studysync.QuizPreviewActivity;
+import com.labactivity.studysync.QuizViewActivity;
 import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.adapters.SetAdapter;
@@ -56,7 +58,7 @@ public class SetFragment extends Fragment {
     private int collectionsLoaded = 0;
     private String currentUserPhotoUrl;
     private String currentSearchQuery = "";
-
+    private final Map<String, Integer> progressMap = new HashMap<>();
     private String defaultFilter = null;
     private boolean isReturningFromCreate = false;
 
@@ -98,7 +100,7 @@ public class SetFragment extends Fragment {
         allSets = new ArrayList<>();
         displayedSets = new ArrayList<>();
 
-        adapter = new SetAdapter(requireActivity(), displayedSets, this::onFlashcardSetClicked);
+        adapter = new SetAdapter(requireActivity(), displayedSets, this::onSetsClicked);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
 
@@ -169,13 +171,23 @@ public class SetFragment extends Fragment {
         }
     }
 
-    private void onFlashcardSetClicked(Flashcard set) {
+    private void onSetsClicked(Flashcard set) {
         updateLastAccessed(set);
-        Intent intent = new Intent(getContext(), FlashcardPreviewActivity.class);
-        intent.putExtra("setId", set.getId());
-        intent.putExtra("setName", set.getTitle());
-        startActivity(intent);
+
+        if ("quiz".equals(set.getType())) {
+            Intent intent = new Intent(getContext(), QuizPreviewActivity.class);
+            intent.putExtra("quizId", set.getId());
+            intent.putExtra("quizName", set.getTitle());
+            intent.putExtra("photoUrl", set.getPhotoUrl());
+            startActivity(intent);
+        } else {
+            Intent intent = new Intent(getContext(), FlashcardPreviewActivity.class);
+            intent.putExtra("setId", set.getId());
+            intent.putExtra("setName", set.getTitle());
+            startActivity(intent);
+        }
     }
+
 
     private void updateLastAccessed(Flashcard set) {
         String currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -223,6 +235,7 @@ public class SetFragment extends Fragment {
         progressBar.setVisibility(View.VISIBLE);
         allSets.clear();
         displayedSets.clear();
+        progressMap.clear(); // ✅ Clear previous progress cache
         collectionsLoaded = 0;
         totalCollectionsToLoad = 4;
 
@@ -235,6 +248,11 @@ public class SetFragment extends Fragment {
                         List<Map<String, Object>> owned = (List<Map<String, Object>>) documentSnapshot.get("owned_sets");
                         if (owned != null) {
                             for (Map<String, Object> entry : owned) {
+                                String id = (String) entry.get("id");
+                                Long progress = entry.get("progress") != null ? ((Number) entry.get("progress")).longValue() : 0;
+                                if (id != null) progressMap.put(id, progress.intValue());
+
+                                entry.put("source", "owned");
                                 loadSingleSet(entry);
                             }
                         }
@@ -244,6 +262,11 @@ public class SetFragment extends Fragment {
                         List<Map<String, Object>> saved = (List<Map<String, Object>>) documentSnapshot.get("saved_sets");
                         if (saved != null) {
                             for (Map<String, Object> entry : saved) {
+                                String id = (String) entry.get("id");
+                                Long progress = entry.get("progress") != null ? ((Number) entry.get("progress")).longValue() : 0;
+                                if (id != null) progressMap.put(id, progress.intValue());
+
+                                entry.put("source", "saved");
                                 loadSingleSet(entry);
                             }
                         }
@@ -255,7 +278,8 @@ public class SetFragment extends Fragment {
                         collectionsLoaded += 2;
                         checkAndApplyInitialFilter();
                     }
-                    loadFlashcardsAndQuizzes(currentUid);
+
+                    loadFlashcardsAndQuizzes(currentUid); // ✅ merge progress later here
                 })
                 .addOnFailureListener(e -> {
                     currentUserPhotoUrl = null;
@@ -264,6 +288,7 @@ public class SetFragment extends Fragment {
                     loadFlashcardsAndQuizzes(currentUid);
                 });
     }
+
 
     private void loadSingleSet(Map<String, Object> entry) {
         if (entry == null) return;
@@ -288,12 +313,11 @@ public class SetFragment extends Fragment {
                             set.setProgress(progress.intValue());
                             set.setLastAccessed(lastAccessed);
                             allSets.add(set);
-
-
                         }
                     }
                 });
     }
+
 
     private void loadFlashcardsAndQuizzes(String currentUid) {
         db.collection("flashcards")
@@ -336,7 +360,13 @@ public class SetFragment extends Fragment {
                             set.setReminder(doc.getString("reminder"));
                             set.setPrivacy(doc.getString("privacy"));
                             set.setOwnerUid(doc.getString("owner_uid"));
+
+                            if (progressMap.containsKey(doc.getId())) {
+                                set.setProgress(progressMap.get(doc.getId()));
+                            }
+
                             allSets.add(set);
+
                         }
                     }
 

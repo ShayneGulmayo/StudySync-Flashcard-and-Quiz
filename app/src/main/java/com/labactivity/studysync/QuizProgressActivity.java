@@ -97,6 +97,11 @@ public class QuizProgressActivity extends AppCompatActivity {
         });
 
         review_questions_btn.setOnClickListener(v -> {
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                Toast.makeText(this, "User not logged in.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
             db.collection("quiz")
                     .document(quizId)
@@ -104,18 +109,28 @@ public class QuizProgressActivity extends AppCompatActivity {
                     .document(userId)
                     .get()
                     .addOnSuccessListener(attemptDoc -> {
-                        if (attemptDoc.exists() && attemptDoc.contains("answeredQuestions")) {
-                            Intent intent = new Intent(QuizProgressActivity.this, QuizViewActivity.class);
-                            intent.putExtra("quizId", quizId);
-                            intent.putExtra("photoUrl", getIntent().getStringExtra("photoUrl"));
-                            intent.putExtra("mode", "review_only_incorrect");
-                            startActivity(intent);
-                            finish();
+                        if (attemptDoc.exists()) {
+                            List<Map<String, Object>> answered = (List<Map<String, Object>>) attemptDoc.get("answeredQuestions");
+
+                            if (answered != null && !answered.isEmpty()) {
+                                Intent intent = new Intent(QuizProgressActivity.this, QuizViewActivity.class);
+                                intent.putExtra("quizId", quizId);
+                                intent.putExtra("photoUrl", getIntent().getStringExtra("photoUrl"));
+                                intent.putExtra("mode", "review_only_incorrect");
+                                startActivity(intent);
+                                finish();
+                            } else {
+                                Toast.makeText(this, "No questions to review.", Toast.LENGTH_SHORT).show();
+                            }
                         } else {
-                            Toast.makeText(this, "No attempt data to review.", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "No quiz attempt found.", Toast.LENGTH_SHORT).show();
                         }
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to load review data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     });
         });
+
 
     }
 

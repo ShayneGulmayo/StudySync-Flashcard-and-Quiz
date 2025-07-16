@@ -135,12 +135,15 @@ public class UserProfileFragment extends Fragment {
                         userFullName.setText(fullName.trim().isEmpty() ? "Full Name" : fullName.trim());
                         usernameTxt.setText(username != null ? "@" + username : "@username");
 
-                        Glide.with(this)
-                                .load(photoUrl != null ? photoUrl : R.drawable.profile_image_background)
-                                .placeholder(R.drawable.profile_image_background)
-                                .error(R.drawable.profile_image_background)
-                                .circleCrop()
-                                .into(profileImage);
+                        if (isAdded() && getContext() != null) {
+                            Glide.with(requireContext())
+                                    .load(photoUrl != null ? photoUrl : R.drawable.profile_image_background)
+                                    .placeholder(R.drawable.profile_image_background)
+                                    .error(R.drawable.profile_image_background)
+                                    .circleCrop()
+                                    .into(profileImage);
+                        }
+
                     }
                 })
                 .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to fetch user data", Toast.LENGTH_SHORT).show());
@@ -189,11 +192,14 @@ public class UserProfileFragment extends Fragment {
                         db.collection("users").document(currentUser.getUid())
                                 .update(updates)
                                 .addOnSuccessListener(unused -> requireActivity().runOnUiThread(() -> {
-                                    Glide.with(this).load(publicUrl)
-                                            .placeholder(R.drawable.user_profile)
-                                            .error(R.drawable.user_profile)
-                                            .circleCrop()
-                                            .into(profileImage);
+                                    if (isAdded() && getContext() != null) {
+                                        Glide.with(requireContext())
+                                                .load(publicUrl)
+                                                .placeholder(R.drawable.user_profile)
+                                                .error(R.drawable.user_profile)
+                                                .circleCrop()
+                                                .into(profileImage);
+                                    }
                                     Toast.makeText(getContext(), "Profile photo updated", Toast.LENGTH_SHORT).show();
                                     previousFileName = fileName;
                                 }));

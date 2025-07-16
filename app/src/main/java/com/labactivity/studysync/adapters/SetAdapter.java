@@ -130,18 +130,7 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
 
         holder.privacyIcon.setImageResource("Private".equalsIgnoreCase(set.getPrivacy()) ? R.drawable.lock : R.drawable.public_icon);
 
-        holder.itemView.setOnClickListener(v -> {
-            if (set.getType().equals("quiz")) {
-                Log.d("SetAdapter", "Quiz Clicked: " + set.getTitle());
-                Intent intent = new Intent(context, QuizPreviewActivity.class);
-                intent.putExtra("quizId", set.getId());
-                intent.putExtra("quizName", set.getTitle());
-                intent.putExtra("photoUrl", set.getPhotoUrl());
-                context.startActivity(intent);
-            } else {
-                listener.onFlashcardSetClick(set);
-            }
-        });
+        holder.itemView.setOnClickListener(v -> listener.onFlashcardSetClick(set));
 
     }
 
