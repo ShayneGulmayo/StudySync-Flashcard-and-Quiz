@@ -18,6 +18,7 @@
             android:layout_height="50dp"
             android:layout_marginEnd="8dp"
             android:background="@drawable/green_stroke_bg"
+            android:paddingStart="1dp"
             app:defaultQueryHint="@string/search_sets"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/add_btn"

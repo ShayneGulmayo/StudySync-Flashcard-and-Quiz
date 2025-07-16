@@ -61,6 +61,9 @@ public class SetFragment extends Fragment {
     private final Map<String, Integer> progressMap = new HashMap<>();
     private String defaultFilter = null;
     private boolean isReturningFromCreate = false;
+    private int setsLoadedCount = 0;
+    private int totalSetsToLoad = 0;
+
 
     private final ActivityResultLauncher<Intent> createFlashcardLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -139,17 +142,18 @@ public class SetFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (!isReturningFromCreate) {
-            loadAllSets();
+        if (!isReturningFromCreate && !allSets.isEmpty()) {
+            applyFilters();
         } else {
             isReturningFromCreate = false;
+            loadAllSets();
         }
     }
+
 
     private void checkAndApplyInitialFilter() {
         if (collectionsLoaded >= totalCollectionsToLoad) {
             progressBar.setVisibility(View.GONE);
-            allSets.sort((s1, s2) -> Long.compare(s2.getLastAccessed(), s1.getLastAccessed()));
 
             if (defaultFilter != null) {
                 if (defaultFilter.equalsIgnoreCase("flashcard")) {
@@ -195,6 +199,9 @@ public class SetFragment extends Fragment {
         String type = set.getType();
         long timestamp = System.currentTimeMillis();
 
+        // ✅ Update local in-memory object
+        set.setLastAccessed(timestamp);
+
         db.collection("users").document(currentUid).get().addOnSuccessListener(documentSnapshot -> {
             if (documentSnapshot.exists()) {
                 List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) documentSnapshot.get("owned_sets");
@@ -230,6 +237,7 @@ public class SetFragment extends Fragment {
         });
     }
 
+
     private void loadAllSets() {
         String currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         progressBar.setVisibility(View.VISIBLE);
@@ -253,6 +261,7 @@ public class SetFragment extends Fragment {
                                 if (id != null) progressMap.put(id, progress.intValue());
 
                                 entry.put("source", "owned");
+                                totalSetsToLoad++;
                                 loadSingleSet(entry);
                             }
                         }
@@ -267,6 +276,7 @@ public class SetFragment extends Fragment {
                                 if (id != null) progressMap.put(id, progress.intValue());
 
                                 entry.put("source", "saved");
+                                totalSetsToLoad++;
                                 loadSingleSet(entry);
                             }
                         }
@@ -315,8 +325,14 @@ public class SetFragment extends Fragment {
                             allSets.add(set);
                         }
                     }
+
+                    setsLoadedCount++;
+                    if (setsLoadedCount >= totalSetsToLoad && collectionsLoaded >= totalCollectionsToLoad) {
+                        applyFilters(); // ✅ Safe to sort + display now
+                    }
                 });
     }
+
 
 
     private void loadFlashcardsAndQuizzes(String currentUid) {
@@ -415,19 +431,28 @@ public class SetFragment extends Fragment {
         }
 
         displayedSets.clear();
+
+        // ✅ Make a temporary list to sort first
+        List<Flashcard> temp = new ArrayList<>();
         for (Flashcard set : allSets) {
             boolean matchesType = typeFilter.equals("all") || set.getType().equalsIgnoreCase(typeFilter);
             boolean matchesSearch = currentSearchQuery.isEmpty() ||
                     (set.getTitle() != null && set.getTitle().toLowerCase().contains(currentSearchQuery.toLowerCase()));
-
             if (matchesType && matchesSearch) {
-                displayedSets.add(set);
+                temp.add(set);
             }
         }
+
+        // ✅ Always sort by lastAccessed before assigning to displayedSets
+        temp.sort((s1, s2) -> Long.compare(s2.getLastAccessed(), s1.getLastAccessed()));
+        displayedSets.addAll(temp);
 
         adapter.notifyDataSetChanged();
         noSetsText.setVisibility(displayedSets.isEmpty() ? View.VISIBLE : View.GONE);
     }
+
+
+
 
 
     private void showAddSet() {
