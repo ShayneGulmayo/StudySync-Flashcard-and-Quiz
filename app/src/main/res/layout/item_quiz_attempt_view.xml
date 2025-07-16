@@ -29,7 +29,20 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
+        <!-- ✅ Question Image (Optional) -->
+
         <!-- ✅ Question -->
+        <ImageView
+            android:id="@+id/question_image"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
+            android:contentDescription="Question Image"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/question_text"
             android:layout_width="wrap_content"

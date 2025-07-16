@@ -11,6 +11,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.bumptech.glide.Glide;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import java.util.Collections;
@@ -198,6 +199,19 @@ public class QuizProgressActivity extends AppCompatActivity {
                                 TextView correctAnswerText = answerView.findViewById(R.id.correct_answer_text);
                                 TextView selectedWrongAnswerText = answerView.findViewById(R.id.selected_wrong_answer_text);
                                 View wrongAnswerContainer = answerView.findViewById(R.id.selected_wrong_answer_container);
+
+                                ImageView questionImageView = answerView.findViewById(R.id.question_image); // must exist in XML
+                                String photoUrl = (String) q.get("photoUrl");
+
+                                if (photoUrl != null && !photoUrl.trim().isEmpty() && !photoUrl.equals("Add Image")) {
+                                    questionImageView.setVisibility(View.VISIBLE);
+                                    Glide.with(this)
+                                            .load(photoUrl)
+                                            .into(questionImageView);
+                                } else {
+                                    questionImageView.setVisibility(View.GONE);
+                                }
+
 
                                 String question = (String) q.get("question");
                                 Object correctObj = q.get("correct");

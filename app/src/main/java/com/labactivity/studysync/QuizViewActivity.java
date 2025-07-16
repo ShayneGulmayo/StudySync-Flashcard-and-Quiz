@@ -409,6 +409,8 @@ public class QuizViewActivity extends AppCompatActivity {
             answer.put("isCorrect", isCorrect);
             answer.put("choices", currentQuestion.get("choices"));
             answer.put("order", currentQuestionIndex);
+            answer.put("photoUrl", currentQuestion.get("photoUrl"));
+
             userAnswersList.add(answer);
 
             if (isCorrect) score++;
@@ -488,6 +490,7 @@ public class QuizViewActivity extends AppCompatActivity {
                 answer.put("choices", correctDisplay);
                 answer.put("order", currentQuestionIndex);
                 answer.put("incorrectInputs", incorrectInputs);
+                answer.put("photoUrl", currentQuestion.get("photoUrl"));
                 userAnswersList.add(answer);
 
                 hasAnswered = true;
