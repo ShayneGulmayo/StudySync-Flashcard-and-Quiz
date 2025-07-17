@@ -59,6 +59,7 @@
             android:layout_gravity="center_vertical"
             android:background="@drawable/custom_edittxt"
             android:gravity="center_vertical"
+            android:inputType="textEmailAddress"
             android:hint="@string/email"
             android:padding="16dp"
             android:textColor="@color/black"

@@ -238,7 +238,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to load flashcard set", Toast.LENGTH_SHORT).show());
     }
 
-
     private void saveFlashcardSet(String username) {
         String setName = setNameEditText.getText().toString().trim();
         if (TextUtils.isEmpty(setName)) {
@@ -320,6 +319,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                     .addOnFailureListener(e -> {
                         Toast.makeText(this, "Failed to fetch existing set before update", Toast.LENGTH_SHORT).show();
                     });
+
         } else {
             Map<String, Object> accessUsers = new HashMap<>();
             accessUsers.put(auth.getCurrentUser().getUid(), "Owner");
@@ -379,7 +379,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
             ImageView imageView = flashcardView.findViewById(R.id.upload_image_button);
 
-            // If there’s an existing image — delete it first
             Object tag = imageView.getTag();
             if (tag instanceof Map) {
                 Map<String, String> imageData = (Map<String, String>) tag;
@@ -392,9 +391,11 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 }
             }
 
-            // Upload new image
+            String uid = auth.getCurrentUser().getUid(); // Get current user UID
             String fileName = "flashcard_" + UUID.randomUUID() + ".jpg";
-            StorageReference storageRef = FirebaseStorage.getInstance().getReference("flashcard-images/" + fileName);
+            String fullPath = uid + "/" + fileName; // Organized path under UID
+            StorageReference storageRef = FirebaseStorage.getInstance()
+                    .getReference("flashcard-images/" + fullPath);
 
             storageRef.putFile(Uri.fromFile(file))
                     .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl()
@@ -404,7 +405,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
                                 Map<String, String> newImageData = new HashMap<>();
                                 newImageData.put("photoUrl", newPhotoUrl);
-                                newImageData.put("photoPath", fileName);
+                                newImageData.put("photoPath", fullPath); // Save full path for delete reference
                                 imageView.setTag(newImageData);
 
                                 Toast.makeText(this, "Image uploaded", Toast.LENGTH_SHORT).show();
@@ -415,6 +416,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             Toast.makeText(this, "Image error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+
 
     public static File getFileFromUri(Context context, Uri uri) throws Exception {
         ContentResolver contentResolver = context.getContentResolver();
@@ -431,10 +433,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             }
         }
         return tempFile;
-    }
-
-    private String getMimeType(Uri uri) {
-        return getContentResolver().getType(uri);
     }
 
     private String getCurrentFormattedDateTime() {

@@ -67,19 +67,19 @@
             android:orientation="vertical">
 
 
-    <TextView
-        android:id="@+id/flashcard_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginEnd="16dp"
-        android:ellipsize="end"
-        android:maxLines="3"
-        android:text="@string/flashcard_name"
-        android:textColor="@color/black"
-        android:textSize="28sp"
-        android:textStyle="bold" />
+            <TextView
+                android:id="@+id/flashcard_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="16dp"
+                android:ellipsize="end"
+                android:maxLines="3"
+                android:text="@string/flashcard_name"
+                android:textColor="@color/black"
+                android:textSize="28sp"
+                android:textStyle="bold" />
 
     <LinearLayout
         android:id="@+id/linearLayout"
@@ -145,17 +145,17 @@
             <Button
                 android:id="@+id/start_flashcard_btn"
                 android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:layout_marginBottom="5dp"
+                android:layout_height="50dp"
+                android:layout_marginStart="20dp"
                 android:layout_marginTop="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="5dp"
                 android:height="62dp"
                 android:maxWidth="350dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
                 android:text="Study this set"
                 android:textColor="@color/white"
                 android:textSize="18sp"
-                app:cornerRadius="15dp"/>
+                app:cornerRadius="15dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/convertToQuizBtn"
