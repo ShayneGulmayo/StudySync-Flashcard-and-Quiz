@@ -698,99 +698,108 @@ public class QuizPreviewActivity extends AppCompatActivity {
         }
     }
 
-
-
     private void downloadOfflinePdf(String quizId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("quiz").document(quizId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (!documentSnapshot.exists()) {
-                        Toast.makeText(this, "Quiz not found.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+        DocumentReference quizRef = db.collection("quiz").document(quizId);
+        quizRef.get().addOnSuccessListener(documentSnapshot -> {
+            if (documentSnapshot.exists()) {
+                String quizTitle = documentSnapshot.getString("title");
+                List<Map<String, Object>> questionList = (List<Map<String, Object>>) documentSnapshot.get("questions");
+                if (questionList == null || questionList.isEmpty()) {
+                    Toast.makeText(this, "Quiz has no questions.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-                    Quiz quiz = documentSnapshot.toObject(Quiz.class);
-                    if (quiz == null || quiz.getQuestions() == null || quiz.getQuestions().isEmpty()) {
-                        Toast.makeText(this, "Quiz data is incomplete.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+                List<Quiz.Question> questions = new ArrayList<>();
+                for (Map<String, Object> questionMap : questionList) {
+                    Quiz.Question question = new Quiz.Question();
+                    question.setQuestion((String) questionMap.get("question"));
+                    question.setType((String) questionMap.get("type"));
+                    question.setChoices((List<String>) questionMap.get("choices"));
+                    question.setPhotoUrl((String) questionMap.get("photoUrl"));
 
-                    PdfDocument document = new PdfDocument();
-                    Paint paint = new Paint();
-                    int pageNumber = 1;
-                    int y = 80;
-
-                    PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
-                    PdfDocument.Page page = document.startPage(pageInfo);
-                    Canvas canvas = page.getCanvas();
-                    paint.setTextSize(14);
-                    paint.setColor(Color.BLACK);
-
-                    canvas.drawText("Quiz Title: " + quiz.getTitle(), 40, y, paint);
-                    y += 30;
-
-                    List<Quiz.Question> questions = quiz.getQuestions();
-                    for (int i = 0; i < questions.size(); i++) {
-                        Quiz.Question q = questions.get(i);
-
-                        // Start new page if needed
-                        if (y > 800) {
-                            document.finishPage(page);
-                            pageNumber++;
-                            pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
-                            page = document.startPage(pageInfo);
-                            canvas = page.getCanvas();
-                            y = 80;
+                    Object correctAnsRaw = questionMap.get("correctAnswer");
+                    if (correctAnsRaw instanceof String) {
+                        question.setCorrectAnswer((String) correctAnsRaw);
+                    } else if (correctAnsRaw instanceof List) {
+                        List<String> answerList = new ArrayList<>();
+                        for (Object a : (List<?>) correctAnsRaw) {
+                            answerList.add(String.valueOf(a));
                         }
+                        question.setCorrectAnswer(String.join(", ", answerList));
+                    }
 
-                        // Question text
-                        canvas.drawText((i + 1) + ". " + q.getQuestion(), 40, y, paint);
-                        y += 20;
+                    questions.add(question);
+                }
 
-                        // Choices
-                        List<String> choices = q.getChoices();
-                        if (choices != null && !choices.isEmpty()) {
-                            for (String choice : choices) {
-                                canvas.drawText("   • " + choice, 60, y, paint);
-                                y += 18;
-                            }
+                // Now generate the PDF
+                PdfDocument document = new PdfDocument();
+                Paint paint = new Paint();
+                paint.setColor(Color.BLACK);
+                paint.setTextSize(14);
+
+                int pageNumber = 1;
+                int yPosition = 50;
+                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
+                PdfDocument.Page page = document.startPage(pageInfo);
+                Canvas canvas = page.getCanvas();
+
+                canvas.drawText("Quiz Title: " + quizTitle, 40, yPosition, paint);
+                yPosition += 40;
+
+                for (int i = 0; i < questions.size(); i++) {
+                    Quiz.Question q = questions.get(i);
+                    if (yPosition > 750) {
+                        document.finishPage(page);
+                        pageNumber++;
+                        pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
+                        page = document.startPage(pageInfo);
+                        canvas = page.getCanvas();
+                        yPosition = 50;
+                    }
+
+                    canvas.drawText("Q" + (i + 1) + ": " + q.getQuestion(), 40, yPosition, paint);
+                    yPosition += 20;
+
+                    if (q.getChoices() != null && !q.getChoices().isEmpty()) {
+                        for (String choice : q.getChoices()) {
+                            canvas.drawText(" - " + choice, 60, yPosition, paint);
+                            yPosition += 20;
                         }
-
-                        // Correct Answer
-                        String correct = q.getCorrectAnswerAsString();
-                        canvas.drawText("   ✔ Correct: " + correct, 60, y, paint);
-                        y += 20;
-
-                        y += 10;
                     }
 
-                    document.finishPage(page);
+                    canvas.drawText("Answer: " + q.getCorrectAnswerAsString(), 60, yPosition, paint);
+                    yPosition += 40;
+                }
 
-                    try {
-                        File pdfFile = new File(getExternalFilesDir(null), quiz.getTitle() + "_quiz.pdf");
-                        FileOutputStream fos = new FileOutputStream(pdfFile);
-                        document.writeTo(fos);
-                        document.close();
-                        fos.close();
+                document.finishPage(page);
 
-                        Toast.makeText(this, "PDF saved to " + pdfFile.getAbsolutePath(), Toast.LENGTH_LONG).show();
+                File downloadDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "StudySync");
+                if (!downloadDir.exists()) {
+                    downloadDir.mkdirs();
+                }
 
-                        // Optional: Open PDF
-                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                        intent.setDataAndType(Uri.fromFile(pdfFile), "application/pdf");
-                        intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                        startActivity(intent);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Toast.makeText(this, "Error saving PDF.", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e -> {
+                String fileName = quizTitle.replaceAll("[^a-zA-Z0-9]", "_") + ".pdf";
+                File file = new File(downloadDir, fileName);
+
+                try {
+                    FileOutputStream fos = new FileOutputStream(file);
+                    document.writeTo(fos);
+                    document.close();
+                    fos.close();
+                    Toast.makeText(this, "PDF downloaded successfully!", Toast.LENGTH_SHORT).show();
+                } catch (IOException e) {
                     e.printStackTrace();
-                    Toast.makeText(this, "Error retrieving quiz.", Toast.LENGTH_SHORT).show();
-                });
+                    Toast.makeText(this, "Failed to save PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(this, "Quiz does not exist.", Toast.LENGTH_SHORT).show();
+            }
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Failed to fetch quiz: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
     }
+
 
 
     private void toggleSaveState() {
