@@ -162,7 +162,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     quizTitleTxt.setText(doc.getString("title"));
                     ownerUsernameTxt.setText(doc.getString("owner_username"));
                     Long items = doc.getLong("number_of_items");
-                    itemTxt.setText((items != null ? items : 0) + ((items != null && items == 1) ? " item" : " items"));
+                    itemTxt.setText("|  " + (items != null ? items : 0) + ((items != null && items == 1) ? " item" : " items"));
 
 
                     loadOwnerProfile(doc.getString("owner_uid"));

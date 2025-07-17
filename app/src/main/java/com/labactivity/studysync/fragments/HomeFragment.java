@@ -195,22 +195,33 @@ public class HomeFragment extends Fragment {
 
         if (id == null || type == null) return;
 
-        db.collection(type.equals("quiz") ? "quiz" : "flashcards")
+        String collection = type.equals("quiz") ? "quiz" : "flashcards";
+
+        db.collection(collection)
                 .document(id)
                 .get()
                 .addOnSuccessListener(doc -> {
-                    if (doc.exists()) {
-                        Flashcard set = doc.toObject(Flashcard.class);
-                        if (set != null) {
-                            set.setId(doc.getId());
-                            set.setType(type);
-                            set.setLastAccessed(lastAccessed);
-                            recentSets.add(set);
-                            updateContinueRecycler();
-                        }
+                    if (!doc.exists()) return;
+
+                    Flashcard set = doc.toObject(Flashcard.class);
+                    if (set == null) return;
+
+                    set.setId(doc.getId());
+                    set.setType(type);
+                    set.setLastAccessed(lastAccessed);
+
+                    Object rawProgress = item.get("progress");
+                    if (rawProgress instanceof Number) {
+                        set.setProgress(((Number) rawProgress).intValue());
+                    } else {
+                        set.setProgress(0);
                     }
+
+                    recentSets.add(set);
+                    updateContinueRecycler();
                 });
     }
+
 
     private void updateContinueRecycler() {
         recentSets.sort((a, b) -> Long.compare(b.getLastAccessed(), a.getLastAccessed()));
