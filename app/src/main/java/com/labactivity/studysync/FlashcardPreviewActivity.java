@@ -298,7 +298,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                 boolean isRepeating = repeatDailyCheckBox.isChecked();
                                 long currentTimeMillis = System.currentTimeMillis();
 
-                                // 🔁 Increment the calendar date until it's in the future (only if repeating)
+
                                 if (isRepeating) {
                                     while (calendar.getTimeInMillis() <= currentTimeMillis) {
                                         calendar.add(Calendar.DAY_OF_YEAR, 1);

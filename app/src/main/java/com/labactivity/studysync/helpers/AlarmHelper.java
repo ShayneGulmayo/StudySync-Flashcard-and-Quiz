@@ -40,28 +40,20 @@ public class AlarmHelper {
                     }
                 }
 
-                if (isRepeating) {
-                    alarmManager.setRepeating(
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(
                             AlarmManager.RTC_WAKEUP,
                             calendar.getTimeInMillis(),
-                            AlarmManager.INTERVAL_DAY,
                             pendingIntent
                     );
                 } else {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        alarmManager.setExactAndAllowWhileIdle(
-                                AlarmManager.RTC_WAKEUP,
-                                calendar.getTimeInMillis(),
-                                pendingIntent
-                        );
-                    } else {
-                        alarmManager.setExact(
-                                AlarmManager.RTC_WAKEUP,
-                                calendar.getTimeInMillis(),
-                                pendingIntent
-                        );
-                    }
+                    alarmManager.setExact(
+                            AlarmManager.RTC_WAKEUP,
+                            calendar.getTimeInMillis(),
+                            pendingIntent
+                    );
                 }
+
 
                 Log.d("AlarmHelper", "Alarm set for: " + calendar.getTime() + (isRepeating ? " (Daily)" : ""));
             } catch (SecurityException e) {
