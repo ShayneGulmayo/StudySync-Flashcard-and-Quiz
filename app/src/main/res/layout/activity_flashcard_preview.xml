@@ -284,11 +284,6 @@
                         android:orientation="horizontal"
                         android:weightSum="2">
                         <Button
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:visibility=""/>
-                        <Button
                             android:id="@+id/cancelReminderBtn"
                             android:layout_width="0dp"
                             android:layout_height="40dp"

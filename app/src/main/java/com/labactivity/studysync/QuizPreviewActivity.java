@@ -120,15 +120,15 @@ public class QuizPreviewActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         photoUrl = getIntent().getStringExtra("photoUrl");
         title = "Review set";
+        quizId = getIntent().getStringExtra("quizId");
 
         FirebaseFirestore.getInstance()
-                .collection("flashcards")
+                .collection("quiz")
                 .document(quizId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         title = documentSnapshot.getString("title");
-
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -137,7 +137,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         boolean isOffline = getIntent().getBooleanExtra("isOffline", false);
         String fileName = getIntent().getStringExtra("offlineFileName");
-        quizId = getIntent().getStringExtra("quizId"); // global variable already declared
+
 
         if (isOffline && fileName != null) {
             loadOfflineQuiz(fileName);
@@ -169,7 +169,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
         downloadBtn.setOnClickListener(v -> showDownloadOptionsDialog());
 
         setReminderBtn.setOnClickListener(v -> {
-            // TODO: add reminders function
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
                 if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
