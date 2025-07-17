@@ -121,6 +121,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
         photoUrl = getIntent().getStringExtra("photoUrl");
         title = "Review set";
         quizId = getIntent().getStringExtra("quizId");
+        loadReminderText();
 
         FirebaseFirestore.getInstance()
                 .collection("quiz")
@@ -218,6 +219,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
         super.onResume();
         if (quizId != null) {
             loadQuizData(quizId);
+            loadReminderText();
         }
     }
     private void showDateTimePicker() {
@@ -243,27 +245,31 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                 calendar.set(Calendar.SECOND, 0);
                                 calendar.set(Calendar.MILLISECOND, 0);
 
-                                long selectedTimeMillis = calendar.getTimeInMillis();
+                                boolean isRepeating = repeatDailyCheckBox.isChecked();
                                 long currentTimeMillis = System.currentTimeMillis();
 
-                                if (selectedTimeMillis < currentTimeMillis) {
-                                    Toast.makeText(this, "Time has already passed.", Toast.LENGTH_SHORT).show();
-                                    return;
+                                if (isRepeating) {
+                                    while (calendar.getTimeInMillis() <= currentTimeMillis) {
+                                        calendar.add(Calendar.DAY_OF_YEAR, 1);
+                                    }
+                                } else {
+                                    if (calendar.getTimeInMillis() <= currentTimeMillis) {
+                                        Toast.makeText(this, "Time has already passed.", Toast.LENGTH_SHORT).show();
+                                        return;
+                                    }
                                 }
-
-                                boolean isRepeating = repeatDailyCheckBox.isChecked();
 
                                 AlarmHelper.setAlarm(this, calendar, quizId, title, isRepeating);
 
                                 SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
                                 prefs.edit()
-                                        .putLong("reminderTime", selectedTimeMillis)
+                                        .putLong("reminderTime", calendar.getTimeInMillis())
                                         .putBoolean("isRepeating", isRepeating)
                                         .apply();
 
                                 String ampm = (hour >= 12) ? "PM" : "AM";
                                 int displayHour = (hour % 12 == 0) ? 12 : hour % 12;
-                                String display = String.format("Reminder set for: %02d:%02d %s on %d/%d/%d%s",
+                                String display = String.format("%02d:%02d %s on %d/%d/%d%s",
                                         displayHour, minute, ampm,
                                         calendar.get(Calendar.MONTH) + 1,
                                         calendar.get(Calendar.DAY_OF_MONTH),
@@ -281,6 +287,47 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+    private void loadReminderText() {
+        SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
+        long reminderTime = prefs.getLong("reminderTime", -1);
+        boolean isRepeating = prefs.getBoolean("isRepeating", false);
+
+        if (reminderTime != -1) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(reminderTime);
+
+            long currentTimeMillis = System.currentTimeMillis();
+
+            if (isRepeating && reminderTime <= currentTimeMillis) {
+                do {
+                    calendar.add(Calendar.DAY_OF_YEAR, 1);
+                } while (calendar.getTimeInMillis() <= currentTimeMillis);
+
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putLong("reminderTime", calendar.getTimeInMillis());
+                editor.apply();
+            }
+
+            int hour = calendar.get(Calendar.HOUR_OF_DAY);
+            int minute = calendar.get(Calendar.MINUTE);
+            String ampm = (hour >= 12) ? "PM" : "AM";
+            int displayHour = (hour % 12 == 0) ? 12 : hour % 12;
+
+            String display = String.format("%02d:%02d %s on %d/%d/%d%s",
+                    displayHour, minute, ampm,
+                    calendar.get(Calendar.MONTH) + 1,
+                    calendar.get(Calendar.DAY_OF_MONTH),
+                    calendar.get(Calendar.YEAR),
+                    isRepeating ? " (Daily)" : "");
+
+            setReminderTxt.setText(display);
+            cancelReminderBtn.setVisibility(View.VISIBLE);
+        } else {
+            setReminderTxt.setText("");
+            cancelReminderBtn.setVisibility(View.GONE);
+        }
+    }
+
 
 
     private void loadQuizData(String quizId) {
