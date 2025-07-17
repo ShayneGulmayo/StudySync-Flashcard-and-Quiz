@@ -213,29 +213,6 @@
                 app:strokeWidth="2dp"
                 tools:ignore="RtlCompat"/>
 
-
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/setReminderBtn"
-                android:layout_width="match_parent"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
-                android:layout_marginBottom="5dp"
-                android:layout_height="60dp"
-                android:text="Set a reminder"
-                android:textAlignment="textStart"
-                android:textColor="@color/primary"
-                android:textSize="16sp"
-                app:backgroundTint="@color/white"
-                app:cornerRadius="16dp"
-                app:icon="@drawable/notifications"
-                app:iconGravity="start"
-                app:iconPadding="32dp"
-                app:iconSize="24dp"
-                app:iconTint="@color/primary"
-                app:strokeColor="@color/primary"
-                app:strokeWidth="2dp"
-                tools:ignore="RtlCompat"/>
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/shareToChat"
                 android:layout_width="match_parent"
@@ -263,7 +240,7 @@
                 android:layout_width="match_parent"
                 android:layout_marginStart="20dp"
                 android:layout_marginEnd="20dp"
-                android:layout_marginBottom="100dp"
+                android:layout_marginBottom="5dp"
                 android:layout_height="60dp"
                 android:text="Download set"
                 android:textAlignment="textStart"
@@ -279,6 +256,73 @@
                 app:strokeColor="@color/primary"
                 app:strokeWidth="2dp"
                 tools:ignore="RtlCompat"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/setReminderBtn"
+                android:layout_width="match_parent"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="5dp"
+                android:layout_height="60dp"
+                android:text="Set a reminder"
+                android:textAlignment="textStart"
+                android:textColor="@color/primary"
+                android:textSize="16sp"
+                app:backgroundTint="@color/white"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/notifications"
+                app:iconGravity="start"
+                app:iconPadding="32dp"
+                app:iconSize="24dp"
+                app:iconTint="@color/primary"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="2dp"
+                tools:ignore="RtlCompat"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="10dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingBottom="20dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="100dp"
+                android:background="@drawable/green_stroke_bg">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Reminder set at:"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:layout_marginTop="10dp"/>
+
+                <TextView
+                    android:id="@+id/setRemindersTxt"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="No reminder set yet"
+                    android:textAlignment="center"
+                    android:layout_marginTop="30dp"
+                    android:layout_marginBottom="30dp"
+                    android:textSize="16sp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="2">
+                    <Button
+                        android:id="@+id/cancelReminderBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:text="Cancel"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/warning"
+                        android:visibility="gone"/>
+                </LinearLayout>
+            </LinearLayout>
 
 
         </LinearLayout>

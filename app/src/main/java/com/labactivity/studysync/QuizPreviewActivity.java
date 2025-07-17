@@ -1,11 +1,10 @@
 package com.labactivity.studysync;
 
-import android.annotation.SuppressLint;
 import android.app.AlarmManager;
-import android.app.DatePickerDialog;
-import android.app.PendingIntent;
 import android.app.TimePickerDialog;
+import android.content.Context;
 
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -19,9 +18,14 @@ import com.google.gson.Gson;
 
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.DatePicker;
 import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -43,10 +47,12 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.labactivity.studysync.adapters.QuizCarouselAdapter;
+import com.labactivity.studysync.helpers.AlarmHelper;
 import com.labactivity.studysync.models.Quiz;
-import com.labactivity.studysync.receivers.ReminderReceiver;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 import com.google.firebase.firestore.DocumentReference;
+
+import java.util.Calendar;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -61,25 +67,22 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public class QuizPreviewActivity extends AppCompatActivity {
 
-    private TextView quizTitleTxt, ownerUsernameTxt, itemTxt;
+    private TextView quizTitleTxt, ownerUsernameTxt, itemTxt, setReminderTxt;
     private ImageView ownerProfileImage, backButton, moreButton, saveQuizBtn;
     private boolean isSaved = false;
     private FirebaseFirestore db;
-    private String quizId, photoUrl, currentReminder, accessLevel = "owner";
+    private String quizId, photoUrl, currentReminder, accessLevel = "owner", title;
     private ViewPager2 carouselViewPager;
     private SpringDotsIndicator dotsIndicator;
     private List<Quiz.Question> quizQuestions = new ArrayList<>();
     private Switch shuffleSwitch, shuffleOptionsSwitch;
-    private Button startQuizBtn;
+    private Button startQuizBtn, cancelReminderBtn;
     private MaterialButton downloadBtn, setReminderBtn, convertBtn, shareToChatBtn;
 
 
@@ -111,9 +114,26 @@ public class QuizPreviewActivity extends AppCompatActivity {
         downloadBtn = findViewById(R.id.downloadBtn);
         setReminderBtn = findViewById(R.id.setReminderBtn);
         shareToChatBtn = findViewById(R.id.shareToChat);
+        setReminderTxt = findViewById(R.id.setRemindersTxt);
+        cancelReminderBtn = findViewById(R.id.cancelReminderBtn);
 
         db = FirebaseFirestore.getInstance();
         photoUrl = getIntent().getStringExtra("photoUrl");
+        title = "Review set";
+
+        FirebaseFirestore.getInstance()
+                .collection("flashcards")
+                .document(quizId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        title = documentSnapshot.getString("title");
+
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to fetch set title.", Toast.LENGTH_SHORT).show();
+                });
 
         boolean isOffline = getIntent().getBooleanExtra("isOffline", false);
         String fileName = getIntent().getStringExtra("offlineFileName");
@@ -150,6 +170,33 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         setReminderBtn.setOnClickListener(v -> {
             // TODO: add reminders function
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Permission Required")
+                            .setMessage("To schedule reminders exactly on time, you need to allow this app to set exact alarms in your system settings.")
+                            .setPositiveButton("Allow", (dialog, which) -> {
+                                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                                startActivity(intent);
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                    return;
+                }
+            }
+            showDateTimePicker();
+        });
+        if (!AlarmHelper.isReminderSet(this, quizId)) {
+            cancelReminderBtn.setVisibility(View.GONE);
+        } else {
+            cancelReminderBtn.setVisibility(View.VISIBLE);
+        }
+        cancelReminderBtn.setOnClickListener(v -> {
+            AlarmHelper.cancelAlarm(this, quizId);
+            setReminderTxt.setText("No reminder set");
+            cancelReminderBtn.setVisibility(View.GONE);
+            Toast.makeText(this, "Reminder canceled.", Toast.LENGTH_SHORT).show();
         });
 
         backButton.setOnClickListener(v -> finish());
@@ -174,6 +221,68 @@ public class QuizPreviewActivity extends AppCompatActivity {
             loadQuizData(quizId);
         }
     }
+    private void showDateTimePicker() {
+        final Calendar calendar = Calendar.getInstance();
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View dialogView = inflater.inflate(R.layout.reminder_picker, null);
+        DatePicker datePicker = dialogView.findViewById(R.id.datePicker);
+        CheckBox repeatDailyCheckBox = dialogView.findViewById(R.id.repeatDailyCheckBox);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView)
+                .setTitle("Select Date")
+                .setPositiveButton("Next", (dialog, which) -> {
+                    calendar.set(Calendar.YEAR, datePicker.getYear());
+                    calendar.set(Calendar.MONTH, datePicker.getMonth());
+                    calendar.set(Calendar.DAY_OF_MONTH, datePicker.getDayOfMonth());
+
+                    TimePickerDialog timePickerDialog = new TimePickerDialog(this,
+                            (view1, hour, minute) -> {
+                                calendar.set(Calendar.HOUR_OF_DAY, hour);
+                                calendar.set(Calendar.MINUTE, minute);
+                                calendar.set(Calendar.SECOND, 0);
+                                calendar.set(Calendar.MILLISECOND, 0);
+
+                                long selectedTimeMillis = calendar.getTimeInMillis();
+                                long currentTimeMillis = System.currentTimeMillis();
+
+                                if (selectedTimeMillis < currentTimeMillis) {
+                                    Toast.makeText(this, "Time has already passed.", Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+
+                                boolean isRepeating = repeatDailyCheckBox.isChecked();
+
+                                AlarmHelper.setAlarm(this, calendar, quizId, title, isRepeating);
+
+                                SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
+                                prefs.edit()
+                                        .putLong("reminderTime", selectedTimeMillis)
+                                        .putBoolean("isRepeating", isRepeating)
+                                        .apply();
+
+                                String ampm = (hour >= 12) ? "PM" : "AM";
+                                int displayHour = (hour % 12 == 0) ? 12 : hour % 12;
+                                String display = String.format("Reminder set for: %02d:%02d %s on %d/%d/%d%s",
+                                        displayHour, minute, ampm,
+                                        calendar.get(Calendar.MONTH) + 1,
+                                        calendar.get(Calendar.DAY_OF_MONTH),
+                                        calendar.get(Calendar.YEAR),
+                                        isRepeating ? " (Daily)" : "");
+
+                                setReminderTxt.setText(display);
+                                cancelReminderBtn.setVisibility(View.VISIBLE);
+
+                            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
+
+                    timePickerDialog.show();
+
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
 
     private void loadQuizData(String quizId) {
         db.collection("quiz").document(quizId)
@@ -199,7 +308,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     if (currentUser != null && ownerUid != null) {
                         if (ownerUid.equals(currentUser.getUid())) {
                             accessLevel = "owner";
-                            saveQuizBtn.setVisibility(View.GONE); // hide save button for owner
+                            saveQuizBtn.setVisibility(View.GONE);
                             saveQuizBtn.setVisibility(View.GONE);
                         } else {
                             accessLevel = "view";
@@ -430,6 +539,22 @@ public class QuizPreviewActivity extends AppCompatActivity {
         });
 
         reminderBtn.setOnClickListener(v -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Permission Required")
+                            .setMessage("To schedule reminders exactly on time, you need to allow this app to set exact alarms in your system settings.")
+                            .setPositiveButton("Allow", (dialog, which) -> {
+                                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                                startActivity(intent);
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                    return;
+                }
+            }
+            showDateTimePicker();
             bottomSheetDialog.dismiss();
         });
 

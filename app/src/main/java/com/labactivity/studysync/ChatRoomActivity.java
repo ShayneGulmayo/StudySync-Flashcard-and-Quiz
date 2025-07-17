@@ -344,6 +344,7 @@ public class ChatRoomActivity extends AppCompatActivity {
             if (id == R.id.menu_live_quiz) {
                 return true;
             } else if (id == R.id.menu_reminder) {
+
                 return true;
             } else if (id == R.id.menu_settings) {
                 openEditChatRoom();

@@ -8,7 +8,9 @@ import android.app.TimePickerDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -24,10 +26,17 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.StrictMode;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.DatePicker;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.NumberPicker;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
@@ -48,8 +57,8 @@ import com.google.firebase.storage.StorageReference;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.labactivity.studysync.adapters.FlashcardCarouselAdapter;
+import com.labactivity.studysync.helpers.AlarmHelper;
 import com.labactivity.studysync.models.Flashcard;
-import com.labactivity.studysync.receivers.ReminderReceiver;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -75,9 +84,9 @@ import com.google.firebase.firestore.ListenerRegistration;
 
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
-    private TextView titleTextView, ownerTextView, numberOfItemsTextView, privacyText;
+    private TextView titleTextView, ownerTextView, numberOfItemsTextView, privacyText, setReminderTxt;
     private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, saveSetBtn, downloadIcon;
-    private Button startFlashcardBtn;
+    private Button startFlashcardBtn, cancelReminderBtn;
     private ViewPager2 carouselViewPager;
     private String currentPrivacy, setId, currentReminder, offlineFileName, ownerUid;
     private String accessLevel = "none";
@@ -95,6 +104,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private boolean isOffline;
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private Map<String, Object> setData;
+    private String userId, title;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -105,6 +115,16 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
         initializeViews();
         db = FirebaseFirestore.getInstance();
+        title = "Review Set";
+
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            userId = currentUser.getUid();
+            Log.d("Auth", "Current user ID: " + userId);
+        } else {
+            Log.d("Auth", "No user is currently signed in.");
+        }
 
         isOffline = getIntent().getBooleanExtra("isOffline", false);
 
@@ -128,6 +148,25 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 Toast.makeText(this, "No flashcard id provided.", Toast.LENGTH_SHORT).show();
                 finish();
             }
+        }
+
+        FirebaseFirestore.getInstance()
+                .collection("flashcards")
+                .document(setId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        title = documentSnapshot.getString("title");
+
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to fetch set title.", Toast.LENGTH_SHORT).show();
+                });
+        if (!AlarmHelper.isReminderSet(this, setId)) {
+            cancelReminderBtn.setVisibility(View.GONE);
+        } else {
+            cancelReminderBtn.setVisibility(View.VISIBLE);
         }
     }
 
@@ -157,19 +196,39 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         startFlashcardBtn = findViewById(R.id.start_flashcard_btn);
         moreButton = findViewById(R.id.more_button);
         saveSetBtn = findViewById(R.id.saveQuizBtn);
+        setReminderTxt = findViewById(R.id.setRemindersTxt);
+        cancelReminderBtn = findViewById(R.id.cancelReminderBtn);
 
         MaterialButton downloadBtn = findViewById(R.id.downloadBtn);
         MaterialButton setReminderBtn = findViewById(R.id.setReminderBtn);
 
         boolean fromNotification = getIntent().getBooleanExtra("fromNotification", false);
 
+
+
         downloadBtn.setOnClickListener(v -> {
             showDownloadOptionsDialog();
         });
 
         setReminderBtn.setOnClickListener(v -> {
-            showReminderDialog();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Permission Required")
+                            .setMessage("To schedule reminders exactly on time, you need to allow this app to set exact alarms in your system settings.")
+                            .setPositiveButton("Allow", (dialog, which) -> {
+                                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                                startActivity(intent);
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                    return;
+                }
+            }
+            showDateTimePicker();
         });
+
         ownerTextView.setOnClickListener(v -> openUserProfile());
         ownerPhotoImageView.setOnClickListener(v -> openUserProfile());
 
@@ -201,7 +260,80 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 Toast.makeText(this, "You don't have access to start this flashcard set.", Toast.LENGTH_SHORT).show();
             }
         });
+
+        cancelReminderBtn.setOnClickListener(v -> {
+            AlarmHelper.cancelAlarm(this, setId);
+            setReminderTxt.setText("No reminder set");
+            cancelReminderBtn.setVisibility(View.GONE);
+            Toast.makeText(this, "Reminder canceled.", Toast.LENGTH_SHORT).show();
+        });
+
     }
+
+    private void showDateTimePicker() {
+        final Calendar calendar = Calendar.getInstance();
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View dialogView = inflater.inflate(R.layout.reminder_picker, null);
+        DatePicker datePicker = dialogView.findViewById(R.id.datePicker);
+        CheckBox repeatDailyCheckBox = dialogView.findViewById(R.id.repeatDailyCheckBox);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView)
+                .setTitle("Select Date")
+                .setPositiveButton("Next", (dialog, which) -> {
+                    calendar.set(Calendar.YEAR, datePicker.getYear());
+                    calendar.set(Calendar.MONTH, datePicker.getMonth());
+                    calendar.set(Calendar.DAY_OF_MONTH, datePicker.getDayOfMonth());
+
+                    TimePickerDialog timePickerDialog = new TimePickerDialog(this,
+                            (view1, hour, minute) -> {
+                                calendar.set(Calendar.HOUR_OF_DAY, hour);
+                                calendar.set(Calendar.MINUTE, minute);
+                                calendar.set(Calendar.SECOND, 0);
+                                calendar.set(Calendar.MILLISECOND, 0);
+
+                                long selectedTimeMillis = calendar.getTimeInMillis();
+                                long currentTimeMillis = System.currentTimeMillis();
+
+                                if (selectedTimeMillis < currentTimeMillis) {
+                                    Toast.makeText(this, "Time has already passed.", Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+
+                                boolean isRepeating = repeatDailyCheckBox.isChecked();
+
+                                AlarmHelper.setAlarm(this, calendar, setId, title, isRepeating);
+
+                                SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
+                                prefs.edit()
+                                        .putLong("reminderTime", selectedTimeMillis)
+                                        .putBoolean("isRepeating", isRepeating)
+                                        .apply();
+
+                                String ampm = (hour >= 12) ? "PM" : "AM";
+                                int displayHour = (hour % 12 == 0) ? 12 : hour % 12;
+                                String display = String.format("Reminder set for: %02d:%02d %s on %d/%d/%d%s",
+                                        displayHour, minute, ampm,
+                                        calendar.get(Calendar.MONTH) + 1,
+                                        calendar.get(Calendar.DAY_OF_MONTH),
+                                        calendar.get(Calendar.YEAR),
+                                        isRepeating ? " (Daily)" : "");
+
+                                setReminderTxt.setText(display);
+                                cancelReminderBtn.setVisibility(View.VISIBLE);
+
+                            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
+
+                    timePickerDialog.show();
+
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+
+
 
     private void openUserProfile() {
         if (ownerUid != null) {
@@ -295,8 +427,22 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         reminderBtn.setOnClickListener(v -> {
             if (!canNavigate()) return;
-            bottomSheetDialog.dismiss();
-            showReminderDialog();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Permission Required")
+                            .setMessage("To schedule reminders exactly on time, you need to allow this app to set exact alarms in your system settings.")
+                            .setPositiveButton("Allow", (dialog, which) -> {
+                                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                                startActivity(intent);
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                    return;
+                }
+            }
+            showDateTimePicker();
         });
 
         sendToChatBtn.setOnClickListener(v -> {
@@ -909,74 +1055,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     }
 
 
-    private void showReminderDialog() {
-        if (isFinishing() || isDestroyed()) return;
-
-        Calendar calendar = Calendar.getInstance();
-
-        datePickerDialog = new DatePickerDialog(this, R.style.DialogTheme, (view, year, month, dayOfMonth) -> {
-            calendar.set(Calendar.YEAR, year);
-            calendar.set(Calendar.MONTH, month);
-            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-
-            timePickerDialog = new TimePickerDialog(this, R.style.DialogTheme, (timeView, hourOfDay, minute) -> {
-                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
-                calendar.set(Calendar.MINUTE, minute);
-                calendar.set(Calendar.SECOND, 0);
-
-                if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
-                    Toast.makeText(this, "Please select a future time.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                setReminder(calendar);
-
-            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
-
-            if (!isFinishing() && !isDestroyed()) timePickerDialog.show();
-
-        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
-
-        if (!isFinishing() && !isDestroyed()) datePickerDialog.show();
-    }
-
-    @SuppressLint("ScheduleExactAlarm")
-    private void setReminder(Calendar calendar) {
-        String formattedDateTime = formatDateTime(calendar);
-
-        db.collection("flashcards").document(setId)
-                .update("reminder", formattedDateTime)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Reminder set for " + formattedDateTime, Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to set reminder.", Toast.LENGTH_SHORT).show();
-                });
-
-        Intent intent = new Intent(this, ReminderReceiver.class);
-        intent.putExtra("setId", setId);
-
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                this, setId.hashCode(), intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        if (alarmManager != null) {
-            alarmManager.cancel(pendingIntent);
-
-            alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    calendar.getTimeInMillis(),
-                    pendingIntent
-            );
-        }
-    }
-
-    private String formatDateTime(Calendar calendar) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy | hh:mm a", Locale.getDefault());
-        return dateFormat.format(calendar.getTime());
-    }
 
     private void showDeleteConfirmationDialog() {
         if (isFinishing() || isDestroyed()) return;
