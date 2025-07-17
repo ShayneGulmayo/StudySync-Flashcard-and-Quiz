@@ -5,6 +5,19 @@ import android.app.AlarmManager;
 import android.app.DatePickerDialog;
 import android.app.PendingIntent;
 import android.app.TimePickerDialog;
+
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.pdf.PdfDocument;
+import android.net.Uri;
+import android.os.Environment;
+
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
+
+
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -34,10 +47,18 @@ import com.labactivity.studysync.models.Quiz;
 import com.labactivity.studysync.receivers.ReminderReceiver;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 import com.google.firebase.firestore.DocumentReference;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Iterator;
 
 
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import java.text.SimpleDateFormat;
@@ -92,11 +113,24 @@ public class QuizPreviewActivity extends AppCompatActivity {
         shareToChatBtn = findViewById(R.id.shareToChat);
 
         db = FirebaseFirestore.getInstance();
-        quizId = getIntent().getStringExtra("quizId");
         photoUrl = getIntent().getStringExtra("photoUrl");
 
-        saveQuizBtn.setOnClickListener(v -> toggleSaveState());
+        boolean isOffline = getIntent().getBooleanExtra("isOffline", false);
+        String fileName = getIntent().getStringExtra("offlineFileName");
+        quizId = getIntent().getStringExtra("quizId"); // global variable already declared
 
+        if (isOffline && fileName != null) {
+            loadOfflineQuiz(fileName);
+        } else if (quizId != null) {
+            checkIfSaved();
+            loadQuizData(quizId);
+        } else {
+            Toast.makeText(this, "No quiz ID provided", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        saveQuizBtn.setOnClickListener(v -> toggleSaveState());
 
         shareToChatBtn.setOnClickListener(view -> {
             Intent intent = new Intent(this, ChatRoomPickerActivity.class);
@@ -104,28 +138,19 @@ public class QuizPreviewActivity extends AppCompatActivity {
             intent.putExtra("setType", "quiz");
             startActivity(intent);
         });
+
         convertBtn.setOnClickListener(view -> {
             Intent intent = new Intent(QuizPreviewActivity.this, LoadingSetActivity.class);
             intent.putExtra("convertFromId", quizId);
             intent.putExtra("originalType", "quiz");
             startActivity(intent);
         });
-        downloadBtn.setOnClickListener(v -> {
-            //TODO add download function
-        });
+
+        downloadBtn.setOnClickListener(v -> showDownloadOptionsDialog());
 
         setReminderBtn.setOnClickListener(v -> {
-            //TODO add reminders function
+            // TODO: add reminders function
         });
-
-        if (quizId != null) {
-            checkIfSaved();
-            checkIfSaved();
-            loadQuizData(quizId);
-        } else {
-            Toast.makeText(this, "No quiz ID provided", Toast.LENGTH_SHORT).show();
-            finish();
-        }
 
         backButton.setOnClickListener(v -> finish());
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
@@ -139,6 +164,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
             startActivity(intent);
         });
     }
+
 
 
     @Override
@@ -253,7 +279,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
                     ownerProfileImage.setOnClickListener(profileClickListener);
                     ownerUsernameTxt.setOnClickListener(profileClickListener);
-                    
+
                 })
                 .addOnFailureListener(e -> {
                     ownerProfileImage.setImageResource(R.drawable.user_profile);
@@ -533,6 +559,239 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     updateSaveIcon();
                 });
     }
+
+    private void showDownloadOptionsDialog() {
+        String[] options = {"Download as PDF", "Download for Offline Use"};
+        new AlertDialog.Builder(this)
+                .setTitle("Download Options")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        downloadOfflinePdf(quizId);  // Implement this method
+                    } else if (which == 1) {
+                        downloadQuiz();              // Implement this method
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+
+    private void downloadQuiz() {
+        db.collection("quiz").document(quizId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Map<String, Object> setData = documentSnapshot.getData();
+                        if (setData != null) {
+                            setData.put("id", quizId);
+
+                            String ownerUid = documentSnapshot.getString("owner_uid");
+                            if (ownerUid != null) {
+                                db.collection("users").document(ownerUid)
+                                        .get()
+                                        .addOnSuccessListener(userDoc -> {
+                                            String username = userDoc.getString("username");
+                                            String photoUrl = userDoc.getString("photoUrl");
+
+                                            setData.put("username", username != null ? username : "Unknown User");
+                                            setData.put("photoUrl", photoUrl != null ? photoUrl : "");
+
+                                            saveSetOffline(setData, quizId);
+                                            startActivity(new Intent(this, DownloadedSetsActivity.class));
+
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            setData.put("username", "Unknown User");
+                                            setData.put("photoUrl", "");
+                                            saveSetOffline(setData, quizId);
+                                            startActivity(new Intent(this, DownloadedSetsActivity.class));
+                                        });
+                            } else {
+                                setData.put("username", "Unknown User");
+                                setData.put("photoUrl", "");
+                                saveSetOffline(setData, quizId);
+                                startActivity(new Intent(this, DownloadedSetsActivity.class));
+                            }
+                        } else {
+                            Toast.makeText(this, "Quiz data is empty.", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(this, "Quiz not found.", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to fetch quiz.", Toast.LENGTH_SHORT).show();
+                    e.printStackTrace();
+                });
+    }
+
+
+    private void saveSetOffline(Map<String, Object> setData, String id) {
+        File dir = getFilesDir();
+        File file = new File(dir, "set_" + id + ".json");
+
+        if (file.exists()) {
+            Toast.makeText(this, "Set already downloaded.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            String json = new Gson().toJson(setData);
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(json.getBytes());
+            fos.close();
+            Toast.makeText(this, "Set downloaded successfully.", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to download set.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void loadOfflineQuiz(String fileName) {
+        File file = new File(getFilesDir(), fileName); // ✅ Initialize file first
+
+        if (!file.exists()) {
+            Toast.makeText(this, "Quiz file not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        quizId = file.getName().replace("set_", "").replace(".json", ""); // ✅ Now this works
+
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            byte[] data = new byte[(int) file.length()];
+            fis.read(data);
+            fis.close();
+
+            String json = new String(data);
+            Type type = new TypeToken<Map<String, Object>>() {}.getType();
+            Map<String, Object> quizMap = new Gson().fromJson(json, type);
+
+            TextView titleTextView = findViewById(R.id.quiz_title);
+            TextView usernameTextView = findViewById(R.id.owner_username);
+            TextView itemCountTextView = findViewById(R.id.item_txt);
+
+            if (titleTextView != null && quizMap.get("title") != null)
+                titleTextView.setText(quizMap.get("title").toString());
+
+            if (usernameTextView != null && quizMap.get("owner_username") != null)
+                usernameTextView.setText(quizMap.get("owner_username").toString());
+
+            if (itemCountTextView != null && quizMap.get("questions") != null)
+                itemCountTextView.setText(((List<?>) quizMap.get("questions")).size() + " items");
+
+            // ✅ Load owner profile image from 'owner_photo'
+            if (quizMap.get("owner_photo") != null) {
+                String photoUrl = quizMap.get("owner_photo").toString();
+                Glide.with(this)
+                        .load(photoUrl)
+                        .placeholder(R.drawable.user_profile)
+                        .error(R.drawable.user_profile)
+                        .into(ownerProfileImage);
+            } else {
+                ownerProfileImage.setImageResource(R.drawable.user_profile);
+            }
+
+        } catch (IOException e) {
+            Toast.makeText(this, "Error reading quiz file", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
+    }
+
+
+
+    private void downloadOfflinePdf(String quizId) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("quiz").document(quizId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        Toast.makeText(this, "Quiz not found.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    Quiz quiz = documentSnapshot.toObject(Quiz.class);
+                    if (quiz == null || quiz.getQuestions() == null || quiz.getQuestions().isEmpty()) {
+                        Toast.makeText(this, "Quiz data is incomplete.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    PdfDocument document = new PdfDocument();
+                    Paint paint = new Paint();
+                    int pageNumber = 1;
+                    int y = 80;
+
+                    PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
+                    PdfDocument.Page page = document.startPage(pageInfo);
+                    Canvas canvas = page.getCanvas();
+                    paint.setTextSize(14);
+                    paint.setColor(Color.BLACK);
+
+                    canvas.drawText("Quiz Title: " + quiz.getTitle(), 40, y, paint);
+                    y += 30;
+
+                    List<Quiz.Question> questions = quiz.getQuestions();
+                    for (int i = 0; i < questions.size(); i++) {
+                        Quiz.Question q = questions.get(i);
+
+                        // Start new page if needed
+                        if (y > 800) {
+                            document.finishPage(page);
+                            pageNumber++;
+                            pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
+                            page = document.startPage(pageInfo);
+                            canvas = page.getCanvas();
+                            y = 80;
+                        }
+
+                        // Question text
+                        canvas.drawText((i + 1) + ". " + q.getQuestion(), 40, y, paint);
+                        y += 20;
+
+                        // Choices
+                        List<String> choices = q.getChoices();
+                        if (choices != null && !choices.isEmpty()) {
+                            for (String choice : choices) {
+                                canvas.drawText("   • " + choice, 60, y, paint);
+                                y += 18;
+                            }
+                        }
+
+                        // Correct Answer
+                        String correct = q.getCorrectAnswerAsString();
+                        canvas.drawText("   ✔ Correct: " + correct, 60, y, paint);
+                        y += 20;
+
+                        y += 10;
+                    }
+
+                    document.finishPage(page);
+
+                    try {
+                        File pdfFile = new File(getExternalFilesDir(null), quiz.getTitle() + "_quiz.pdf");
+                        FileOutputStream fos = new FileOutputStream(pdfFile);
+                        document.writeTo(fos);
+                        document.close();
+                        fos.close();
+
+                        Toast.makeText(this, "PDF saved to " + pdfFile.getAbsolutePath(), Toast.LENGTH_LONG).show();
+
+                        // Optional: Open PDF
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setDataAndType(Uri.fromFile(pdfFile), "application/pdf");
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        startActivity(intent);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, "Error saving PDF.", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    e.printStackTrace();
+                    Toast.makeText(this, "Error retrieving quiz.", Toast.LENGTH_SHORT).show();
+                });
+    }
+
 
     private void toggleSaveState() {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();

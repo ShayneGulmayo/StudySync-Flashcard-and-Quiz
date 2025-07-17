@@ -361,6 +361,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         setData = documentSnapshot.getData();
                         if (setData != null) {
                             setData.put("id", setId);
+                            setData.put("type", "flashcard");
                             String ownerUid = documentSnapshot.getString("owner_uid");
 
                             if (ownerUid != null) {
@@ -429,7 +430,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                                 setData.put("photoUrl", "");
                                             }
 
-                                            saveSetOffline(setData, setId);
+                                            saveSetOffline(setData, setId, "flashcard");
+
 
                                             Intent intent = new Intent(this, DownloadedSetsActivity.class);
                                             startActivity(intent);
@@ -439,7 +441,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                         .addOnFailureListener(e -> {
                                             setData.put("username", "Unknown User");
                                             setData.put("photoUrl", "");
-                                            saveSetOffline(setData, setId);
+                                            saveSetOffline(setData, setId, "flashcard");
+
 
                                             Intent intent = new Intent(this, DownloadedSetsActivity.class);
                                             startActivity(intent);
@@ -448,7 +451,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                             } else {
                                 setData.put("username", "Unknown User");
                                 setData.put("photoUrl", "");
-                                saveSetOffline(setData, setId);
+                                saveSetOffline(setData, setId, "flashcard");
+
 
                                 Intent intent = new Intent(this, DownloadedSetsActivity.class);
                                 startActivity(intent);
@@ -467,7 +471,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 });
     }
 
-    private void saveSetOffline(Map<String, Object> setData, String setId) {
+    private void saveSetOffline(Map<String, Object> setData, String setId, String type) {
         File dir = getFilesDir();
         File file = new File(dir, "set_" + setId + ".json");
 
@@ -477,6 +481,9 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
 
         try {
+            setData.put("type", type);
+            setData.put("fileName", "set_" + setId + ".json");
+
             String json = new Gson().toJson(setData);
             FileOutputStream fos = new FileOutputStream(file);
             fos.write(json.getBytes());
@@ -487,6 +494,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             Toast.makeText(this, "Failed to download set.", Toast.LENGTH_SHORT).show();
         }
     }
+
 
     private void loadOfflineSet(String fileName) {
         File dir = getFilesDir();

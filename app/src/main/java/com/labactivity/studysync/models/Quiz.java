@@ -151,10 +151,6 @@ public class Quiz {
             this.type = type;
         }
 
-        public String getPhotoUrl() {return photoUrl;}
-
-        public void setPhotoUrl(String photoUrl) {this.photoUrl = photoUrl;}
-
         public List<String> getChoices() {
             return choices;
         }
@@ -167,10 +163,6 @@ public class Quiz {
             return correctAnswer;
         }
 
-        public void setCorrectAnswer(Object correctAnswer) {
-            this.correctAnswer = correctAnswer;
-        }
-
         public List<String> getCorrectAnswerAsList() {
             if (correctAnswer instanceof List) {
                 return (List<String>) correctAnswer;
@@ -181,9 +173,18 @@ public class Quiz {
             }
         }
 
+        public void setCorrectAnswer(Object correctAnswer) {
+            this.correctAnswer = correctAnswer;
+        }
+
         public String getCorrectAnswerAsString() {
             return String.join(", ", getCorrectAnswerAsList());
         }
+
+        public String getPhotoUrl() {return photoUrl;}
+
+        public void setPhotoUrl(String photoUrl) {this.photoUrl = photoUrl;}
+
 
         public String getReminder() {
             return reminder;

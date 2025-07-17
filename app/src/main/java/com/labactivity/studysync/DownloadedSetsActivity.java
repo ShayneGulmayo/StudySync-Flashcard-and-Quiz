@@ -69,11 +69,20 @@ public class DownloadedSetsActivity extends AppCompatActivity {
                     fis.close();
 
                     String json = new String(data);
-
                     Type type = new TypeToken<Map<String, Object>>() {}.getType();
                     Map<String, Object> setMap = new Gson().fromJson(json, type);
 
                     setMap.put("fileName", file.getName());
+
+                    // Detect and set type if not present
+                    if (!setMap.containsKey("type")) {
+                        if (setMap.containsKey("questions")) {
+                            setMap.put("type", "quiz");
+                        } else if (setMap.containsKey("terms")) {
+                            setMap.put("type", "flashcard");
+                        }
+                    }
+
                     sets.add(setMap);
 
                 } catch (IOException e) {
@@ -83,4 +92,5 @@ public class DownloadedSetsActivity extends AppCompatActivity {
         }
         return sets;
     }
+
 }

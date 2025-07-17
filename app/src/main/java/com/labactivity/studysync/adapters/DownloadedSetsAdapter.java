@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.labactivity.studysync.FlashcardPreviewActivity;
+import com.labactivity.studysync.QuizPreviewActivity;
 import com.labactivity.studysync.R;
 
 import java.io.File;
@@ -54,18 +55,37 @@ public class DownloadedSetsAdapter extends RecyclerView.Adapter<DownloadedSetsAd
         holder.username.setText(username);
         holder.items.setText(items + (items.equals("1") ? " item" : " items"));
 
+        // OPEN FILE FOR OFFLINE VIEW
         holder.itemView.setOnClickListener(v -> {
+            String type = (String) set.get("type"); // flashcard or quiz
             String fileName = (String) set.get("fileName");
+
             if (fileName != null) {
-                Intent intent = new Intent(context, FlashcardPreviewActivity.class);
-                intent.putExtra("isOffline", true);
-                intent.putExtra("offlineFileName", fileName);
-                context.startActivity(intent);
+                File file = new File(context.getFilesDir(), fileName);
+                if (file.exists()) {
+                    Intent intent;
+                    if ("quiz".equalsIgnoreCase(type)) {
+                        intent = new Intent(context, QuizPreviewActivity.class);
+                    } else if ("flashcard".equalsIgnoreCase(type)) {
+                        intent = new Intent(context, FlashcardPreviewActivity.class);
+                    } else {
+                        Toast.makeText(context, "Unknown set type.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    intent.putExtra("offlineFileName", fileName);
+                    intent.putExtra("source", "offline");
+                    intent.putExtra("isOffline", true);
+                    context.startActivity(intent);
+                } else {
+                    Toast.makeText(context, "File not found.", Toast.LENGTH_SHORT).show();
+                }
             } else {
-                Toast.makeText(context, "File not found.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Missing file name.", Toast.LENGTH_SHORT).show();
             }
         });
 
+        // DELETE FILE
         holder.deleteBtn.setOnClickListener(v -> {
             String fileName = (String) set.get("fileName");
             if (fileName != null) {
