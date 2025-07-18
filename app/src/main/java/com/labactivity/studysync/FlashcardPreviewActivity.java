@@ -112,64 +112,82 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_flashcard_preview);
 
+        // Initialize Firebase and UI
         auth = FirebaseAuth.getInstance();
-        initializeViews();
         db = FirebaseFirestore.getInstance();
+        initializeViews();
         title = "Review Set";
-        loadReminderText();
 
+        // Get intent extras
+        isOffline = getIntent().getBooleanExtra("isOffline", false);
+        offlineFileName = getIntent().getStringExtra("offlineFileName");
+        setId = getIntent().getStringExtra("setId"); // Might be null if offline
 
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        // Check auth status
+        FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser != null) {
             userId = currentUser.getUid();
             Log.d("Auth", "Current user ID: " + userId);
         } else {
+            userId = null;
             Log.d("Auth", "No user is currently signed in.");
         }
 
-        isOffline = getIntent().getBooleanExtra("isOffline", false);
-
+        // Handle offline mode
         if (isOffline) {
-            offlineFileName = getIntent().getStringExtra("offlineFileName");
             if (offlineFileName != null) {
                 loadOfflineSet(offlineFileName);
             } else {
                 Toast.makeText(this, "No offline file specified.", Toast.LENGTH_SHORT).show();
                 finish();
+                return;
             }
-
-        } else {
-            if (getIntent().hasExtra("setId")) {
-                setId = getIntent().getStringExtra("setId");
+        }
+        // Handle online mode
+        else {
+            if (setId != null) {
                 fetchSetFromFirestore(setId);
                 loadFlashcardSet();
                 loadFlashcards();
-                checkIfSaved();
+
+                // Only check saved status if user is signed in
+                if (userId != null) {
+                    checkIfSaved();
+                }
             } else {
-                Toast.makeText(this, "No flashcard id provided.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "No flashcard set ID provided.", Toast.LENGTH_SHORT).show();
                 finish();
+                return;
             }
         }
 
-        FirebaseFirestore.getInstance()
-                .collection("flashcards")
-                .document(setId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        title = documentSnapshot.getString("title");
-
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to fetch set title.", Toast.LENGTH_SHORT).show();
-                });
-        if (!AlarmHelper.isReminderSet(this, setId)) {
-            cancelReminderBtn.setVisibility(View.GONE);
-        } else {
-            cancelReminderBtn.setVisibility(View.VISIBLE);
+        // Load set title regardless of mode
+        if (setId != null) {
+            db.collection("flashcards")
+                    .document(setId)
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            title = documentSnapshot.getString("title");
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to fetch set title.", Toast.LENGTH_SHORT).show();
+                    });
         }
+
+        // Load reminder state (only if online and setId exists)
+        if (setId != null && !isOffline) {
+            if (!AlarmHelper.isReminderSet(this, setId)) {
+                cancelReminderBtn.setVisibility(View.GONE);
+            } else {
+                cancelReminderBtn.setVisibility(View.VISIBLE);
+            }
+        }
+
+        loadReminderText();
     }
+
 
     @Override
     protected void onResume() {
