@@ -4,6 +4,9 @@
     import android.content.Intent;
     import android.os.Bundle;
     import android.text.TextUtils;
+    import android.text.method.ScrollingMovementMethod;
+    import android.util.Log;
+    import android.view.Gravity;
     import android.view.LayoutInflater;
     import android.view.View;
     import android.view.Window;
@@ -753,7 +756,7 @@
 
             moreInfo.setOnClickListener(v -> {
                 bottomSheetDialog.dismiss();
-                //showMoreInfoPopup();
+                showMultiPageInfoDialog();
             });
 
             restartQuiz.setOnClickListener(v -> {
@@ -764,58 +767,74 @@
             });
         }
 
-        /*private void showMoreInfoPopup() {
-            View popupView = LayoutInflater.from(this).inflate(R.layout.item_view_more_info, null);
+        private void showMultiPageInfoDialog() {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            LayoutInflater inflater = LayoutInflater.from(this);
+            View dialogView = inflater.inflate(R.layout.item_view_more_info, null);
 
-            AlertDialog dialog = new AlertDialog.Builder(this)
-                    .setView(popupView)
-                    .setCancelable(true)
-                    .create();
+            TextView infoTitle = dialogView.findViewById(R.id.info_title);
+            TextView infoText = dialogView.findViewById(R.id.info_text);
+            ImageButton prevBtn = dialogView.findViewById(R.id.prev_btn);
+            ImageButton nextBtn = dialogView.findViewById(R.id.next_btn);
+            ImageButton exitBtn = dialogView.findViewById(R.id.exit_btn);
+
+            final String[] infoPages = {
+                    "🟩 Multiple Choice – Select one correct answer\n" +
+                            "🟨 Enumeration – Fill in one or more correct answers",
+
+                    "✅ Correct answers turn green.\n" +
+                            "❌ Incorrect answers turn red.\n" +
+                            "💡 The app tells you the correct answer if you got it wrong.",
+
+                    "📋 Enumeration questions may require multiple answers.\n" +
+                            "Each blank must match a correct answer exactly.\n" +
+                            "Case and spacing matter if strict checking is enabled.",
+
+                    "🔁 You cannot go back to previous questions once answered.\n" +
+                            "⏳ Take your time and review before submitting.",
+
+                    "📊 At the end, you’ll see your results:\n" +
+                            "- Total Correct and Incorrect\n" +
+                            "- Score Percentage\n" +
+                            "- Review of each question and your answer"
+            };
+
+            final int totalPages = infoPages.length;
+            final int[] currentPage = {0};
+
+            // Show initial page
+            infoText.setText(infoPages[currentPage[0]]);
+            Log.d("DEBUG", "Initial Page: " + currentPage[0] + " → " + infoPages[currentPage[0]]);
+
+            prevBtn.setOnClickListener(v -> {
+                if (currentPage[0] > 0) {
+                    currentPage[0]--;
+                    infoText.setText(infoPages[currentPage[0]]);
+                    Log.d("DEBUG", "Prev Page: " + currentPage[0] + " → " + infoPages[currentPage[0]]);
+                }
+            });
+
+            nextBtn.setOnClickListener(v -> {
+                if (currentPage[0] < totalPages - 1) {
+                    currentPage[0]++;
+                    infoText.setText(infoPages[currentPage[0]]);
+                    Log.d("DEBUG", "Next Page: " + currentPage[0] + " → " + infoPages[currentPage[0]]);
+                }
+            });
+
+            AlertDialog dialog = builder.setView(dialogView).create();
+
+            exitBtn.setOnClickListener(v -> dialog.dismiss());
 
             dialog.show();
 
-            if (dialog.getWindow() != null) {
-                dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                window.setBackgroundDrawableResource(android.R.color.transparent);
             }
+        }
 
-            TextView infoText = popupView.findViewById(R.id.info_text);
-            ImageButton btnPrev = popupView.findViewById(R.id.prev_btn);
-            ImageButton btnNext = popupView.findViewById(R.id.next_btn);
 
-            List<String> pages = Arrays.asList(
-                    getString(R.string.info_page_1),
-                    getString(R.string.info_page_2),
-                    getString(R.string.info_page_3),
-                    getString(R.string.info_page_4),
-                    getString(R.string.info_page_5)
-            );
-
-            final int[] index = {0};
-            infoText.setText(pages.get(index[0]));
-            btnPrev.setVisibility(View.GONE);
-
-            btnPrev.setOnClickListener(v -> {
-                if (index[0] > 0) {
-                    index[0]--;
-                    infoText.setText(pages.get(index[0]));
-                    btnNext.setVisibility(View.VISIBLE);
-                    if (index[0] == 0) {
-                        btnPrev.setVisibility(View.GONE);
-                    }
-                }
-            });
-
-            btnNext.setOnClickListener(v -> {
-                if (index[0] < pages.size() - 1) {
-                    index[0]++;
-                    infoText.setText(pages.get(index[0]));
-                    btnPrev.setVisibility(View.VISIBLE);
-                    if (index[0] == pages.size() - 1) {
-                        btnNext.setVisibility(View.GONE);
-                    }
-                }
-            });
-        }*/
 
 
 

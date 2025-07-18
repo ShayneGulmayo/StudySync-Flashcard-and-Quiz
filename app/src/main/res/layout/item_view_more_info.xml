@@ -1,74 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/info_popup_root"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/white_popup_bg"
     android:padding="16dp">
 
-    <!-- Title -->
+    <ImageButton
+        android:id="@+id/exit_btn"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Exit"
+        android:scaleType="fitCenter"
+        android:src="@drawable/x_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <TextView
         android:id="@+id/info_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:gravity="center"
         android:text="INSTRUCTIONS"
+        android:textAlignment="center"
+        android:textColor="#000000"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="#000000"
-        android:gravity="center"
-        android:textAlignment="center"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Scrollable Info Text -->
     <ScrollView
         android:id="@+id/info_scroll"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
         android:fillViewport="true"
         app:layout_constraintTop_toBottomOf="@id/info_title"
-        app:layout_constraintBottom_toTopOf="@id/prev_btn"
+        app:layout_constraintBottom_toTopOf="@id/button_container"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="12dp">
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <TextView
-            android:id="@+id/info_text"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Loading..."
-            android:textSize="16sp"
-            android:textColor="#000000"
-            android:lineSpacingExtra="4dp"
-            android:padding="8dp" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/info_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:lineSpacingExtra="4dp"
+                android:textColor="@android:color/black"
+                android:textSize="16sp"
+                android:background="#EEEEEE" />
+        </LinearLayout>
     </ScrollView>
 
-    <!-- Previous Button -->
-    <ImageButton
-        android:id="@+id/prev_btn"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:src="@drawable/arrow_back"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:scaleType="fitCenter"
-        android:contentDescription="Previous"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Next Button -->
-    <ImageButton
-        android:id="@+id/next_btn"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:src="@drawable/arrow_back"
-        android:rotationY="180"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:scaleType="fitCenter"
-        android:contentDescription="Next"
+    <LinearLayout
+        android:id="@+id/button_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageButton
+            android:id="@+id/prev_btn"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Previous"
+            android:scaleType="fitCenter"
+            android:src="@drawable/arrow_back" />
+
+        <Space
+            android:layout_width="300dp"
+            android:layout_height="match_parent" />
+
+        <ImageButton
+            android:id="@+id/next_btn"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Next"
+            android:rotationY="180"
+            android:scaleType="fitCenter"
+            android:src="@drawable/arrow_back" />
+    </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
