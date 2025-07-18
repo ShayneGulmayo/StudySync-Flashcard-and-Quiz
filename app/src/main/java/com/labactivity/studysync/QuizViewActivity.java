@@ -2,6 +2,8 @@
 
     import android.annotation.SuppressLint;
     import android.content.Intent;
+    import android.graphics.Color;
+    import android.graphics.drawable.ColorDrawable;
     import android.os.Bundle;
     import android.text.TextUtils;
     import android.text.method.ScrollingMovementMethod;
@@ -9,6 +11,7 @@
     import android.view.Gravity;
     import android.view.LayoutInflater;
     import android.view.View;
+    import android.view.ViewGroup;
     import android.view.Window;
     import android.widget.Button;
     import android.widget.EditText;
@@ -769,70 +772,60 @@
 
         private void showMultiPageInfoDialog() {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            LayoutInflater inflater = LayoutInflater.from(this);
+            LayoutInflater inflater = getLayoutInflater();
             View dialogView = inflater.inflate(R.layout.item_view_more_info, null);
+            builder.setView(dialogView);
 
-            TextView infoTitle = dialogView.findViewById(R.id.info_title);
-            TextView infoText = dialogView.findViewById(R.id.info_text);
-            ImageButton prevBtn = dialogView.findViewById(R.id.prev_btn);
-            ImageButton nextBtn = dialogView.findViewById(R.id.next_btn);
-            ImageButton exitBtn = dialogView.findViewById(R.id.exit_btn);
-
-            final String[] infoPages = {
-                    "🟩 Multiple Choice – Select one correct answer\n" +
-                            "🟨 Enumeration – Fill in one or more correct answers",
-
-                    "✅ Correct answers turn green.\n" +
-                            "❌ Incorrect answers turn red.\n" +
-                            "💡 The app tells you the correct answer if you got it wrong.",
-
-                    "📋 Enumeration questions may require multiple answers.\n" +
-                            "Each blank must match a correct answer exactly.\n" +
-                            "Case and spacing matter if strict checking is enabled.",
-
-                    "🔁 You cannot go back to previous questions once answered.\n" +
-                            "⏳ Take your time and review before submitting.",
-
-                    "📊 At the end, you’ll see your results:\n" +
-                            "- Total Correct and Incorrect\n" +
-                            "- Score Percentage\n" +
-                            "- Review of each question and your answer"
-            };
-
-            final int totalPages = infoPages.length;
-            final int[] currentPage = {0};
-
-            // Show initial page
-            infoText.setText(infoPages[currentPage[0]]);
-            Log.d("DEBUG", "Initial Page: " + currentPage[0] + " → " + infoPages[currentPage[0]]);
-
-            prevBtn.setOnClickListener(v -> {
-                if (currentPage[0] > 0) {
-                    currentPage[0]--;
-                    infoText.setText(infoPages[currentPage[0]]);
-                    Log.d("DEBUG", "Prev Page: " + currentPage[0] + " → " + infoPages[currentPage[0]]);
-                }
-            });
-
-            nextBtn.setOnClickListener(v -> {
-                if (currentPage[0] < totalPages - 1) {
-                    currentPage[0]++;
-                    infoText.setText(infoPages[currentPage[0]]);
-                    Log.d("DEBUG", "Next Page: " + currentPage[0] + " → " + infoPages[currentPage[0]]);
-                }
-            });
-
-            AlertDialog dialog = builder.setView(dialogView).create();
-
-            exitBtn.setOnClickListener(v -> dialog.dismiss());
-
+            AlertDialog dialog = builder.create();
+            dialog.setCancelable(false); // Optional: prevent accidental dismissal
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.show();
 
-            Window window = dialog.getWindow();
-            if (window != null) {
-                window.setBackgroundDrawableResource(android.R.color.transparent);
-            }
+            // Fix size after showing to avoid auto-resize issues
+            dialog.getWindow().setLayout(
+                    (int) (getResources().getDisplayMetrics().widthPixels * 0.90),
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+
+            TextView infoText = dialogView.findViewById(R.id.infoText);
+            Button nextButton = dialogView.findViewById(R.id.nextButton);
+            Button prevButton = dialogView.findViewById(R.id.prevButton);
+            ImageButton exitButton = dialogView.findViewById(R.id.exit_button);
+
+            List<String> pages = Arrays.asList(
+                    "1️⃣ There are two types of questions:\n\n🟩 Multiple Choice – Select one correct answer\n🟨 Enumeration – Fill in one or more correct answers",
+                    "2️⃣ Answers are checked instantly. You must submit an answer to proceed.\n✅ Correct answers are shown immediately after submission.",
+                    "3️⃣ Answer colors matter:\n\n🟥 Red = Incorrect\n🟩 Green = Correct",
+                    "4️⃣ Enumeration is scored strictly to help reinforce memorization. This approach enhances learners’ ability to retain information more effectively.\n",
+                    "5️⃣ This is a one-way quiz — you can’t go back once you answer.\n\n🔁 You may restart anytime, but your progress will reset."
+            );
+
+            final int[] currentPage = {0};
+            infoText.setText(pages.get(currentPage[0]));
+
+            prevButton.setEnabled(false); // First page
+
+            nextButton.setOnClickListener(v -> {
+                if (currentPage[0] < pages.size() - 1) {
+                    currentPage[0]++;
+                    infoText.setText(pages.get(currentPage[0]));
+                    prevButton.setEnabled(true);
+                    if (currentPage[0] == pages.size() - 1) nextButton.setEnabled(false);
+                }
+            });
+
+            prevButton.setOnClickListener(v -> {
+                if (currentPage[0] > 0) {
+                    currentPage[0]--;
+                    infoText.setText(pages.get(currentPage[0]));
+                    nextButton.setEnabled(true);
+                    if (currentPage[0] == 0) prevButton.setEnabled(false);
+                }
+            });
+
+            exitButton.setOnClickListener(v -> dialog.dismiss());
         }
+
 
 
 
