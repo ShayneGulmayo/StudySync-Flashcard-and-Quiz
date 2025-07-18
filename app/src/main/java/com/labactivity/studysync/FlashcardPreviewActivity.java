@@ -2,8 +2,6 @@ package com.labactivity.studysync;
 
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
-import android.app.DatePickerDialog;
-import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
@@ -28,7 +26,6 @@ import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -36,7 +33,6 @@ import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.NumberPicker;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
@@ -70,41 +66,35 @@ import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.firebase.firestore.ListenerRegistration;
-
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
-    private TextView titleTextView, ownerTextView, numberOfItemsTextView, privacyText, setReminderTxt;
-    private ImageView ownerPhotoImageView, backButton, moreButton, privacyIcon, saveSetBtn, downloadIcon;
-    private Button startFlashcardBtn, cancelReminderBtn;
+    private TextView titleTextView, ownerTextView, numberOfItemsTextView, setReminderTxt;
+    private ImageView ownerPhotoImageView, backButton, moreButton, saveSetBtn;
+    private Button startFlashcardBtn, cancelReminderBtn, convertBtn;
+    private MaterialButton downloadBtn, setReminderBtn, shareToChatBtn;
+    private LinearLayout linearLayout;
     private ViewPager2 carouselViewPager;
-    private String currentPrivacy, setId, currentReminder, offlineFileName, ownerUid;
+    private String currentPrivacy, setId, offlineFileName, ownerUid, userId, title;
     private String accessLevel = "none";
     private SpringDotsIndicator dotsIndicator;
-    private ListenerRegistration reminderListener;
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private BottomSheetDialog bottomSheetDialog;
     private AlertDialog deleteConfirmationDialog;
-    private DatePickerDialog datePickerDialog;
-    private TimePickerDialog timePickerDialog;
     private boolean isSaved = false;
     private boolean isDownloaded = false;
     private boolean isRedirecting = false;
     private boolean isOffline;
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private Map<String, Object> setData;
-    private String userId, title;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -112,18 +102,15 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_flashcard_preview);
 
-        // Initialize Firebase and UI
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         initializeViews();
         title = "Review Set";
 
-        // Get intent extras
         isOffline = getIntent().getBooleanExtra("isOffline", false);
         offlineFileName = getIntent().getStringExtra("offlineFileName");
-        setId = getIntent().getStringExtra("setId"); // Might be null if offline
+        setId = getIntent().getStringExtra("setId");
 
-        // Check auth status
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser != null) {
             userId = currentUser.getUid();
@@ -133,7 +120,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             Log.d("Auth", "No user is currently signed in.");
         }
 
-        // Handle offline mode
         if (isOffline) {
             if (offlineFileName != null) {
                 loadOfflineSet(offlineFileName);
@@ -142,15 +128,12 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 finish();
                 return;
             }
-        }
-        // Handle online mode
-        else {
+        } else {
             if (setId != null) {
                 fetchSetFromFirestore(setId);
                 loadFlashcardSet();
                 loadFlashcards();
 
-                // Only check saved status if user is signed in
                 if (userId != null) {
                     checkIfSaved();
                 }
@@ -161,7 +144,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             }
         }
 
-        // Load set title regardless of mode
         if (setId != null) {
             db.collection("flashcards")
                     .document(setId)
@@ -176,7 +158,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     });
         }
 
-        // Load reminder state (only if online and setId exists)
         if (setId != null && !isOffline) {
             if (!AlarmHelper.isReminderSet(this, setId)) {
                 cancelReminderBtn.setVisibility(View.GONE);
@@ -188,7 +169,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         loadReminderText();
     }
 
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -198,11 +178,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (reminderListener != null) reminderListener.remove();
         if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) bottomSheetDialog.dismiss();
         if (deleteConfirmationDialog != null && deleteConfirmationDialog.isShowing()) deleteConfirmationDialog.dismiss();
-        if (datePickerDialog != null && datePickerDialog.isShowing()) datePickerDialog.dismiss();
-        if (timePickerDialog != null && timePickerDialog.isShowing()) timePickerDialog.dismiss();
     }
 
     private void initializeViews() {
@@ -218,13 +195,20 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         saveSetBtn = findViewById(R.id.saveQuizBtn);
         setReminderTxt = findViewById(R.id.setRemindersTxt);
         cancelReminderBtn = findViewById(R.id.cancelReminderBtn);
-
-        MaterialButton downloadBtn = findViewById(R.id.downloadBtn);
-        MaterialButton setReminderBtn = findViewById(R.id.setReminderBtn);
+        convertBtn = findViewById(R.id.convertToQuizBtn);
+        shareToChatBtn = findViewById(R.id.shareToChat);
+        downloadBtn = findViewById(R.id.downloadBtn);
+        setReminderBtn = findViewById(R.id.setReminderBtn);
+        linearLayout = findViewById(R.id.reminder_layout);
 
         boolean fromNotification = getIntent().getBooleanExtra("fromNotification", false);
 
-
+        shareToChatBtn.setOnClickListener(view -> {
+            Intent intent = new Intent(this, ChatRoomPickerActivity.class);
+            intent.putExtra("setId", setId);
+            intent.putExtra("setType", "flashcard");
+            startActivity(intent);
+        });
 
         downloadBtn.setOnClickListener(v -> {
             showDownloadOptionsDialog();
@@ -279,6 +263,13 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(this, "You don't have access to start this flashcard set.", Toast.LENGTH_SHORT).show();
             }
+        });
+
+        convertBtn.setOnClickListener(view -> {
+            Intent intent = new Intent(FlashcardPreviewActivity.this, LoadingSetActivity.class);
+            intent.putExtra("convertFromId", setId);
+            intent.putExtra("originalType", "flashcard");
+            startActivity(intent);
         });
 
         cancelReminderBtn.setOnClickListener(v -> {
@@ -397,8 +388,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             cancelReminderBtn.setVisibility(View.GONE);
         }
     }
-
-
 
     private void openUserProfile() {
         if (ownerUid != null) {
@@ -706,7 +695,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
     }
 
-
     private void loadOfflineSet(String fileName) {
         File dir = getFilesDir();
         File file = new File(dir, fileName);
@@ -1011,14 +999,12 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                 Map<String, Object> originalTerms = (Map<String, Object>) originalData.get("terms");
                                 Map<String, Object> copiedTerms = new HashMap<>();
 
-                                // If no flashcards — skip
                                 if (originalTerms == null || originalTerms.isEmpty()) {
                                     copyData.put("terms", copiedTerms);
                                     saveCopiedFlashcardSet(copyData, userId);
                                     return;
                                 }
 
-                                // Track how many images we need to copy
                                 final int[] remainingUploads = {originalTerms.size()};
 
                                 for (Map.Entry<String, Object> entry : originalTerms.entrySet()) {
@@ -1029,10 +1015,9 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                     String oldPhotoPath = (String) originalCard.get("photoPath");
 
                                     if (oldPhotoPath != null && !oldPhotoPath.isEmpty()) {
-                                        // Download and re-upload the image to generate new photoPath and downloadUrl
                                         StorageReference oldRef = FirebaseStorage.getInstance().getReference("flashcard-images/" + oldPhotoPath);
 
-                                        oldRef.getBytes(5 * 1024 * 1024) // max 5MB
+                                        oldRef.getBytes(5 * 1024 * 1024)
                                                 .addOnSuccessListener(bytes -> {
                                                     String newFileName = "flashcard_" + UUID.randomUUID() + ".jpg";
                                                     StorageReference newRef = FirebaseStorage.getInstance().getReference("flashcard-images/" + newFileName);
@@ -1075,7 +1060,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                                 });
 
                                     } else {
-                                        // No image to copy
                                         copiedTerms.put(key, copiedCard);
                                         remainingUploads[0]--;
                                         if (remainingUploads[0] == 0) {
@@ -1119,8 +1103,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 });
     }
 
-
-
     private void showDeleteConfirmationDialog() {
         if (isFinishing() || isDestroyed()) return;
 
@@ -1133,6 +1115,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         deleteConfirmationDialog.show();
     }
+
     private void deleteFlashcardSet() {
         db.collection("flashcards").document(setId)
                 .get()
@@ -1166,7 +1149,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         }
                     }
 
-                    // Now delete the flashcard set document itself
                     db.collection("flashcards").document(setId)
                             .delete()
                             .addOnSuccessListener(aVoid -> {
@@ -1204,7 +1186,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 });
     }
 
-
     private void loadFlashcardSet() {
         if (isOffline) {
             String title = (String) setData.get("title");
@@ -1227,9 +1208,14 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 ownerPhotoImageView.setImageResource(R.drawable.user_profile);
             }
 
-
             moreButton.setVisibility(View.GONE);
             saveSetBtn.setVisibility(View.GONE);
+            convertBtn.setVisibility(View.GONE);
+            downloadBtn.setVisibility(View.GONE);
+            shareToChatBtn.setVisibility(View.GONE);
+            setReminderBtn.setVisibility(View.GONE);
+            cancelReminderBtn.setVisibility(View.GONE);
+            linearLayout.setVisibility(View.GONE);
 
             accessLevel = "view";
 
@@ -1254,7 +1240,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         titleTextView.setText(title != null ? title : "Untitled");
 
                         currentPrivacy = documentSnapshot.getString("privacy") != null ? documentSnapshot.getString("privacy") : "Public";
-                        currentReminder = documentSnapshot.getString("reminder");
 
                         File file = new File(getFilesDir(), "set_" + setId + ".json");
 
@@ -1335,7 +1320,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                             finish();
                             return;
                         }
-
 
                         loadFlashcards();
                     })
@@ -1426,12 +1410,12 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         db.collection("users").document(ownerUid)
                 .get()
                 .addOnSuccessListener(userDoc -> {
-                    if (isFinishing() || isDestroyed()) return; // prevent crash if Activity is gone
+                    if (isFinishing() || isDestroyed()) return;
 
                     if (userDoc.exists()) {
                         String photoUrl = userDoc.getString("photoUrl");
                         if (photoUrl != null && !photoUrl.isEmpty()) {
-                            Glide.with(FlashcardPreviewActivity.this) // explicitly use activity reference
+                            Glide.with(FlashcardPreviewActivity.this)
                                     .load(photoUrl)
                                     .placeholder(R.drawable.user_profile)
                                     .circleCrop()
