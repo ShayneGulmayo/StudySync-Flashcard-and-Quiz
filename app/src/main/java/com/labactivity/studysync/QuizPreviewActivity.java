@@ -121,6 +121,23 @@ public class QuizPreviewActivity extends AppCompatActivity {
         photoUrl = getIntent().getStringExtra("photoUrl");
         title = "Review set";
         quizId = getIntent().getStringExtra("quizId");
+
+        boolean isOffline = getIntent().getBooleanExtra("isOffline", false);
+        String fileName = getIntent().getStringExtra("offlineFileName");
+
+        if (isOffline && fileName != null) {
+            loadOfflineQuiz(fileName);
+        } else {
+            checkIfSaved();
+            loadQuizData(quizId);
+        }
+
+        if (quizId == null) {
+            Toast.makeText(this, "No quiz ID provided", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
         loadReminderText();
 
         FirebaseFirestore.getInstance()
@@ -136,26 +153,13 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to fetch set title.", Toast.LENGTH_SHORT).show();
                 });
 
-        boolean isOffline = getIntent().getBooleanExtra("isOffline", false);
-        String fileName = getIntent().getStringExtra("offlineFileName");
 
-
-        if (isOffline && fileName != null) {
-            loadOfflineQuiz(fileName);
-        } else if (quizId != null) {
-            checkIfSaved();
-            loadQuizData(quizId);
-        } else {
-            Toast.makeText(this, "No quiz ID provided", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
 
         saveQuizBtn.setOnClickListener(v -> toggleSaveState());
 
         shareToChatBtn.setOnClickListener(view -> {
             Intent intent = new Intent(this, ChatRoomPickerActivity.class);
-            intent.putExtra("setId", quizId);
+            intent.putExtra("quizId", quizId);
             intent.putExtra("setType", "quiz");
             startActivity(intent);
         });
@@ -187,11 +191,13 @@ public class QuizPreviewActivity extends AppCompatActivity {
             }
             showDateTimePicker();
         });
+
         if (!AlarmHelper.isReminderSet(this, quizId)) {
             cancelReminderBtn.setVisibility(View.GONE);
         } else {
             cancelReminderBtn.setVisibility(View.VISIBLE);
         }
+
         cancelReminderBtn.setOnClickListener(v -> {
             AlarmHelper.cancelAlarm(this, quizId);
             setReminderTxt.setText("No reminder set");
@@ -211,6 +217,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
             startActivity(intent);
         });
     }
+
 
 
 
@@ -607,7 +614,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
         sendToChatBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
             Intent intent = new Intent(this, ChatRoomPickerActivity.class);
-            intent.putExtra("setId", quizId);
+            intent.putExtra("quizId", quizId);
             intent.putExtra("setType", "quiz");
             startActivity(intent);
         });
