@@ -1,5 +1,6 @@
 package com.labactivity.studysync.fragments;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
@@ -21,6 +22,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.labactivity.studysync.DownloadedSetsActivity;
 import com.labactivity.studysync.LoginActivity;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.UserSettingsActivity;
@@ -33,7 +35,7 @@ import java.util.*;
 public class UserProfileFragment extends Fragment {
 
     private TextView userFullName, usernameTxt;
-    private MaterialButton settingsBtn, logoutBtn;
+    private MaterialButton settingsBtn, logoutBtn, downloadedSetBtn;
     private ImageView profileImage;
 
     private FirebaseAuth mAuth;
@@ -48,6 +50,7 @@ public class UserProfileFragment extends Fragment {
     private static final String BUCKET_NAME = "user-files";
     private static final String FOLDER = "profile-photos";
 
+    @SuppressLint("MissingInflatedId")
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -64,6 +67,7 @@ public class UserProfileFragment extends Fragment {
         profileImage = view.findViewById(R.id.profileImage);
         settingsBtn = view.findViewById(R.id.settingsBtn);
         logoutBtn = view.findViewById(R.id.logoutBtn);
+        downloadedSetBtn = view.findViewById(R.id.downloadedSetBtn);
 
         loadUserData();
 
@@ -71,6 +75,9 @@ public class UserProfileFragment extends Fragment {
 
         settingsBtn.setOnClickListener(v ->
                 startActivity(new Intent(getActivity(), UserSettingsActivity.class)));
+
+        downloadedSetBtn.setOnClickListener(v ->
+                startActivity(new Intent(getActivity(), DownloadedSetsActivity.class)));
 
         logoutBtn.setOnClickListener(v -> {
             String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();

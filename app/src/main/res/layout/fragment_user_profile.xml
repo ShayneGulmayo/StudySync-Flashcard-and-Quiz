@@ -93,6 +93,26 @@
             tools:ignore="RtlCompat" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/downloadedSetBtn"
+            android:layout_width="300dp"
+            android:layout_height="60dp"
+            android:layout_marginTop="8dp"
+            android:text="Downloaded Sets"
+            android:textAlignment="textStart"
+            android:textColor="@color/primary"
+            android:textSize="16sp"
+            app:backgroundTint="@color/white"
+            app:cornerRadius="16dp"
+            app:icon="@drawable/folder_filled"
+            app:iconGravity="start"
+            app:iconPadding="32dp"
+            app:iconSize="24dp"
+            app:iconTint="@color/primary"
+            app:strokeColor="@color/primary"
+            app:strokeWidth="2dp"
+            tools:ignore="RtlCompat" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/logoutBtn"
             android:layout_width="300dp"
             android:layout_height="60dp"

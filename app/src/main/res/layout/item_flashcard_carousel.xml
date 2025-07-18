@@ -12,6 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="230dp"
         android:background="@color/white"
+        app:cardCornerRadius="15dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -36,6 +37,7 @@
         android:layout_height="230dp"
         android:background="@color/white"
         android:padding="16dp"
+        app:cardCornerRadius="15dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
