@@ -16,18 +16,21 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
+
 import com.bumptech.glide.Glide;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
 import com.yalantis.ucrop.UCrop;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -40,7 +43,6 @@ import java.util.UUID;
 
 public class CreateFlashcardActivity extends AppCompatActivity {
 
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
     private EditText setNameEditText;
     private LinearLayout flashcardContainer;
     private FirebaseFirestore db;
@@ -51,6 +53,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
     private TextView roleTxt, privacyTxt;
     private ImageView privacyIcon;
     private boolean isPublic = true;
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -87,9 +90,11 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         );
 
         setId = getIntent().getStringExtra("setId");
+
         if (setId != null) {
             loadFlashcardSetForEdit(setId);
         } else {
+            setId = FirebaseFirestore.getInstance().collection("flashcards").document().getId();
             addFlashcardView();
             addFlashcardView();
         }
@@ -391,11 +396,16 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 }
             }
 
-            String uid = auth.getCurrentUser().getUid(); // Get current user UID
+            String uid = auth.getCurrentUser().getUid();
             String fileName = "flashcard_" + UUID.randomUUID() + ".jpg";
-            String fullPath = uid + "/" + fileName; // Organized path under UID
+            if (setId == null) {
+                Toast.makeText(this, "Set ID not yet generated. Please save the set name first.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String fullPath = uid + "/" + setId + "/" + fileName;
             StorageReference storageRef = FirebaseStorage.getInstance()
                     .getReference("flashcard-images/" + fullPath);
+
 
             storageRef.putFile(Uri.fromFile(file))
                     .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl()
@@ -405,7 +415,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
                                 Map<String, String> newImageData = new HashMap<>();
                                 newImageData.put("photoUrl", newPhotoUrl);
-                                newImageData.put("photoPath", fullPath); // Save full path for delete reference
+                                newImageData.put("photoPath", fullPath);
                                 imageView.setTag(newImageData);
 
                                 Toast.makeText(this, "Image uploaded", Toast.LENGTH_SHORT).show();
@@ -416,7 +426,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             Toast.makeText(this, "Image error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
-
 
     public static File getFileFromUri(Context context, Uri uri) throws Exception {
         ContentResolver contentResolver = context.getContentResolver();
