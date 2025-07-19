@@ -9,11 +9,13 @@
     android:background="@color/white"
     tools:context=".FlashcardProgressActivity">
 
-    <RelativeLayout
+    <LinearLayout
         android:id="@+id/navigation_bar"
         android:layout_width="0dp"
         android:layout_height="70dp"
+        android:orientation="horizontal"
         android:background="@color/white"
+        android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -30,15 +32,18 @@
 
         <TextView
             android:id="@+id/flashcard_title"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:maxLines="1"
+            android:ellipsize="end"
             android:text="@string/flashcard_name"
             android:textColor="@color/black"
             android:textSize="18sp"
-            android:textStyle="bold" />
-    </RelativeLayout>
+            android:textStyle="bold"
+            android:layout_marginEnd="60dp"
+            android:textAlignment="center"/>
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
