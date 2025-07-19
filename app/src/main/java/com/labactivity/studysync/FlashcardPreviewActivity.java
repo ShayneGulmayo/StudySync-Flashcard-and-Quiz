@@ -266,11 +266,26 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         });
 
         convertBtn.setOnClickListener(view -> {
-            Intent intent = new Intent(FlashcardPreviewActivity.this, LoadingSetActivity.class);
-            intent.putExtra("convertFromId", setId);
-            intent.putExtra("originalType", "flashcard");
-            startActivity(intent);
+            new AlertDialog.Builder(FlashcardPreviewActivity.this)
+                    .setTitle("Choose Question Format")
+                    .setMessage("Which part should be used as the question?")
+                    .setPositiveButton("Definition", (dialog, which) -> {
+                        Intent intent = new Intent(FlashcardPreviewActivity.this, LoadingSetActivity.class);
+                        intent.putExtra("convertFromId", setId);
+                        intent.putExtra("originalType", "flashcard");
+                        intent.putExtra("flashToQuizQuestionIsDefinition", true); // Definition as question
+                        startActivity(intent);
+                    })
+                    .setNegativeButton("Term", (dialog, which) -> {
+                        Intent intent = new Intent(FlashcardPreviewActivity.this, LoadingSetActivity.class);
+                        intent.putExtra("convertFromId", setId);
+                        intent.putExtra("originalType", "flashcard");
+                        intent.putExtra("flashToQuizQuestionIsDefinition", false); // Term as question
+                        startActivity(intent);
+                    })
+                    .show();
         });
+
 
         cancelReminderBtn.setOnClickListener(v -> {
             AlarmHelper.cancelAlarm(this, setId);

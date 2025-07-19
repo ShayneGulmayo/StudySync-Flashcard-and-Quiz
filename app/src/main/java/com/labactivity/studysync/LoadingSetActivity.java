@@ -39,6 +39,8 @@ public class LoadingSetActivity extends AppCompatActivity {
     private final Executor executor = Executors.newSingleThreadExecutor();
 
     private String setType;
+    private boolean flashToQuizQuestionIsDefinition;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +49,8 @@ public class LoadingSetActivity extends AppCompatActivity {
 
         setType = getIntent().getStringExtra("setType");
         String fileType = getIntent().getStringExtra("type");
+        flashToQuizQuestionIsDefinition = getIntent().getBooleanExtra("flashToQuizQuestionIsDefinition", false);
+
 
         String convertFromId = getIntent().getStringExtra("convertFromId");
         String originalType = getIntent().getStringExtra("originalType");
@@ -90,8 +94,8 @@ public class LoadingSetActivity extends AppCompatActivity {
     }
     public void convertExistingSet(String originalType, String setId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-
         String collection = "flashcard".equals(originalType) ? "flashcards" : "quiz";
+
         db.collection(collection).document(setId).get()
                 .addOnSuccessListener(doc -> {
                     if (!doc.exists()) {
@@ -107,7 +111,6 @@ public class LoadingSetActivity extends AppCompatActivity {
                         if (questions != null) {
                             for (Map<String, Object> q : questions) {
                                 inputBuilder.append("Q: ").append(q.get("question")).append("\n");
-
                                 Object correct = q.get("correctAnswer");
                                 if (correct instanceof List) {
                                     List<String> correctAnswers = (List<String>) correct;
@@ -121,9 +124,21 @@ public class LoadingSetActivity extends AppCompatActivity {
                         Map<String, Map<String, String>> terms = (Map<String, Map<String, String>>) doc.get("terms");
                         if (terms != null) {
                             for (Map<String, String> entry : terms.values()) {
-                                inputBuilder.append("Q: What is ").append(entry.get("term")).append("?\n");
-                                inputBuilder.append("A: ").append(entry.get("definition")).append("\n");
+                                String term = entry.get("term");
+                                String definition = entry.get("definition");
+                                if (flashToQuizQuestionIsDefinition) {
+                                    inputBuilder.append("Q: ").append(definition).append("\n");
+                                    inputBuilder.append("A: ").append(term).append("\n");
+                                } else {
+                                    inputBuilder.append("Q: ").append(term).append("\n");
+                                    inputBuilder.append("A: ").append(definition).append("\n");
+                                }
                             }
+                            inputBuilder.append("\nConvert the above flashcards into multiple choice quiz questions. ");
+                            inputBuilder.append("Use the ").append(flashToQuizQuestionIsDefinition ? "definition" : "term").append(" as the question. ");
+                            inputBuilder.append("Each question must have exactly 4 options: the correct answer and 3 contextually related but incorrect distractors. ");
+                            inputBuilder.append("Use type: \"multiple choice\" only. ");
+                            inputBuilder.append("Return only JSON in this format:\n").append(getConvertQuizPrompt("flashcard"));
                         }
                     }
 
@@ -134,6 +149,7 @@ public class LoadingSetActivity extends AppCompatActivity {
                     showError("Failed to fetch original set.");
                 });
     }
+
 
 
     private void runGeminiModel(byte[] data, String mimeType) {
@@ -373,6 +389,22 @@ public class LoadingSetActivity extends AppCompatActivity {
         buffer.flush();
         return buffer.toByteArray();
     }
+    private String getConvertQuizPrompt(String source) {
+        return "From the contents of this " + source + ", generate a JSON object ONLY in the following structure:\n" +
+                "{\n" +
+                "  \"title\": \"<Descriptive title>\",\n" +
+                "  \"questions\": [\n" +
+                "    {\n" +
+                "      \"question\": \"<Question text>\",\n" +
+                "      \"type\": \"multiple choice\",\n" +
+                "      \"choices\": [\"Option 1\", \"Option 2\", \"Option 3\", \"Option 4\"],\n" +
+                "      \"correctAnswer\": \"Correct Answer\"\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}\n" +
+                "Use ONLY multiple choice format. Do not use enumeration. All incorrect answers must be plausible but incorrect in context.";
+    }
+
 
     private String getFlashcardPrompt(String source) {
         return "From the contents of this " + source + ", generate a JSON object ONLY in the following structure:\n" +
