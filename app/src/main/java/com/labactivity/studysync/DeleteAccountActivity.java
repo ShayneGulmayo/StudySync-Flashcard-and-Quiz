@@ -15,6 +15,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
@@ -27,12 +30,6 @@ import com.google.firebase.storage.StorageReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import com.google.android.gms.auth.api.signin.GoogleSignIn;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.firebase.auth.GoogleAuthProvider;
-
-
 
 public class DeleteAccountActivity extends AppCompatActivity {
 
@@ -133,6 +130,11 @@ public class DeleteAccountActivity extends AppCompatActivity {
             // Step 1: Flag as deleted and wipe owned/saved sets
             Task<Void> flagUser = db.collection("users").document(userId)
                     .update("isDeleted", true,
+                            "firstName", "User",
+                            "lastName", "Not Found",
+                            "username", "UserNotFound",
+                            "photoFileName", null,
+                            "photoUrl", null,
                             "owned_sets", new ArrayList<>(),
                             "saved_sets", new ArrayList<>());
             allTasks.add(flagUser);
@@ -163,8 +165,7 @@ public class DeleteAccountActivity extends AppCompatActivity {
 
                                 allTasks.add(deleteFlashcard);
 
-                                // 🔥 Delete flashcard images
-                                deleteUserStorageFolder("flashcard-images/" + userId);
+                                deleteNestedFolder("flashcard-images/" + userId);
 
                             } else if (type.equals("quiz")) {
                                 Log.d(TAG, "Deleting quiz set: " + setId);
@@ -184,7 +185,7 @@ public class DeleteAccountActivity extends AppCompatActivity {
                                 allTasks.add(deleteQuiz);
 
                                 // 🔥 Delete quiz images
-                                deleteUserStorageFolder("quiz_images/" + userId);
+                                deleteNestedFolder("quiz_images/" + userId);
                             }
                         }
                     }
@@ -225,8 +226,15 @@ public class DeleteAccountActivity extends AppCompatActivity {
 
             }
 
+            // Step 6: Delete userprofile from storage
+            deleteUserStorageFolder("user-profile/" + userId);
+
             // Step 3: Delete user_chat_status
-            allTasks.add(deleteCollection("user_chat_status", "userId", userId));
+            allTasks.add(FirebaseFirestore.getInstance()
+                    .collection("user_chat_status")
+                    .document(userId)
+                    .delete()
+            );
 
             // Step 4: Handle chatroom ownership/removal
             allTasks.add(handleChatRoomMemberships(userId));
@@ -246,6 +254,7 @@ public class DeleteAccountActivity extends AppCompatActivity {
                         Log.e(TAG, "Failed to deactivate: " + e.getMessage());
                         Toast.makeText(this, "Deactivation failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     });
+
 
         }).addOnFailureListener(e -> {
             Log.e(TAG, "Failed to load user: " + e.getMessage());
@@ -276,7 +285,7 @@ public class DeleteAccountActivity extends AppCompatActivity {
                     List<Task<Void>> updateTasks = new ArrayList<>();
 
                     for (DocumentSnapshot chatRoom : task.getResult()) {
-                        String chatRoomId = chatRoom.getId();
+                        String roomId = chatRoom.getId();
                         List<String> members = (List<String>) chatRoom.get("members");
                         String ownerId = chatRoom.getString("ownerId");
 
@@ -300,8 +309,8 @@ public class DeleteAccountActivity extends AppCompatActivity {
                             } else {
                                 // If user is sole member, delete the chat room
                                 updateTasks.add(chatRoom.getReference().delete());
-                                deleteStorageFolder("chat-room-files/" + chatRoomId);
-                                deleteStorageFolder("chat_room_images/" + chatRoomId);
+                                deleteStorageFolder("chat-room-files/" + roomId);
+                                deleteStorageFolder("chat_room_images/" + roomId);
                             }
                         }
                         // ❗ We no longer update members list if user is not owner
@@ -310,7 +319,6 @@ public class DeleteAccountActivity extends AppCompatActivity {
                     return Tasks.whenAll(updateTasks);
                 });
     }
-
 
     private void deleteStorageFolder(String path) {
         StorageReference folderRef = FirebaseStorage.getInstance().getReference().child(path);
@@ -325,47 +333,24 @@ public class DeleteAccountActivity extends AppCompatActivity {
                 Log.w(TAG, "Folder not found: " + path + " | " + e.getMessage()));
     }
 
-    private Task<Void> deleteUserMessages(String userId) {
-        return db.collection("chat_rooms")
-                .get()
-                .continueWithTask(task -> {
-                    List<Task<Void>> deleteTasks = new ArrayList<>();
+    private void deleteNestedFolder(String basePath) {
+        StorageReference baseRef = FirebaseStorage.getInstance().getReference().child(basePath);
 
-                    for (DocumentSnapshot chatRoom : task.getResult()) {
-                        String chatRoomId = chatRoom.getId();
-                        Task<Void> deleteMessages = db.collection("chat_rooms")
-                                .document(chatRoomId)
-                                .collection("messages")
-                                .whereEqualTo("senderId", userId)
-                                .get()
-                                .continueWithTask(messageTask -> {
-                                    List<Task<Void>> innerTasks = new ArrayList<>();
-                                    for (DocumentSnapshot messageDoc : messageTask.getResult()) {
-                                        Log.d(TAG, "Deleting message in chatRoomId [" + chatRoomId + "]: " + messageDoc.getId());
-                                        innerTasks.add(messageDoc.getReference().delete());
-                                    }
-                                    return Tasks.whenAll(innerTasks);
-                                });
-
-                        deleteTasks.add(deleteMessages);
+        baseRef.listAll().addOnSuccessListener(result -> {
+            // Loop through each subfolder like setId or quizId
+            for (StorageReference subfolder : result.getPrefixes()) {
+                subfolder.listAll().addOnSuccessListener(files -> {
+                    for (StorageReference file : files.getItems()) {
+                        file.delete().addOnSuccessListener(aVoid ->
+                                        Log.d(TAG, "Deleted file: " + file.getPath()))
+                                .addOnFailureListener(e ->
+                                        Log.e(TAG, "Failed to delete: " + file.getPath() + " - " + e.getMessage()));
                     }
-
-                    return Tasks.whenAll(deleteTasks);
-                });
+                }).addOnFailureListener(e ->
+                        Log.e(TAG, "Failed to list subfolder: " + subfolder.getPath() + " - " + e.getMessage()));
+            }
+        }).addOnFailureListener(e ->
+                Log.e(TAG, "Failed to list base folder: " + basePath + " - " + e.getMessage()));
     }
 
-
-
-    private Task<Void> deleteCollection(String collectionName, String field, String userId) {
-        return db.collection(collectionName)
-                .whereEqualTo(field, userId)
-                .get()
-                .continueWithTask(task -> {
-                    List<Task<Void>> deleteTasks = new ArrayList<>();
-                    for (DocumentSnapshot doc : task.getResult().getDocuments()) {
-                        deleteTasks.add(doc.getReference().delete());
-                    }
-                    return Tasks.whenAll(deleteTasks);
-                });
-    }
 }
