@@ -75,7 +75,7 @@ public class DeleteAccountActivity extends AppCompatActivity {
 
                 new AlertDialog.Builder(this)
                         .setTitle("Are you sure?")
-                        .setMessage("This will deactivate your account. Messages will remain, but profile and sets will show as 'not found'. This action is permanent.")
+                        .setMessage("This will delete your account. This action is permanent.")
                         .setPositiveButton("Yes", (dialog, which) -> showReAuthDialog())
                         .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                         .show();
@@ -127,19 +127,17 @@ public class DeleteAccountActivity extends AppCompatActivity {
         db.collection("users").document(userId).get().addOnSuccessListener(userDoc -> {
             List<Task<Void>> allTasks = new ArrayList<>();
 
-            // Step 1: Flag as deleted and wipe owned/saved sets
             Task<Void> flagUser = db.collection("users").document(userId)
                     .update("isDeleted", true,
                             "firstName", "User",
                             "lastName", "Not Found",
-                            "username", "UserNotFound",
+                            "username", "User Not Found",
                             "photoFileName", null,
                             "photoUrl", null,
                             "owned_sets", new ArrayList<>(),
                             "saved_sets", new ArrayList<>());
             allTasks.add(flagUser);
 
-            // Step 2: Delete actual owned sets
             if (userDoc.exists() && userDoc.contains("owned_sets")) {
                 List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userDoc.get("owned_sets");
                 if (ownedSets != null) {
@@ -184,14 +182,12 @@ public class DeleteAccountActivity extends AppCompatActivity {
 
                                 allTasks.add(deleteQuiz);
 
-                                // 🔥 Delete quiz images
                                 deleteNestedFolder("quiz_images/" + userId);
                             }
                         }
                     }
                 }
 
-                // Delete attempts from saved_sets
                 if (userDoc.contains("saved_sets")) {
                     List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
                     if (savedSets != null) {
@@ -226,20 +222,16 @@ public class DeleteAccountActivity extends AppCompatActivity {
 
             }
 
-            // Step 6: Delete userprofile from storage
             deleteUserStorageFolder("user-profile/" + userId);
 
-            // Step 3: Delete user_chat_status
             allTasks.add(FirebaseFirestore.getInstance()
                     .collection("user_chat_status")
                     .document(userId)
                     .delete()
             );
 
-            // Step 4: Handle chatroom ownership/removal
             allTasks.add(handleChatRoomMemberships(userId));
 
-            // Step 5: Delete account after all is done
             Tasks.whenAllComplete(allTasks)
                     .addOnSuccessListener(done -> {
                         currentUser.delete().addOnSuccessListener(task -> {
@@ -254,8 +246,6 @@ public class DeleteAccountActivity extends AppCompatActivity {
                         Log.e(TAG, "Failed to deactivate: " + e.getMessage());
                         Toast.makeText(this, "Deactivation failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     });
-
-
         }).addOnFailureListener(e -> {
             Log.e(TAG, "Failed to load user: " + e.getMessage());
             Toast.makeText(this, "Error fetching user data.", Toast.LENGTH_SHORT).show();
@@ -289,12 +279,8 @@ public class DeleteAccountActivity extends AppCompatActivity {
                         List<String> members = (List<String>) chatRoom.get("members");
                         String ownerId = chatRoom.getString("ownerId");
 
-                        // ❌ Do not remove user from members
-                        // ✅ Retain user in chatroom so messages stay linked
-
                         if (ownerId != null && ownerId.equals(userId)) {
                             if (members != null && members.size() > 1) {
-                                // Choose new owner that isn't the current user
                                 String newOwner = null;
                                 for (String m : members) {
                                     if (!m.equals(userId)) {
@@ -307,15 +293,12 @@ public class DeleteAccountActivity extends AppCompatActivity {
                                     updateTasks.add(chatRoom.getReference().update("ownerId", newOwner));
                                 }
                             } else {
-                                // If user is sole member, delete the chat room
                                 updateTasks.add(chatRoom.getReference().delete());
                                 deleteStorageFolder("chat-room-files/" + roomId);
                                 deleteStorageFolder("chat_room_images/" + roomId);
                             }
                         }
-                        // ❗ We no longer update members list if user is not owner
                     }
-
                     return Tasks.whenAll(updateTasks);
                 });
     }
@@ -337,7 +320,6 @@ public class DeleteAccountActivity extends AppCompatActivity {
         StorageReference baseRef = FirebaseStorage.getInstance().getReference().child(basePath);
 
         baseRef.listAll().addOnSuccessListener(result -> {
-            // Loop through each subfolder like setId or quizId
             for (StorageReference subfolder : result.getPrefixes()) {
                 subfolder.listAll().addOnSuccessListener(files -> {
                     for (StorageReference file : files.getItems()) {
@@ -352,5 +334,4 @@ public class DeleteAccountActivity extends AppCompatActivity {
         }).addOnFailureListener(e ->
                 Log.e(TAG, "Failed to list base folder: " + basePath + " - " + e.getMessage()));
     }
-
 }

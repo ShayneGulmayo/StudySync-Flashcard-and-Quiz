@@ -100,15 +100,20 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
         boolean isAdmin = admins != null && admins.contains(currentUserId);
         boolean targetIsAdmin = admins != null && admins.contains(targetUid);
 
-        // Permissions
-        setOwner.setVisibility(isOwner ? View.VISIBLE : View.GONE);
-        setAdmin.setVisibility((isOwner || isAdmin) ? View.VISIBLE : View.GONE);
-        remove.setVisibility((isOwner || isAdmin) ? View.VISIBLE : View.GONE);
+        boolean isDeleted = target.getUser().isDeleted();
 
-        // Dynamic admin label
+        if (!isDeleted) {
+            setOwner.setVisibility(View.GONE);
+            setAdmin.setVisibility(View.GONE);
+            remove.setVisibility(View.VISIBLE);
+        } else {
+            setOwner.setVisibility(isOwner ? View.VISIBLE : View.GONE);
+            setAdmin.setVisibility((isOwner || isAdmin) ? View.VISIBLE : View.GONE);
+            remove.setVisibility((isOwner || isAdmin) ? View.VISIBLE : View.GONE);
+        }
+
         setAdmin.setText(targetIsAdmin ? "Remove from Admin" : "Set as Admin");
 
-        // Transfer Ownership
         setOwner.setOnClickListener(v -> {
             sheet.dismiss();
             confirm("Transfer ownership to " + targetName + "?", () -> {
@@ -117,7 +122,6 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
             });
         });
 
-        // Set/Remove Admin
         setAdmin.setOnClickListener(v -> {
             sheet.dismiss();
             String action = targetIsAdmin ? "removed from admin" : "set as admin";
@@ -134,7 +138,6 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
             });
         });
 
-        // Remove Member
         remove.setOnClickListener(v -> {
             sheet.dismiss();
             confirm("Remove " + targetName + " from the chat room?", () -> {

@@ -1,12 +1,13 @@
 package com.labactivity.studysync.models;
+
 public class User {
     private String uid;
     private String firstName;
     private String lastName;
     private String username;
     private String photoUrl;
+    private boolean isDeleted;
 
-    // Required empty constructor for Firestore
     public User() {}
 
     public User(String uid, String firstName, String lastName, String username, String photoUrl) {
@@ -75,6 +76,15 @@ public class User {
     public int hashCode() {
         return uid != null ? uid.hashCode() : 0;
     }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
+    }
+
 }
 
 
