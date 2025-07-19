@@ -239,7 +239,7 @@ public class LoadingSetActivity extends AppCompatActivity {
                         }
                         item.put("correctAnswer", correctAnswers);
                     } else {
-                        item.put("correctAnswer", correct.toString());
+                        item.put("correctAnswer", Collections.singletonList(correct.toString()));
                     }
 
                     questions.add(item);
