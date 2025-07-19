@@ -22,11 +22,11 @@ import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
 import com.labactivity.studysync.DownloadedSetsActivity;
 import com.labactivity.studysync.LoginActivity;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.UserSettingsActivity;
-import com.labactivity.studysync.utils.SupabaseUploader;
 import com.yalantis.ucrop.UCrop;
 
 import java.io.File;
@@ -46,7 +46,7 @@ public class UserProfileFragment extends Fragment {
 
     private String previousFileName;
 
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
     private static final String BUCKET_NAME = "user-files";
     private static final String FOLDER = "profile-photos";
 
@@ -100,7 +100,6 @@ public class UserProfileFragment extends Fragment {
                         startActivity(intent);
                     });
         });
-
 
         galleryLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -170,63 +169,60 @@ public class UserProfileFragment extends Fragment {
                     return;
                 }
 
-                String mimeType = getMimeType(imageFile);
-                if (mimeType == null) {
-                    Toast.makeText(getContext(), "Unsupported file type", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+                String extension = MimeTypeMap.getFileExtensionFromUrl(resultUri.toString());
+                if (extension == null) extension = "jpg";
 
-                String fileName = "profile_" + currentUser.getUid() + "_" + System.currentTimeMillis() + ".jpg";
-                String fullPath = FOLDER + "/" + fileName;
+                String fileName = "profile_" + System.currentTimeMillis() + "." + extension;
+                String storagePath = "user-profile/" + currentUser.getUid() + "/" + fileName;
 
                 if (previousFileName != null && !previousFileName.isEmpty()) {
-                    SupabaseUploader.deleteFile(BUCKET_NAME, FOLDER + "/" + previousFileName, (success, msg, ignored) -> {
-                        if (success) {
-                            System.out.println("Previous image deleted.");
-                        } else {
-                            System.out.println("Failed to delete previous image: " + msg);
-                        }
-                    });
+                    String oldPath = "user-profile/" + currentUser.getUid() + "/" + previousFileName;
+                    FirebaseStorage.getInstance().getReference(oldPath).delete()
+                            .addOnSuccessListener(aVoid -> System.out.println("Previous image deleted."))
+                            .addOnFailureListener(e -> System.out.println("Failed to delete previous image: " + e.getMessage()));
                 }
 
-                // Upload new image
-                SupabaseUploader.uploadFile(imageFile, BUCKET_NAME, fullPath, (success, message, publicUrl) -> {
-                    if (success && publicUrl != null) {
-                        Map<String, Object> updates = new HashMap<>();
-                        updates.put("photoUrl", publicUrl);
-                        updates.put("photoFileName", fileName);
+                FirebaseStorage.getInstance().getReference(storagePath)
+                        .putFile(resultUri)
+                        .addOnSuccessListener(taskSnapshot -> {
+                            taskSnapshot.getStorage().getDownloadUrl()
+                                    .addOnSuccessListener(uri -> {
+                                        String downloadUrl = uri.toString();
 
-                        db.collection("users").document(currentUser.getUid())
-                                .update(updates)
-                                .addOnSuccessListener(unused -> requireActivity().runOnUiThread(() -> {
-                                    if (isAdded() && getContext() != null) {
-                                        Glide.with(requireContext())
-                                                .load(publicUrl)
-                                                .placeholder(R.drawable.user_profile)
-                                                .error(R.drawable.user_profile)
-                                                .circleCrop()
-                                                .into(profileImage);
-                                    }
-                                    Toast.makeText(getContext(), "Profile photo updated", Toast.LENGTH_SHORT).show();
-                                    previousFileName = fileName;
-                                }));
-                    } else {
-                        requireActivity().runOnUiThread(() ->
-                                Toast.makeText(getContext(), "Upload failed: " + message, Toast.LENGTH_SHORT).show());
-                    }
-                });
+                                        Map<String, Object> updates = new HashMap<>();
+                                        updates.put("photoUrl", downloadUrl);
+                                        updates.put("photoFileName", fileName);
+
+                                        db.collection("users").document(currentUser.getUid())
+                                                .update(updates)
+                                                .addOnSuccessListener(unused -> requireActivity().runOnUiThread(() -> {
+                                                    if (isAdded() && getContext() != null) {
+                                                        Glide.with(requireContext())
+                                                                .load(downloadUrl)
+                                                                .placeholder(R.drawable.user_profile)
+                                                                .error(R.drawable.user_profile)
+                                                                .circleCrop()
+                                                                .into(profileImage);
+                                                    }
+
+                                                    Toast.makeText(getContext(), "Profile photo updated", Toast.LENGTH_SHORT).show();
+                                                    previousFileName = fileName;
+                                                }))
+                                                .addOnFailureListener(e ->
+                                                        Toast.makeText(getContext(), "Failed to update Firestore", Toast.LENGTH_SHORT).show()
+                                                );
+                                    })
+                                    .addOnFailureListener(e ->
+                                            Toast.makeText(getContext(), "Failed to get image URL", Toast.LENGTH_SHORT).show()
+                                    );
+                        })
+                        .addOnFailureListener(e ->
+                                Toast.makeText(getContext(), "Upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                        );
             }
         } else if (resultCode == UCrop.RESULT_ERROR) {
             Throwable cropError = UCrop.getError(data);
             Toast.makeText(getContext(), "Crop error: " + (cropError != null ? cropError.getMessage() : "Unknown error"), Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private String getMimeType(File file) {
-        String extension = MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(file).toString());
-        if (extension != null) {
-            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase());
-        }
-        return null;
     }
 }

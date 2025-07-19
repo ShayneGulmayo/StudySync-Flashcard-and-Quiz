@@ -27,7 +27,7 @@ import androidx.core.content.FileProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.labactivity.studysync.utils.SupabaseUploader;
+import com.google.firebase.storage.FirebaseStorage;
 import com.yalantis.ucrop.UCrop;
 
 import java.io.File;
@@ -213,31 +213,26 @@ public class UserSetUpProfileActivity extends AppCompatActivity {
                                 return;
                             }
 
-                            String mimeType = getMimeType(Uri.fromFile(file));
-                            String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
-                            if (extension == null) extension = "jpg"; // fallback
-
-                            String filename = "profile_" + uid + "_" + System.currentTimeMillis() + extension;
-                            String bucket = "user-files";
-                            String path = filename;
-
-                            SupabaseUploader.uploadFile(file, bucket, path, (success, message, publicUrl) -> {
-                                runOnUiThread(() -> {
-                                    if (success) {
-                                        db.collection("users").document(uid)
-                                                .update("photoUrl", publicUrl)
-                                                .addOnSuccessListener(aVoid -> {
-                                                    Toast.makeText(UserSetUpProfileActivity.this, "Profile saved with image", Toast.LENGTH_SHORT).show();
-                                                    startActivity(new Intent(UserSetUpProfileActivity.this, MainActivity.class));
-                                                    finish();
-                                                });
-                                    } else {
-                                        Toast.makeText(UserSetUpProfileActivity.this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
-                                        startActivity(new Intent(UserSetUpProfileActivity.this, MainActivity.class));
-                                        finish();
-                                    }
-                                });
-                            });
+                            db.collection("users").document(uid).get()
+                                    .addOnSuccessListener(snapshot -> {
+                                        if (snapshot.exists()) {
+                                            String oldFilename = snapshot.getString("photoFileName");
+                                            if (oldFilename != null && !oldFilename.isEmpty()) {
+                                                String oldPath = "user-profile/" + uid + "/" + oldFilename;
+                                                FirebaseStorage.getInstance().getReference(oldPath).delete()
+                                                        .addOnSuccessListener(aVoid -> {
+                                                            uploadNewProfileImage(uid, file, selectedImageUri);
+                                                        })
+                                                        .addOnFailureListener(e -> {
+                                                            uploadNewProfileImage(uid, file, selectedImageUri);
+                                                        });
+                                            } else {
+                                                uploadNewProfileImage(uid, file, selectedImageUri);
+                                            }
+                                        } else {
+                                            uploadNewProfileImage(uid, file, selectedImageUri);
+                                        }
+                                    });
                         } catch (Exception e) {
                             Toast.makeText(this, "Error preparing image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
@@ -246,6 +241,40 @@ public class UserSetUpProfileActivity extends AppCompatActivity {
                         startActivity(new Intent(this, MainActivity.class));
                         finish();
                     }
+                });
+    }
+
+    private void uploadNewProfileImage(String uid, File file, Uri selectedImageUri) {
+        String mimeType = getMimeType(Uri.fromFile(file));
+        String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+        if (extension == null) extension = "jpg";
+
+        String filename = "profile_" + System.currentTimeMillis() + "." + extension;
+        String path = "user-profile/" + uid + "/" + filename;
+
+        FirebaseStorage.getInstance().getReference(path)
+                .putFile(selectedImageUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    taskSnapshot.getStorage().getDownloadUrl()
+                            .addOnSuccessListener(uri -> {
+                                Map<String, Object> update = new HashMap<>();
+                                update.put("photoUrl", uri.toString());
+                                update.put("photoFileName", filename);
+
+                                db.collection("users").document(uid)
+                                        .update(update)
+                                        .addOnSuccessListener(aVoid -> {
+                                            Toast.makeText(this, "Profile updated with image", Toast.LENGTH_SHORT).show();
+                                            startActivity(new Intent(this, MainActivity.class));
+                                            finish();
+                                        });
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to get image URL", Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 
