@@ -18,6 +18,7 @@ import com.google.firebase.ai.type.GenerateContentResponse;
 import com.google.firebase.ai.type.GenerativeBackend;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import org.json.JSONArray;
@@ -284,9 +285,20 @@ public class LoadingSetActivity extends AppCompatActivity {
         doc.put("terms", termsMap);
         doc.put("number_of_items", termsMap.size());
 
-        FirebaseFirestore.getInstance().collection("flashcards")
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("flashcards")
                 .add(doc)
                 .addOnSuccessListener(ref -> {
+                    Map<String, Object> ownedSetEntry = new HashMap<>();
+                    ownedSetEntry.put("id", ref.getId());
+                    ownedSetEntry.put("type", "flashcard");
+                    ownedSetEntry.put("lastAccessed", System.currentTimeMillis());
+
+                    db.collection("users").document(user.getUid())
+                            .update("owned_sets", FieldValue.arrayUnion(ownedSetEntry))
+                            .addOnSuccessListener(aVoid -> Log.d("SaveSet", "Flashcard added to owned_sets"))
+                            .addOnFailureListener(e -> Log.w("SaveSet", "Failed to update owned_sets", e));
+
                     Intent intent = new Intent(this, FlashcardPreviewActivity.class);
                     intent.putExtra("setId", ref.getId());
                     startActivity(intent);
@@ -294,6 +306,7 @@ public class LoadingSetActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> showError("Failed to save flashcards"));
     }
+
 
     private void saveQuizToFirestore(String title, List<Map<String, Object>> questions) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -316,9 +329,20 @@ public class LoadingSetActivity extends AppCompatActivity {
         doc.put("number_of_items", questions.size());
         doc.put("progress", 0);
 
-        FirebaseFirestore.getInstance().collection("quiz")
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("quiz")
                 .add(doc)
                 .addOnSuccessListener(ref -> {
+                    Map<String, Object> ownedSetEntry = new HashMap<>();
+                    ownedSetEntry.put("id", ref.getId());
+                    ownedSetEntry.put("type", "quiz");
+                    ownedSetEntry.put("lastAccessed", System.currentTimeMillis());
+
+                    db.collection("users").document(user.getUid())
+                            .update("owned_sets", FieldValue.arrayUnion(ownedSetEntry))
+                            .addOnSuccessListener(aVoid -> Log.d("SaveSet", "Quiz added to owned_sets"))
+                            .addOnFailureListener(e -> Log.w("SaveSet", "Failed to update owned_sets", e));
+
                     Intent intent = new Intent(this, QuizPreviewActivity.class);
                     intent.putExtra("quizId", ref.getId());
                     startActivity(intent);
@@ -326,6 +350,7 @@ public class LoadingSetActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> showError("Failed to save quiz"));
     }
+
 
     private String getCurrentTime() {
         return new SimpleDateFormat("MM/dd/yyyy | hh:mm a", Locale.getDefault()).format(new Date());
