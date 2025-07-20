@@ -20,26 +20,34 @@
     import android.widget.LinearLayout;
     import android.widget.TextView;
     import android.widget.Toast;
+    import java.io.File;
+    import java.io.FileInputStream;
+    import java.io.FileOutputStream;
+    import java.io.FileWriter;
+    import java.io.Serializable;
+    import java.lang.reflect.Type;
     import java.util.Arrays;
-
-
     import java.util.ArrayList;
     import java.util.Collections;
     import java.util.HashMap;
     import java.util.List;
     import java.util.Map;
-
+    import androidx.annotation.Nullable;
     import androidx.appcompat.app.AlertDialog;
     import androidx.appcompat.app.AppCompatActivity;
     import androidx.core.content.ContextCompat;
-
     import com.bumptech.glide.Glide;
     import com.google.android.material.bottomsheet.BottomSheetDialog;
     import com.google.android.material.card.MaterialCardView;
+    import com.google.common.reflect.TypeToken;
     import com.google.firebase.auth.FirebaseAuth;
     import com.google.firebase.firestore.FieldValue;
     import com.google.firebase.firestore.FirebaseFirestore;
     import com.google.firebase.firestore.SetOptions;
+    import com.google.gson.Gson;
+
+    import org.json.JSONArray;
+    import org.json.JSONObject;
 
     public class QuizViewActivity extends AppCompatActivity {
 
@@ -61,46 +69,82 @@
         private int originalQuestionCount = 0;
         private boolean shouldShuffle = false;
         private ImageView questionImage;
-
-
+        private boolean isOffline = false;
 
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.activity_quiz_viewer);
 
+            initializeViews();
             db = FirebaseFirestore.getInstance();
 
-            quizId = getIntent().getStringExtra("quizId");
+            Intent intent = getIntent();
+            quizId = intent.getStringExtra("quizId");
+            mode = intent.getStringExtra("mode");
+            if (mode == null) mode = "normal";
+            isOffline = intent.getBooleanExtra("isOffline", false);
+
             if (quizId == null || quizId.trim().isEmpty()) {
                 Toast.makeText(this, "Quiz ID not found.", Toast.LENGTH_SHORT).show();
                 finish();
                 return;
             }
 
+            shouldShuffle = intent.getBooleanExtra("shuffle", false);
+
+            // ✅ OFFLINE MODE HANDLING
+            if (isOffline) {
+                if ("retake_incorrect_only".equals(mode)) {
+                    String userAnswersJson = intent.getStringExtra("userAnswersList");
+                    if (userAnswersJson != null) {
+                        try {
+                            Type listType = new TypeToken<List<Map<String, Object>>>() {}.getType();
+                            List<Map<String, Object>> incorrectAnswers = new Gson().fromJson(userAnswersJson, listType);
+                            if (incorrectAnswers != null && !incorrectAnswers.isEmpty()) {
+                                loadOfflineQuiz("set_" + quizId + ".json", incorrectAnswers);
+                            } else {
+                                Toast.makeText(this, "No incorrect answers found.", Toast.LENGTH_SHORT).show();
+                                finish();
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(this, "Failed to parse offline review data.", Toast.LENGTH_SHORT).show();
+                            finish();
+                        }
+                    } else {
+                        Toast.makeText(this, "No offline review data found.", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                } else {
+                    loadOfflineQuiz("set_" + quizId + ".json", null);
+                }
+            }
+            // ✅ ONLINE MODE
+            else {
+                if ("retake_incorrect_only".equals(mode)) {
+                    loadIncorrectQuestions();
+                } else {
+                    loadQuizFromFirestore();
+                }
+            }
+        }
+
+
+
+        private void initializeViews() {
             quizQuestionTextView = findViewById(R.id.quiz_question_txt_view);
             txtViewItems = findViewById(R.id.txt_view_items);
             linearLayoutOptions = findViewById(R.id.linear_layout_options);
             chooseAnswerLabel = findViewById(R.id.choose_answer_label);
             questionImage = findViewById(R.id.question_image);
+
             Button btnCheck = findViewById(R.id.btn_check_answer);
             ImageView moreButton = findViewById(R.id.more_button);
+            ImageView backButton = findViewById(R.id.back_button);
+
             btnCheck.setOnClickListener(v -> handleAnswerCheck());
-
-            // Back button
-            findViewById(R.id.back_button).setOnClickListener(v -> showExitConfirmationDialog());
             moreButton.setOnClickListener(v -> showQuizMoreBottomSheet());
-
-
-            mode = getIntent().getStringExtra("mode");
-            if (mode == null) mode = "normal";
-            shouldShuffle = getIntent().getBooleanExtra("shuffle", false);
-
-            if ("review_only_incorrect".equals(mode)) {
-                loadIncorrectQuestions();
-            } else {
-                loadQuizFromFirestore();
-            }
+            backButton.setOnClickListener(v -> showExitConfirmationDialog());
         }
 
         private void loadQuizFromFirestore() {
@@ -150,17 +194,36 @@
             if (currentQuestionIndex >= questions.size()) {
                 Toast.makeText(this, "🎉 Quiz Completed!", Toast.LENGTH_LONG).show();
 
-                if (!userAnswersList.isEmpty()) {
-                    saveQuizAttempt(userAnswersList, score);
+                int correctCount = 0;
+                int incorrectCount = 0;
+
+                for (Map<String, Object> answer : userAnswersList) {
+                    boolean isCorrect = Boolean.TRUE.equals(answer.get("isCorrect"));
+                    if (isCorrect) correctCount++;
+                    else incorrectCount++;
                 }
 
+                int total = correctCount + incorrectCount;
+                int percentage = total > 0 ? (int) ((correctCount * 100.0f) / total) : 0;
+
+                if (!userAnswersList.isEmpty()) {
+                    if (isOffline) {
+                        saveOfflineAttemptTemp();
+                    } else {
+                        saveQuizAttempt(userAnswersList, correctCount);
+                    }
+                }
                 Intent intent = new Intent(this, QuizProgressActivity.class);
                 intent.putExtra("quizId", quizId);
+                intent.putExtra("isOffline", isOffline);
+                intent.putExtra("score", correctCount);
+                intent.putExtra("incorrect", incorrectCount);
+                intent.putExtra("percentage", percentage);
+                intent.putExtra("userAnswers", new Gson().toJson(userAnswersList));
                 startActivity(intent);
                 finish();
                 return;
             }
-
 
             txtViewItems.setText((currentQuestionIndex + 1) + "/" + questions.size());
 
@@ -201,7 +264,6 @@
 
             quizQuestionTextView.setText(questionText);
 
-            // Handle question image
             if (questionData.containsKey("photoUrl") && questionData.get("photoUrl") != null) {
                 Object photoObj = questionData.get("photoUrl");
                 String photoUrl = photoObj != null ? photoObj.toString() : "";
@@ -219,7 +281,6 @@
                 questionImage.setVisibility(View.GONE);
             }
 
-
             linearLayoutOptions.removeAllViews();
 
             if (!questionData.containsKey("correctAnswer") || questionData.get("correctAnswer") == null) {
@@ -229,7 +290,6 @@
                 return;
             }
             correctAnswer = questionData.get("correctAnswer").toString();
-
 
             List<String> choices = null;
             try {
@@ -263,7 +323,6 @@
 
             quizQuestionTextView.setText(questionText);
 
-            // Handle question image
             if (questionData.containsKey("photoUrl")) {
                 Object photoObj = questionData.get("photoUrl");
                 String photoUrl = photoObj != null ? photoObj.toString() : "";
@@ -296,7 +355,6 @@
                 return;
             }
 
-            // Add one EditText for each correct answer
             for (int i = 0; i < correctAnswers.size(); i++) {
                 View inputView = LayoutInflater.from(this)
                         .inflate(R.layout.item_quiz_enumeration_blanks, linearLayoutOptions, false);
@@ -355,7 +413,6 @@
                             Object rawQuestion = q.get("question");
                             Object rawType = q.get("type");
 
-                            // Skip if question or type is null, or if answered correctly
                             if (isCorrect == null || isCorrect || rawQuestion == null || rawType == null) {
                                 continue;
                             }
@@ -372,16 +429,16 @@
                                     reconstructed.put("correctAnswer", q.get("correct"));
                                     reconstructed.put("choices", q.get("choices"));
                                 } else {
-                                    continue; // Skip if choices are invalid
+                                    continue;
                                 }
                             } else if ("enumeration".equals(type)) {
                                 if (q.get("correct") instanceof List) {
                                     reconstructed.put("correctAnswer", q.get("correct"));
                                 } else {
-                                    continue; // Skip if correctAnswer is not a list
+                                    continue;
                                 }
                             } else {
-                                continue; // Skip unsupported types
+                                continue;
                             }
 
                             if (q.containsKey("photoUrl")) {
@@ -396,7 +453,7 @@
                             currentQuestionIndex = 0;
                             displayNextValidQuestion();
                         } else {
-                            if ("review_only_incorrect".equals(mode)) {
+                            if ("retake_incorrect_only".equals(mode)) {
                                 Toast.makeText(this, "🎉 All questions were answered correctly!", Toast.LENGTH_LONG).show();
                                 Intent intent = new Intent(this, QuizProgressActivity.class);
                                 intent.putExtra("quizId", quizId);
@@ -412,7 +469,6 @@
                         finish();
                     });
         }
-
 
         private void handleAnswerCheck() {
             Button btnCheck = findViewById(R.id.btn_check_answer);
@@ -583,9 +639,105 @@
             }
         }
 
+        private void loadOfflineQuiz(String fileName, @Nullable List<Map<String, Object>> incorrectAnswers) {
+            if ("normal".equals(mode)) {
+                File tempFile = new File(getFilesDir(), "temp_" + quizId + ".json");
+                if (tempFile.exists()) {
+                    tempFile.delete();
+                }
+            }
+
+            try {
+                File file = new File(getFilesDir(), fileName);
+                if (!file.exists()) {
+                    Toast.makeText(this, "Offline quiz not found.", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
+
+                FileInputStream fis = new FileInputStream(file);
+                byte[] data = new byte[(int) file.length()];
+                fis.read(data);
+                fis.close();
+
+                String json = new String(data);
+                Type type = new TypeToken<Map<String, Object>>() {}.getType();
+                Map<String, Object> quizMap = new Gson().fromJson(json, type);
+
+                Object questionsObj = quizMap.get("questions");
+                if (!(questionsObj instanceof List)) {
+                    showNoQuestionsMessage("⚠️ No questions found in offline set.");
+                    return;
+                }
+
+                List<?> rawList = (List<?>) questionsObj;
+                questions = new ArrayList<>();
+
+                for (Object obj : rawList) {
+                    if (obj instanceof Map) {
+                        Map<String, Object> question = (Map<String, Object>) obj;
 
 
+                        if (incorrectAnswers != null) {
+                            for (Map<String, Object> incorrect : incorrectAnswers) {
+                                if (question.equals(incorrect)) {
+                                    questions.add(question);
+                                    break;
+                                }
+                            }
+                        } else {
+                            questions.add(question);
+                        }
+                    }
+                }
 
+                if (shouldShuffle && incorrectAnswers == null) {
+                    Collections.shuffle(questions);
+                }
+
+                originalQuestionCount = questions.size();
+
+                if (!questions.isEmpty()) {
+                    currentQuestionIndex = 0;
+                    displayNextValidQuestion();
+                } else {
+                    showNoQuestionsMessage("⚠️ No valid questions to display.");
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Error loading offline quiz.", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        }
+
+
+        private void saveOfflineAttemptTemp() {
+            try {
+                JSONObject data = new JSONObject();
+                JSONArray answersArray = new JSONArray();
+
+                for (Map<String, Object> userAnswer : userAnswersList) {
+                    JSONObject answerJson = new JSONObject();
+                    answerJson.put("question", userAnswer.get("question"));
+                    answerJson.put("correctAnswers", new JSONArray((List<?>) userAnswer.get("correctAnswers")));
+                    answerJson.put("userAnswer", userAnswer.get("userAnswer"));
+                    answerJson.put("isCorrect", userAnswer.get("isCorrect"));
+                    answersArray.put(answerJson);
+                }
+
+                data.put("userAnswers", answersArray);
+                data.put("score", score);
+                data.put("originalQuestionCount", originalQuestionCount);
+
+                File file = new File(getCacheDir(), "offline_quiz_attempt.json");
+                FileOutputStream fos = new FileOutputStream(file);
+                fos.write(data.toString().getBytes());
+                fos.close();
+            } catch (Exception e) {
+                Log.e("QuizView", "Error saving temp offline attempt", e);
+            }
+        }
 
 
         private void resetOptionColors() {
@@ -620,7 +772,6 @@
                     .addOnSuccessListener(existingDoc -> {
                         Map<String, Map<String, Object>> answerMap = new HashMap<>();
 
-                        // Merge old answers by question text
                         if (existingDoc.exists()) {
                             List<Map<String, Object>> oldAnswers = (List<Map<String, Object>>) existingDoc.get("answeredQuestions");
                             if (oldAnswers != null) {
@@ -633,7 +784,6 @@
                             }
                         }
 
-                        // Merge/replace new answers
                         for (Map<String, Object> ans : newAnswers) {
                             String question = (String) ans.get("question");
                             if (question != null) {
@@ -678,7 +828,6 @@
                                 .document(userId)
                                 .set(resultData)
                                 .addOnSuccessListener(unused -> {
-                                    // Update percentage to both owned_sets and saved_sets
                                     Map<String, Object> percentData = new HashMap<>();
                                     percentData.put("percentage", percentage);
 
@@ -689,7 +838,6 @@
                                 .addOnSuccessListener(userDoc -> {
                                     if (!userDoc.exists()) return;
 
-                                    // ✅ Use "progress" instead of "percentage"
                                     Map<String, Object> progressMap = new HashMap<>();
                                     progressMap.put("progress", percentage);
 
@@ -731,7 +879,7 @@
                                     if (savedSets != null) {
                                         for (Map<String, Object> item : savedSets) {
                                             if (quizId.equals(item.get("id"))) {
-                                                item.put("progress", percentage); // ✅ renamed here
+                                                item.put("progress", percentage);
                                                 updated = true;
                                                 break;
                                             }
@@ -742,8 +890,6 @@
                                         }
                                     }
                                 });
-
-
                     });
         }
 
@@ -764,7 +910,7 @@
 
             restartQuiz.setOnClickListener(v -> {
                 bottomSheetDialog.dismiss();
-                if (!"review_only_incorrect".equals(mode)) {
+                if (!"retake_incorrect_only".equals(mode)) {
                     showRestartConfirmationDialog();
                 }
             });
@@ -777,11 +923,10 @@
             builder.setView(dialogView);
 
             AlertDialog dialog = builder.create();
-            dialog.setCancelable(false); // Optional: prevent accidental dismissal
+            dialog.setCancelable(false);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.show();
 
-            // Fix size after showing to avoid auto-resize issues
             dialog.getWindow().setLayout(
                     (int) (getResources().getDisplayMetrics().widthPixels * 0.90),
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -826,13 +971,6 @@
             exitButton.setOnClickListener(v -> dialog.dismiss());
         }
 
-
-
-
-
-
-
-
         private void showRestartConfirmationDialog() {
             new AlertDialog.Builder(this)
                     .setTitle("Restart Quiz?")
@@ -841,7 +979,6 @@
                     .setNegativeButton("Cancel", null)
                     .show();
         }
-
 
         private void showExitConfirmationDialog() {
             new AlertDialog.Builder(this)

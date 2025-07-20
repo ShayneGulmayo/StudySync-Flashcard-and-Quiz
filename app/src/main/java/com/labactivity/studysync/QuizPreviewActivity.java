@@ -5,13 +5,17 @@ import android.app.TimePickerDialog;
 import android.content.Context;
 
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Environment;
 
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 
@@ -32,6 +36,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -125,6 +131,16 @@ public class QuizPreviewActivity extends AppCompatActivity {
         boolean isOffline = getIntent().getBooleanExtra("isOffline", false);
         String fileName = getIntent().getStringExtra("offlineFileName");
 
+        if (isOffline) {
+            saveQuizBtn.setVisibility(View.GONE);
+            moreButton.setVisibility(View.GONE);
+            convertBtn.setVisibility(View.GONE);
+            shareToChatBtn.setVisibility(View.GONE);
+            downloadBtn.setVisibility(View.GONE);
+            setReminderBtn.setVisibility(View.GONE);
+            findViewById(R.id.quizReminderSetFor).setVisibility(View.GONE);
+        }
+
         if (isOffline && fileName != null) {
             loadOfflineQuiz(fileName);
         } else {
@@ -210,12 +226,14 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         startQuizBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, QuizViewActivity.class);
-            intent.putExtra("quizId", quizId);
+            intent.putExtra("quizId", quizId); // required in both modes
             intent.putExtra("photoUrl", photoUrl);
             intent.putExtra("shuffle", shuffleSwitch.isChecked());
             intent.putExtra("shuffleOptions", shuffleOptionsSwitch.isChecked());
+            intent.putExtra("isOffline", isOffline);
             startActivity(intent);
         });
+
     }
 
 
@@ -520,7 +538,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 return;
             }
 
-            String newQuizId = db.collection("quiz").document().getId(); // generate new ID
+            String newQuizId = db.collection("quiz").document().getId();
             String userId = currentUser.getUid();
 
             db.collection("quiz").document(quizId)
@@ -537,7 +555,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                             return;
                         }
 
-                        // Fetch username from users collection
                         db.collection("users").document(userId)
                                 .get()
                                 .addOnSuccessListener(userDoc -> {
@@ -545,9 +562,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                     originalData.put("owner_uid", userId);
                                     originalData.put("owner_username", username != null ? username : "Unknown");
                                     originalData.put("created_at", Timestamp.now());
-                                    originalData.put("reminder", ""); // reset reminder
-                                    originalData.put("privacy", "private"); // optional: set to private
-                                    originalData.put("id", newQuizId); // optional: helpful for future reference
                                     originalData.put("reminder", "");
                                     originalData.put("privacy", "private");
                                     originalData.put("id", newQuizId);
@@ -774,21 +788,59 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                             setData.put("username", username != null ? username : "Unknown User");
                                             setData.put("photoUrl", photoUrl != null ? photoUrl : "");
 
-                                            saveSetOffline(setData, quizId);
-                                            startActivity(new Intent(this, DownloadedSetsActivity.class));
+                                            if (photoUrl != null && !photoUrl.isEmpty()) {
+                                                Glide.with(QuizPreviewActivity.this)
+                                                        .asBitmap()
+                                                        .load(photoUrl)
+                                                        .into(new CustomTarget<Bitmap>() {
+                                                            @Override
+                                                            public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                                                                try {
+                                                                    File file = new File(getFilesDir(), "quiz_owner_" + quizId + ".jpg");
+                                                                    FileOutputStream out = new FileOutputStream(file);
+                                                                    resource.compress(Bitmap.CompressFormat.JPEG, 100, out);
+                                                                    out.flush();
+                                                                    out.close();
 
+                                                                    setData.put("ownerPhotoPath", file.getAbsolutePath());
+                                                                } catch (IOException e) {
+                                                                    e.printStackTrace();
+                                                                    setData.put("ownerPhotoPath", "");
+                                                                } finally {
+                                                                    saveSetOffline(setData, quizId);
+                                                                    startActivity(new Intent(QuizPreviewActivity.this, DownloadedSetsActivity.class));
+                                                                }
+                                                            }
+
+                                                            @Override
+                                                            public void onLoadCleared(@Nullable Drawable placeholder) {}
+
+                                                            @Override
+                                                            public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                                                                setData.put("ownerPhotoPath", "");
+                                                                saveSetOffline(setData, quizId);
+                                                                startActivity(new Intent(QuizPreviewActivity.this, DownloadedSetsActivity.class));
+                                                            }
+                                                        });
+                                            } else {
+                                                setData.put("ownerPhotoPath", "");
+                                                saveSetOffline(setData, quizId);
+                                                startActivity(new Intent(QuizPreviewActivity.this, DownloadedSetsActivity.class));
+                                            }
                                         })
                                         .addOnFailureListener(e -> {
                                             setData.put("username", "Unknown User");
                                             setData.put("photoUrl", "");
+                                            setData.put("ownerPhotoPath", "");
                                             saveSetOffline(setData, quizId);
-                                            startActivity(new Intent(this, DownloadedSetsActivity.class));
+                                            startActivity(new Intent(QuizPreviewActivity.this, DownloadedSetsActivity.class));
                                         });
                             } else {
                                 setData.put("username", "Unknown User");
                                 setData.put("photoUrl", "");
+                                setData.put("ownerPhotoPath", "");
                                 saveSetOffline(setData, quizId);
-                                startActivity(new Intent(this, DownloadedSetsActivity.class));
+                                startActivity(new Intent(QuizPreviewActivity.this, DownloadedSetsActivity.class));
                             }
                         } else {
                             Toast.makeText(this, "Quiz data is empty.", Toast.LENGTH_SHORT).show();
@@ -802,6 +854,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     e.printStackTrace();
                 });
     }
+
 
 
     private void saveSetOffline(Map<String, Object> setData, String id) {
@@ -826,14 +879,14 @@ public class QuizPreviewActivity extends AppCompatActivity {
     }
 
     private void loadOfflineQuiz(String fileName) {
-        File file = new File(getFilesDir(), fileName); // ✅ Initialize file first
+        File file = new File(getFilesDir(), fileName);
 
         if (!file.exists()) {
             Toast.makeText(this, "Quiz file not found", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        quizId = file.getName().replace("set_", "").replace(".json", ""); // ✅ Now this works
+        quizId = file.getName().replace("set_", "").replace(".json", "");
 
         try {
             FileInputStream fis = new FileInputStream(file);
@@ -852,20 +905,23 @@ public class QuizPreviewActivity extends AppCompatActivity {
             if (titleTextView != null && quizMap.get("title") != null)
                 titleTextView.setText(quizMap.get("title").toString());
 
-            if (usernameTextView != null && quizMap.get("owner_username") != null)
-                usernameTextView.setText(quizMap.get("owner_username").toString());
+            if (usernameTextView != null && quizMap.get("username") != null)
+                usernameTextView.setText(quizMap.get("username").toString());
 
-            if (itemCountTextView != null && quizMap.get("questions") != null)
+            if (itemCountTextView != null && quizMap.get("questions") instanceof List)
                 itemCountTextView.setText(((List<?>) quizMap.get("questions")).size() + " items");
 
-            // ✅ Load owner profile image from 'owner_photo'
-            if (quizMap.get("owner_photo") != null) {
-                String photoUrl = quizMap.get("owner_photo").toString();
-                Glide.with(this)
-                        .load(photoUrl)
-                        .placeholder(R.drawable.user_profile)
-                        .error(R.drawable.user_profile)
-                        .into(ownerProfileImage);
+            if (quizMap.get("ownerPhotoPath") != null) {
+                File localFile = new File(quizMap.get("ownerPhotoPath").toString());
+                if (localFile.exists()) {
+                    Glide.with(this)
+                            .load(Uri.fromFile(localFile))
+                            .circleCrop()
+                            .error(R.drawable.user_profile)
+                            .into(ownerProfileImage);
+                } else {
+                    ownerProfileImage.setImageResource(R.drawable.user_profile);
+                }
             } else {
                 ownerProfileImage.setImageResource(R.drawable.user_profile);
             }
@@ -875,6 +931,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
 
     private void downloadOfflinePdf(String quizId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
