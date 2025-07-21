@@ -10,6 +10,7 @@ public class ChatMessage {
     private String text;
     private String type;
     private String imageUrl;
+    private String videoUrl;
 
     private String fileUrl;
     private String fileName;
@@ -66,4 +67,12 @@ public class ChatMessage {
     public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
     public void setSetId(String setId) { this.setId = setId; }
     public void setSetType(String setType) { this.setType = setType; }
+
+    public String getVideoUrl() {
+        return videoUrl;
+    }
+
+    public void setVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
+    }
 }

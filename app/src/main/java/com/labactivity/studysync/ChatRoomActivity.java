@@ -63,11 +63,27 @@ public class ChatRoomActivity extends AppCompatActivity {
                         int count = result.getData().getClipData().getItemCount();
                         for (int i = 0; i < count; i++) {
                             Uri imageUri = result.getData().getClipData().getItemAt(i).getUri();
-                            uploadImageAndSendMessage(imageUri);
+                            String type = getContentResolver().getType(imageUri);
+                            if (type != null && type.startsWith("image/")) {
+                                uploadImageAndSendMessage(imageUri);
+                            } else if (type != null && type.startsWith("video/")) {
+                                uploadVideoAndSendMessage(imageUri);
+                            } else {
+                                Toast.makeText(this, "Unsupported media type", Toast.LENGTH_SHORT).show();
+                            }
+
                         }
                     } else if (result.getData().getData() != null) {
                         Uri imageUri = result.getData().getData();
-                        uploadImageAndSendMessage(imageUri);
+                        String type = getContentResolver().getType(imageUri);
+                        if (type != null && type.startsWith("image/")) {
+                            uploadImageAndSendMessage(imageUri);
+                        } else if (type != null && type.startsWith("video/")) {
+                            uploadVideoAndSendMessage(imageUri);
+                        } else {
+                            Toast.makeText(this, "Unsupported media type", Toast.LENGTH_SHORT).show();
+                        }
+
                     }
                 }
             });
@@ -135,6 +151,32 @@ public class ChatRoomActivity extends AppCompatActivity {
         db.collection("chat_rooms").document(roomId).set(update, SetOptions.merge());
     }
 
+    private void uploadVideoAndSendMessage(Uri videoUri) {
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        String videoName = System.currentTimeMillis() + "_video.mp4";
+        StorageReference storageRef = storage.getReference().child("chat_room_videos/" + roomId + "/" + videoName);
+
+        storageRef.putFile(videoUri)
+                .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                    String videoUrl = uri.toString();
+
+                    db.collection("users").document(currentUser.getUid()).get().addOnSuccessListener(userDoc -> {
+                        String senderName = userDoc.getString("firstName") + " " + userDoc.getString("lastName");
+                        String photoUrl = userDoc.getString("photoUrl");
+
+                        ChatMessage videoMessage = new ChatMessage(
+                                currentUser.getUid(), senderName, photoUrl, null, new Date()
+                        );
+                        videoMessage.setType("video");
+                        videoMessage.setVideoUrl(videoUrl);
+
+                        messagesRef.add(videoMessage);
+                        updateChatRoomLastMessage("sent a video", "video", senderName);
+                    });
+                }))
+                .addOnFailureListener(e -> Toast.makeText(this, "Video upload failed", Toast.LENGTH_SHORT).show());
+    }
+
     private void sendMessage() {
         String text = messageEditText.getText().toString().trim();
         if (text.isEmpty()) return;
@@ -163,9 +205,12 @@ public class ChatRoomActivity extends AppCompatActivity {
     private void openImagePicker() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        intent.setType("image/*");
-        imagePickerLauncher.launch(Intent.createChooser(intent, "Select Images"));
+        intent.setType("*/*");
+        String[] mimeTypes = {"image/*", "video/*"};
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+        imagePickerLauncher.launch(Intent.createChooser(intent, "Select Media"));
     }
+
 
     private void uploadImageAndSendMessage(Uri imageUri) {
         FirebaseStorage storage = FirebaseStorage.getInstance();

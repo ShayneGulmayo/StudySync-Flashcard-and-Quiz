@@ -541,6 +541,21 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     intent.putExtra("imageUrl", message.getImageUrl());
                     itemView.getContext().startActivity(intent);
                 });
+
+            } else if ("video".equals(message.getType())) {
+                messageText.setVisibility(View.GONE);
+                imageView.setVisibility(VISIBLE);
+                Glide.with(itemView.getContext())
+                        .load(message.getVideoUrl())
+                        .thumbnail(0.1f)
+                        .into(imageView);
+
+                imageView.setOnClickListener(v -> {
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(Uri.parse(message.getVideoUrl()), "video/*");
+                    itemView.getContext().startActivity(intent);
+                });
+
             } else if ("file".equals(message.getType())) {
                 imageView.setVisibility(View.GONE);
                 messageText.setVisibility(VISIBLE);
@@ -551,6 +566,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     intent.setData(Uri.parse(message.getFileUrl()));
                     itemView.getContext().startActivity(intent);
                 });
+
             } else {
                 imageView.setVisibility(View.GONE);
                 messageText.setVisibility(VISIBLE);
@@ -592,6 +608,21 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     intent.putExtra("imageUrl", message.getImageUrl());
                     itemView.getContext().startActivity(intent);
                 });
+
+            } else if ("video".equals(message.getType())) {
+                messageText.setVisibility(View.GONE);
+                imageView.setVisibility(VISIBLE);
+                Glide.with(itemView.getContext())
+                        .load(message.getVideoUrl())
+                        .thumbnail(0.1f)
+                        .into(imageView);
+
+                imageView.setOnClickListener(v -> {
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(Uri.parse(message.getVideoUrl()), "video/*");
+                    itemView.getContext().startActivity(intent);
+                });
+
             } else if ("file".equals(message.getType())) {
                 imageView.setVisibility(View.GONE);
                 messageText.setVisibility(VISIBLE);
@@ -602,6 +633,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     intent.setData(Uri.parse(message.getFileUrl()));
                     itemView.getContext().startActivity(intent);
                 });
+
             } else {
                 imageView.setVisibility(View.GONE);
                 messageText.setVisibility(VISIBLE);
@@ -619,12 +651,12 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                         .load(message.getSenderPhotoUrl())
                         .circleCrop()
                         .into(senderImage);
+
                 senderImage.setOnClickListener(v -> {
                     Intent intent = new Intent(itemView.getContext(), UserProfileActivity.class);
                     intent.putExtra("userId", message.getSenderId());
                     itemView.getContext().startActivity(intent);
                 });
-
             }
 
             itemView.setOnClickListener(v -> {
@@ -632,6 +664,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 timestampText.setVisibility(timestampVisible ? VISIBLE : View.GONE);
             });
         }
+
     }
 
     static class SystemMessageViewHolder extends RecyclerView.ViewHolder {
