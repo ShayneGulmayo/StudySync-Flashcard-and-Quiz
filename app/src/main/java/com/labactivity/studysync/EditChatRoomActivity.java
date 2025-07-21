@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -33,13 +35,16 @@ import com.yalantis.ucrop.UCrop;
 
 import java.io.File;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class EditChatRoomActivity extends AppCompatActivity {
 
     private ImageView backButton, chatroomPhoto, moreBtn;
     private TextView chatroomNameTextView;
+    private Switch notifToggle;
 
     private FirebaseFirestore db;
     private FirebaseUser currentUser;
@@ -76,6 +81,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
         chatroomPhoto = findViewById(R.id.chatroom_photo);
         chatroomNameTextView = findViewById(R.id.chatroom_name);
         moreBtn = findViewById(R.id.more_button);
+        notifToggle = findViewById(R.id.notif_btn);
 
         roomId = getIntent().getStringExtra("roomId");
 
@@ -97,6 +103,31 @@ public class EditChatRoomActivity extends AppCompatActivity {
             intent.putExtra("chatRoomId", roomId);
             startActivity(intent);
         });
+        notifToggle.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            String userId = auth.getCurrentUser().getUid();
+
+            DocumentReference userRef = db.collection("users").document(userId);
+            userRef.get().addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    Map<String, Object> chatPrefs = (Map<String, Object>) documentSnapshot.get("chatNotificationPrefs");
+                    if (chatPrefs == null) chatPrefs = new HashMap<>();
+
+                    chatPrefs.put(roomId, isChecked);
+
+                    userRef.update("chatNotificationPrefs", chatPrefs)
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, "Notifications " + (isChecked ? "enabled" : "disabled"), Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to update preferences", Toast.LENGTH_SHORT).show();
+                                notifToggle.setChecked(!isChecked); // revert switch
+                            });
+                }
+            });
+        });
+
     }
 
     private void showPopupMenu(View anchor) {
