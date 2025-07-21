@@ -59,7 +59,7 @@
             android:text="Generating set.."
             android:textAlignment="center"
             android:textColor="@color/primary"
-            android:textSize="20sp"
+            android:textSize="25sp"
             android:textStyle="bold" />
 
         <TextView
@@ -69,7 +69,7 @@
             android:text="This may take a while"
             android:textAlignment="center"
             android:textColor="@color/text_gray"
-            android:textSize="12sp" />
+            android:textSize="14sp" />
 
     </LinearLayout>
 

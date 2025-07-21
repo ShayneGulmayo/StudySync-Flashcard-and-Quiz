@@ -22,7 +22,7 @@
             android:layout_height="30dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:layout_margin="16dp"
+            android:layout_margin="20dp"
             android:contentDescription="Back Button"
             android:src="@drawable/arrow_back" />
 
@@ -42,7 +42,7 @@
             android:layout_height="30dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:layout_margin="16dp"
+            android:layout_margin="20dp"
             android:contentDescription="more button"
             android:src="@drawable/more_vert" />
     </RelativeLayout>
@@ -52,8 +52,8 @@
         android:id="@+id/text_score"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"
         android:text="@string/score"
         android:textColor="@color/black"
         android:textSize="18sp"
@@ -66,7 +66,7 @@
         android:id="@+id/recycler_review"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_margin="16dp"
+        android:layout_margin="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

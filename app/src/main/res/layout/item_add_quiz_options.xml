@@ -23,10 +23,15 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2.5dp"
         android:layout_marginBottom="2.5dp"
-        android:layout_weight="1"
+        android:layout_weight="2"
         android:hint="Enter option"
         app:boxBackgroundMode="outline"
-        app:boxStrokeColor="@color/primary">
+        app:boxCornerRadiusBottomEnd="15dp"
+        app:boxCornerRadiusBottomStart="15dp"
+        app:boxCornerRadiusTopEnd="15dp"
+        app:boxCornerRadiusTopStart="15dp"
+        app:boxStrokeColor="@color/primary"
+        app:boxStrokeWidth="2dp">
 
         <EditText
             android:id="@+id/edit_option_text"
@@ -36,7 +41,8 @@
             android:gravity="top|start"
             android:inputType="textMultiLine"
             android:maxLines="6"
-            android:padding="10dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
             android:textColor="@color/black"
             android:textSize="16sp" />
     </com.google.android.material.textfield.TextInputLayout>
@@ -46,9 +52,10 @@
         android:id="@+id/delete_option"
         android:layout_width="30dp"
         android:layout_height="30dp"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="10dp"
         android:backgroundTint="#00FFFFFF"
         android:contentDescription="Delete Option"
         android:rotation="45"
-        android:src="@drawable/add_circle_resized" />
+        android:src="@drawable/add_circle_resized"
+        android:tint="@color/warning" />
 </LinearLayout>

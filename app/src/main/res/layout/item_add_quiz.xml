@@ -16,11 +16,11 @@
             android:id="@+id/new_vertical_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:layout_marginBottom="3dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
             android:background="@drawable/card_background"
             android:orientation="vertical"
-            android:padding="15dp">
+            android:padding="20dp">
 
             <FrameLayout
                 android:layout_width="match_parent"
@@ -34,15 +34,15 @@
                     android:background="@drawable/quiz_spinner_bg"
                     android:clipToPadding="false"
                     android:gravity="center_vertical"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp" />
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp" />
 
                 <ImageView
                     android:id="@+id/drop_down_icon"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     android:layout_gravity="end|center_vertical"
-                    android:layout_marginEnd="16dp"
+                    android:layout_marginEnd="20dp"
                     android:clickable="false"
                     android:contentDescription="Dropdown icon"
                     android:focusable="false"
@@ -52,7 +52,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="20dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -63,7 +63,12 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:hint="Enter question"
-                    app:boxBackgroundMode="outline">
+                    app:boxBackgroundMode="outline"
+                    app:boxCornerRadiusBottomEnd="15dp"
+                    app:boxCornerRadiusBottomStart="15dp"
+                    app:boxCornerRadiusTopEnd="15dp"
+                    app:boxCornerRadiusTopStart="15dp"
+                    app:boxStrokeWidth="2dp">
 
                     <EditText
                         android:id="@+id/quiz_question_input"
@@ -72,7 +77,7 @@
                         android:gravity="top|start"
                         android:maxLines="10"
                         android:minHeight="96dp"
-                        android:padding="16dp"
+                        android:padding="20dp"
                         android:textColor="@color/black"
                         android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
@@ -86,7 +91,7 @@
                         android:id="@+id/delete_question_button"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="10dp"
                         android:background="@color/light_gray"
                         android:contentDescription="Delete Question"
                         android:src="@drawable/delete_resized"
@@ -98,11 +103,10 @@
                         android:id="@+id/add_image_button"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:layout_marginBottom="8dp"
+                        android:layout_marginBottom="10dp"
                         android:clickable="true"
                         android:contentDescription="Add Image"
                         android:focusable="true"
-                        android:padding="2dp"
                         android:scaleType="fitCenter"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -121,7 +125,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="10dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -138,9 +142,8 @@
                     android:layout_height="wrap_content"
                     android:clickable="true"
                     android:focusable="true"
-                    android:paddingTop="8dp"
-                    android:paddingRight="100dp"
-                    android:paddingBottom="12dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
                     android:text="Add option"
                     android:textColor="@color/black"
                     android:textSize="16sp" />

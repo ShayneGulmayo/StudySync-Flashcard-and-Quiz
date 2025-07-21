@@ -29,7 +29,7 @@
                 android:id="@+id/back_button"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="20dp"
                 android:src="@drawable/arrow_back"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -57,11 +57,11 @@
         android:id="@+id/cardViews"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="20dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
         android:weightSum="2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -71,10 +71,10 @@
             android:id="@+id/selectImages"
             android:layout_width="0dp"
             android:layout_height="150dp"
-            android:layout_marginEnd="5dp"
+            android:layout_marginEnd="10dp"
             android:layout_weight="1"
             android:backgroundTint="@color/primary"
-            app:cardCornerRadius="12dp"
+            app:cardCornerRadius="15dp"
             app:cardElevation="0dp">
 
             <LinearLayout
@@ -82,7 +82,7 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:padding="8dp">
+                android:padding="10dp">
 
                 <ImageView
                     android:layout_width="40dp"
@@ -93,7 +93,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:ellipsize="end"
                     android:gravity="center"
                     android:maxLines="1"
@@ -108,10 +108,10 @@
             android:id="@+id/scanDocument"
             android:layout_width="0dp"
             android:layout_height="150dp"
-            android:layout_marginStart="5dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:backgroundTint="@color/bg_yellow"
-            app:cardCornerRadius="12dp"
+            app:cardCornerRadius="15dp"
             app:cardElevation="0dp">
 
             <LinearLayout
@@ -130,7 +130,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:ellipsize="end"
                     android:gravity="center"
                     android:maxLines="1"
@@ -146,11 +146,11 @@
         android:id="@+id/cardviews2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="20dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
         android:weightSum="2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -160,10 +160,10 @@
             android:id="@+id/pasteText"
             android:layout_width="0dp"
             android:layout_height="150dp"
-            android:layout_marginEnd="5dp"
+            android:layout_marginEnd="10dp"
             android:layout_weight="1"
             android:backgroundTint="@color/bg_yellow"
-            app:cardCornerRadius="12dp"
+            app:cardCornerRadius="15dp"
             app:cardElevation="0dp">
 
             <LinearLayout
@@ -171,7 +171,7 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:padding="5dp">
+                android:padding="10dp">
 
                 <ImageView
                     android:layout_width="40dp"
@@ -182,7 +182,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:ellipsize="end"
                     android:gravity="center"
                     android:maxLines="1"
@@ -197,10 +197,10 @@
             android:id="@+id/selectFile"
             android:layout_width="0dp"
             android:layout_height="150dp"
-            android:layout_marginStart="5dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:backgroundTint="@color/primary"
-            app:cardCornerRadius="12dp"
+            app:cardCornerRadius="15dp"
             app:cardElevation="0dp">
 
             <LinearLayout
@@ -219,7 +219,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:ellipsize="end"
                     android:gravity="center"
                     android:maxLines="1"
@@ -235,11 +235,11 @@
         android:id="@+id/cardviews3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="20dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
         android:weightSum="2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -251,7 +251,7 @@
             android:layout_height="150dp"
             android:layout_weight="2"
             android:backgroundTint="@color/primary"
-            app:cardCornerRadius="12dp"
+            app:cardCornerRadius="15dp"
             app:cardElevation="0dp">
 
             <LinearLayout
@@ -269,7 +269,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:ellipsize="end"
                     android:gravity="center"
                     android:maxLines="1"
@@ -284,9 +284,9 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
         android:ellipsize="end"
         android:maxLines="2"
         android:paddingStart="40dp"
@@ -294,7 +294,7 @@
         android:text="AI is being used for these features and can make mistakes. Double check important info."
         android:textAlignment="center"
         android:textColor="@color/text_gray"
-        android:textSize="12sp"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

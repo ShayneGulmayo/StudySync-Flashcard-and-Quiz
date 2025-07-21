@@ -359,7 +359,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                         definitionImage.setVisibility(View.VISIBLE);
                         Glide.with(this)
                                 .load(photoUrl)
-                                .transform(new RoundedCorners(dpToPx(20)))
+                                .transform(new RoundedCorners(dpToPx(15)))
                                 .into(definitionImage);
                     } else {
                         definitionImage.setVisibility(View.GONE);
@@ -424,7 +424,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                                     definitionImage.setVisibility(View.VISIBLE);
                                     Glide.with(this)
                                             .load(photoUrl)
-                                            .transform(new RoundedCorners(dpToPx(20)))
+                                            .transform(new RoundedCorners(dpToPx(15)))
                                             .into(definitionImage);
                                 } else {
                                     definitionImage.setVisibility(View.GONE);

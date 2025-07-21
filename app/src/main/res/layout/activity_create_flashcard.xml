@@ -25,7 +25,7 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_gravity="left|center_vertical"
-            android:layout_margin="16dp"
+            android:layout_margin="20dp"
             android:contentDescription="Back"
             android:src="@drawable/arrow_back" />
 
@@ -34,7 +34,7 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_gravity="right|center_vertical"
-            android:layout_margin="16dp"
+            android:layout_margin="20dp"
             android:tint="@color/primary"
             app:srcCompat="@drawable/check" />
 
@@ -67,10 +67,10 @@
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginBottom="8dp"
+                android:layout_height="50dp"
+                android:layout_marginBottom="10dp"
                 android:background="@drawable/card_background"
-                android:padding="8dp">
+                android:padding="10dp">
 
                 <ImageView
                     android:id="@+id/icon_privacy"
@@ -85,7 +85,7 @@
                     android:id="@+id/privacy_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="10dp"
                     android:text="@string/privacy_public"
                     android:textColor="@color/black"
                     android:textSize="16sp"
@@ -115,13 +115,13 @@
                 android:layout_marginBottom="20dp"
                 android:hint="@string/flashcard_name"
                 app:boxBackgroundColor="@color/white"
-                app:boxCornerRadiusBottomEnd="8dp"
-                app:boxCornerRadiusBottomStart="8dp"
-                app:boxCornerRadiusTopEnd="8dp"
-                app:boxCornerRadiusTopStart="8dp"
+                app:boxCornerRadiusBottomEnd="15dp"
+                app:boxCornerRadiusBottomStart="15dp"
+                app:boxCornerRadiusTopEnd="15dp"
+                app:boxCornerRadiusTopStart="15dp"
                 app:boxStrokeColor="@color/primary"
                 app:boxStrokeErrorColor="@color/warning"
-                app:boxStrokeWidth="1dp"
+                app:boxStrokeWidth="2dp"
                 app:boxStrokeWidthFocused="2dp"
                 app:counterOverflowTextColor="@color/warning"
                 app:counterTextColor="@color/primary"
@@ -132,7 +132,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:minHeight="48dp"
-                    android:padding="12dp"
                     android:textColor="@color/black"
                     android:textColorHint="@color/text_gray"
                     android:textSize="16sp" />
@@ -155,7 +154,8 @@
         android:id="@+id/floating_add_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
         android:clickable="true"
         android:contentDescription="Add"
         android:foregroundGravity="center"

@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:background="@android:color/transparent"
     android:gravity="center"
-    android:padding="24dp"
+    android:padding="20dp"
     android:text="No sets found."
     android:textColor="@color/text_gray"
     android:textSize="18sp"

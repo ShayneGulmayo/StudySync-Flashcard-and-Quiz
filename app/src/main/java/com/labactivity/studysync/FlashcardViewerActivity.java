@@ -3,6 +3,7 @@ package com.labactivity.studysync;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
@@ -366,16 +367,12 @@ public class FlashcardViewerActivity extends AppCompatActivity {
 
             if (card.getPhotoUrl() != null && !card.getPhotoUrl().isEmpty()) {
                 flashcardImage.setVisibility(View.VISIBLE);
-                Glide.with(this).load(card.getPhotoUrl()).transform(new RoundedCorners(dpToPx(20))).into(flashcardImage);
-
-                int paddingLeftRightBottom = dpToPx(24);
-                int paddingTop = dpToPx(40);
-                backCard.setPadding(paddingLeftRightBottom, paddingTop, paddingLeftRightBottom, paddingLeftRightBottom);
+                Glide.with(this).load(card.getPhotoUrl()).transform(new RoundedCorners(dpToPx(15))).into(flashcardImage);
 
             } else {
                 flashcardImage.setVisibility(View.GONE);
-                int defaultPadding = dpToPx(24);
-                backCard.setPadding(defaultPadding, defaultPadding, defaultPadding, defaultPadding);
+                backCard.setPadding(20,20,20,20);
+                backCard.setGravity(Gravity.CENTER);
             }
             showingFront = true;
             cardFront.setVisibility(View.VISIBLE);

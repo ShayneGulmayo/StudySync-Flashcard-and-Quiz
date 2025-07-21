@@ -23,7 +23,7 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_gravity="left|center_vertical"
-            android:layout_margin="16dp"
+            android:layout_margin="20dp"
             android:contentDescription="Back"
             android:src="@drawable/arrow_back" />
 
@@ -32,9 +32,9 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_gravity="right|center_vertical"
-            android:layout_margin="16dp"
-            app:tint="@color/primary"
-            app:srcCompat="@drawable/check" />
+            android:layout_margin="20dp"
+            app:srcCompat="@drawable/check"
+            app:tint="@color/primary" />
 
         <TextView
             android:id="@+id/txtView_add_quiz"
@@ -67,10 +67,10 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/privacy_container"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginBottom="8dp"
+                android:layout_height="50dp"
+                android:layout_marginBottom="10dp"
                 android:background="@drawable/card_background"
-                android:padding="8dp">
+                android:padding="10dp">
 
                 <ImageView
                     android:id="@+id/icon_privacy"
@@ -85,7 +85,7 @@
                     android:id="@+id/privacy_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="10dp"
                     android:text="@string/privacy_public"
                     android:textColor="@color/black"
                     android:textSize="16sp"
@@ -113,8 +113,18 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
                 android:hint="@string/quiz_title"
-                app:boxBackgroundMode="outline"
-                app:boxStrokeColor="@color/primary">
+                app:boxBackgroundColor="@color/white"
+                app:boxCornerRadiusBottomEnd="15dp"
+                app:boxCornerRadiusBottomStart="15dp"
+                app:boxCornerRadiusTopEnd="15dp"
+                app:boxCornerRadiusTopStart="15dp"
+                app:boxStrokeColor="@color/primary"
+                app:boxStrokeErrorColor="@color/warning"
+                app:boxStrokeWidth="2dp"
+                app:boxStrokeWidthFocused="2dp"
+                app:counterOverflowTextColor="@color/warning"
+                app:counterTextColor="@color/primary"
+                app:cursorColor="@color/primary">
 
                 <EditText
                     android:id="@+id/quiz_name"
@@ -142,15 +152,13 @@
         android:id="@+id/floating_add_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:contentDescription="Add"
+        android:layout_margin="20dp"
         android:clickable="true"
+        android:contentDescription="Add"
         app:backgroundTint="@color/primary"
-        app:srcCompat="@drawable/add"
-        app:tint="@android:color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintVertical_bias="1.0" />
+        app:srcCompat="@drawable/add"
+        app:tint="@android:color/white" />
 </androidx.constraintlayout.widget.ConstraintLayout>

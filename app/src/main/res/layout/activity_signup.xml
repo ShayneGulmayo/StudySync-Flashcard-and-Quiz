@@ -38,7 +38,7 @@
             android:layout_height="wrap_content"
             android:background="@color/light_gray"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="20dp">
 
             <TextView
                 android:id="@+id/txtSignup"
@@ -54,15 +54,15 @@
                 android:id="@+id/editTxtEmail"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="20dp"
                 android:background="@drawable/custom_edittxt"
                 android:drawableRight="@drawable/mail_resized"
-                android:drawablePadding="16dp"
+                android:drawablePadding="20dp"
                 android:drawableTint="@color/text_gray"
                 android:hint="Email"
                 android:inputType="textEmailAddress"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
                 android:textColor="@color/black"
                 android:textColorHint="@color/text_gray"
                 android:textSize="16sp" />
@@ -71,15 +71,15 @@
                 android:id="@+id/editTxtPassword"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="20dp"
                 android:background="@drawable/custom_edittxt"
                 android:drawableEnd="@drawable/eye_closed_resized"
-                android:drawablePadding="16dp"
+                android:drawablePadding="20dp"
                 android:drawableTint="@color/text_gray"
                 android:hint="Password"
                 android:inputType="textPassword"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
                 android:textColor="@color/black"
                 android:textColorHint="@color/text_gray"
                 android:textSize="16sp" />
@@ -87,8 +87,8 @@
             <Button
                 android:id="@+id/btnSignup"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginTop="32dp"
+                android:layout_height="60dp"
+                android:layout_marginTop="20dp"
                 android:backgroundTint="@color/primary"
                 android:text="Sign up"
                 android:textColor="@color/white"
@@ -98,8 +98,8 @@
             <Button
                 android:id="@+id/btnGoogleSignup"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginTop="8dp"
+                android:layout_height="60dp"
+                android:layout_marginTop="10dp"
                 android:backgroundTint="@color/light_gray"
                 android:drawableLeft="@drawable/google_resized"
                 android:text="Sign up with Google"
@@ -113,11 +113,11 @@
                 android:id="@+id/loginRedirect"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="20dp"
                 android:text="Already a User? Login Here"
                 android:textAlignment="center"
                 android:textColor="@color/text_gray"
-                android:textSize="12sp" />
+                android:textSize="14sp" />
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>

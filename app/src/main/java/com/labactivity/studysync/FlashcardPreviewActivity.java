@@ -236,14 +236,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         ownerTextView.setOnClickListener(v -> openUserProfile());
         ownerPhotoImageView.setOnClickListener(v -> openUserProfile());
 
-        backButton.setOnClickListener(v -> {
-            if (fromNotification) {
-                Intent intent = new Intent(FlashcardPreviewActivity.this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-            }
-            finish();
-        });
+        backButton.setOnClickListener(v -> { finish(); });
 
         saveSetBtn.setOnClickListener(view -> toggleSaveState());
 

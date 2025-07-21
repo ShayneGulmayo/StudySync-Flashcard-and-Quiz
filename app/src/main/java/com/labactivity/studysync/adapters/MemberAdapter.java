@@ -102,7 +102,7 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
 
         boolean isDeleted = target.getUser().isDeleted();
 
-        if (!isDeleted) {
+        if (isDeleted) {
             setOwner.setVisibility(View.GONE);
             setAdmin.setVisibility(View.GONE);
             remove.setVisibility(View.VISIBLE);

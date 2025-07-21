@@ -1,18 +1,22 @@
 package com.labactivity.studysync;
 
+import android.content.Context;
+import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.labactivity.studysync.adapters.DownloadedSetsAdapter;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -28,6 +32,8 @@ public class DownloadedSetsActivity extends AppCompatActivity {
     private ImageView backButton;
     private DownloadedSetsAdapter adapter;
     private List<Map<String, Object>> downloadedSets;
+
+    private boolean wasOffline = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +58,49 @@ public class DownloadedSetsActivity extends AppCompatActivity {
             recyclerView.setAdapter(adapter);
         }
 
-        backButton.setOnClickListener(v -> finish());
+        backButton.setOnClickListener(v -> onBackPressed());
+
+        wasOffline = !isInternetAvailable();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        boolean currentlyOnline = isInternetAvailable();
+
+        if (wasOffline && currentlyOnline) {
+            Toast.makeText(this, "You're back online!", Toast.LENGTH_SHORT).show();
+        } else if (!wasOffline && !currentlyOnline) {
+            Toast.makeText(this, "You're offline.", Toast.LENGTH_SHORT).show();
+        }
+
+        wasOffline = !currentlyOnline;
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        Intent intent;
+
+        if (user != null) {
+            intent = new Intent(this, MainActivity.class);
+        } else {
+            intent = new Intent(this, LoginActivity.class);
+        }
+
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    private boolean isInternetAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm != null) {
+            NetworkInfo netInfo = cm.getActiveNetworkInfo();
+            return netInfo != null && netInfo.isConnected();
+        }
+        return false;
     }
 
     private List<Map<String, Object>> loadDownloadedSets() {
@@ -74,7 +122,6 @@ public class DownloadedSetsActivity extends AppCompatActivity {
 
                     setMap.put("fileName", file.getName());
 
-                    // Detect and set type if not present
                     if (!setMap.containsKey("type")) {
                         if (setMap.containsKey("questions")) {
                             setMap.put("type", "quiz");
@@ -92,5 +139,4 @@ public class DownloadedSetsActivity extends AppCompatActivity {
         }
         return sets;
     }
-
 }

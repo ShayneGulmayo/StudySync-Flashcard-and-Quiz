@@ -1,21 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="20dp">
+    android:orientation="vertical">
 
     <DatePicker
         android:id="@+id/datePicker"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:calendarViewShown="true" />
+        android:background="@color/white"
+        android:calendarTextColor="@color/white"
+        android:calendarViewShown="true"
+        android:dayOfWeekBackground="@color/primary"
+        android:headerBackground="@color/primary"
+        android:soundEffectsEnabled="true"
+        android:yearListSelectorColor="@color/primary" />
 
     <CheckBox
         android:id="@+id/repeatDailyCheckBox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Set as Daily Reminder"
-        android:textAlignment="center"/>
+        android:textAlignment="center" />
 </LinearLayout>

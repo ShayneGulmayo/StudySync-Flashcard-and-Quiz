@@ -3,17 +3,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bottom_nav_background"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/sendSet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:drawableStart="@drawable/set_resized"
-        android:drawablePadding="16dp"
+        android:drawablePadding="20dp"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:padding="20dp"
         android:text="Send a Set"
         android:textColor="@color/black"
         android:textSize="16sp" />
@@ -23,10 +22,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:drawableStart="@drawable/attach_file_resized"
-        android:drawablePadding="16dp"
+        android:drawablePadding="20dp"
         android:drawableTint="@color/black"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:padding="20dp"
         android:text="Send a File"
         android:textColor="@color/black"
         android:textSize="16sp" />

@@ -51,7 +51,11 @@ public class DownloadedSetsAdapter extends RecyclerView.Adapter<DownloadedSetsAd
             items = "No Items Found";
         }
 
-        holder.title.setText(title != null ? title : "Untitled Set");
+        if (title == null) title = "Untitled Set";
+        if (title.length() > 30) {
+            title = title.substring(0, 27) + "...";
+        }
+        holder.title.setText(title);
         holder.username.setText(username);
         holder.items.setText(items + (items.equals("1") ? " item" : " items"));
 

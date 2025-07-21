@@ -103,15 +103,15 @@ public class FlashcardCarouselAdapter extends RecyclerView.Adapter<FlashcardCaro
         if (flashcard.getPhotoUrl() != null && !flashcard.getPhotoUrl().isEmpty()) {
             Glide.with(holder.itemView.getContext())
                     .load(flashcard.getPhotoUrl())
-                    .transform(new RoundedCorners(dpToPx(20, holder)))
+                    .transform(new RoundedCorners(dpToPx(15, holder)))
                     .into(holder.flashcardImage);
             holder.flashcardImage.setVisibility(View.VISIBLE);
             holder.definitionCard.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-            holder.definitionCard.setPadding(400, 0, 32, 0);
-
         } else {
             holder.flashcardImage.setVisibility(View.GONE);
             holder.definitionCard.setGravity(Gravity.CENTER);
+            holder.definitionCard.setPadding(20, 20, 20, 20);
+
         }
 
 

@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:background="@drawable/white_popup_bg"
         android:minHeight="400dp"
-        android:padding="24dp">
+        android:padding="20dp">
 
         <TextView
             android:id="@+id/instructionHeader"
@@ -28,8 +28,8 @@
 
         <ImageButton
             android:id="@+id/exit_button"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Close"
             android:scaleType="fitCenter"
@@ -41,9 +41,9 @@
             android:id="@+id/infoText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
+            android:layout_marginTop="10dp"
             android:lineSpacingExtra="6dp"
-            android:paddingTop="12dp"
+            android:paddingTop="10dp"
             android:textColor="@android:color/black"
             android:textSize="18sp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -63,7 +63,7 @@
             <Button
                 android:id="@+id/prevButton"
                 android:layout_width="120dp"
-                android:layout_height="wrap_content"
+                android:layout_height="60dp"
                 android:background="@drawable/green_stroke_bg"
                 android:backgroundTint="@null"
                 android:text="Previous" />
@@ -76,7 +76,7 @@
             <Button
                 android:id="@+id/nextButton"
                 android:layout_width="120dp"
-                android:layout_height="wrap_content"
+                android:layout_height="60dp"
                 android:background="@drawable/bg_light_red"
                 android:backgroundTint="@null"
                 android:text="Next" />

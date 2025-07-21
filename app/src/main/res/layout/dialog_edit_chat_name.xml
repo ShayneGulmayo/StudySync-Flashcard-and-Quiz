@@ -11,6 +11,8 @@
         android:layout_height="50dp"
         android:background="@drawable/custom_edittxt"
         android:hint="Enter new chat name"
-        android:paddingStart="16dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:textColorHint="@color/text_gray"
         android:textSize="16sp" />
 </LinearLayout>

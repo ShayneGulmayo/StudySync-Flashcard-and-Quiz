@@ -47,10 +47,10 @@
         android:id="@+id/frameLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        app:layout_constraintTop_toBottomOf="@+id/consLayout"
+        android:layout_margin="20dp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toBottomOf="@+id/consLayout">
 
         <EditText
             android:id="@+id/delete_account"
@@ -59,9 +59,9 @@
             android:layout_gravity="center_vertical"
             android:background="@drawable/custom_edittxt"
             android:gravity="center_vertical"
-            android:inputType="textEmailAddress"
             android:hint="@string/email"
-            android:padding="16dp"
+            android:inputType="textEmailAddress"
+            android:paddingStart="20dp"
             android:textColor="@color/black"
             android:textColorHint="@color/text_gray"
             android:textSize="16sp" />
@@ -72,8 +72,9 @@
     <Button
         android:id="@+id/confirm_delete_account_btn"
         android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:layout_margin="16dp"
+        android:layout_height="60dp"
+        android:layout_margin="20dp"
+        android:backgroundTint="@color/primary"
         android:text="Confirm Account Deletion"
         android:textColor="@color/white"
         android:textSize="16sp"

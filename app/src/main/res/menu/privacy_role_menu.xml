@@ -1,10 +1,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+
     <item
         android:id="@+id/view_role"
         android:title="View"/>
+
     <item
         android:id="@+id/edit_role"
         android:title="Edit"/>
+
     <item
         android:id="@+id/remove_access"
         android:title="Remove Access"/>

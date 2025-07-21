@@ -3,8 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="80dp"
-    android:padding="12dp"
-    android:background="?android:selectableItemBackground">
+    android:background="?android:selectableItemBackground"
+    android:padding="10dp">
 
     <ImageView
         android:id="@+id/image_group_photo"
@@ -22,22 +22,22 @@
         android:id="@+id/text_group_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:ellipsize="end"
+        android:maxLines="1"
         android:text="Chat Room Name"
         android:textColor="@android:color/black"
-        android:textStyle="bold"
         android:textSize="16sp"
-        app:layout_constraintStart_toEndOf="@id/image_group_photo"
-        app:layout_constraintTop_toTopOf="@id/image_group_photo"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginStart="12dp"
-        android:maxLines="1"
-        android:ellipsize="end" />
+        app:layout_constraintStart_toEndOf="@id/image_group_photo"
+        app:layout_constraintTop_toTopOf="@id/image_group_photo" />
 
     <TextView
         android:id="@+id/text_last_message"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="5dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:text="User: Last Message"

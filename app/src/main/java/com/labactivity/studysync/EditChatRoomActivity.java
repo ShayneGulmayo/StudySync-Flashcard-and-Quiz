@@ -120,14 +120,14 @@ public class EditChatRoomActivity extends AppCompatActivity {
     }
 
     private void showEditNameDialog() {
-        EditText input = new EditText(this);
-        input.setText(chatroomNameTextView.getText());
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_chat_name, null);
+        EditText editChatnameInput = dialogView.findViewById(R.id.editChatNameInput);
 
         new AlertDialog.Builder(this)
                 .setTitle("Edit Chat Room Name")
-                .setView(input)
+                .setView(dialogView)
                 .setPositiveButton("Save", (dialog, which) -> {
-                    String newName = input.getText().toString().trim();
+                    String newName = editChatnameInput.getText().toString().trim();
                     if (!newName.isEmpty()) {
                         db.collection("chat_rooms").document(roomId)
                                 .update("chatRoomName", newName)
@@ -140,6 +140,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+
 
     private void openImagePicker() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);

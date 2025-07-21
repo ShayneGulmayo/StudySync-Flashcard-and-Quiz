@@ -3,8 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="80dp"
-    android:padding="12dp"
-    android:background="?android:selectableItemBackground">
+    android:background="?android:selectableItemBackground"
+    android:padding="10dp">
 
     <ImageView
         android:id="@+id/image_group_photo"
@@ -22,7 +22,7 @@
         android:id="@+id/text_group_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="10dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:text="Chat Room Name"
@@ -37,7 +37,7 @@
         android:id="@+id/membersTxt"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="5dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:text="Member 1, Member 2"
@@ -53,7 +53,6 @@
         android:layout_height="30dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Send to Chat"
-        android:padding="6dp"
         android:src="@drawable/send"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

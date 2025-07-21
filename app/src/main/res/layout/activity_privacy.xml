@@ -23,14 +23,12 @@
             android:layout_height="70dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingTop="16dp"
-            android:paddingBottom="16dp">
+            android:padding="20dp">
 
             <ImageView
                 android:id="@+id/back_button"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_marginStart="16dp"
                 android:src="@drawable/arrow_back"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -52,7 +50,6 @@
                 android:id="@+id/check_button"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_marginEnd="16dp"
                 android:src="@drawable/check"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -79,7 +76,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:orientation="vertical"
-        android:padding="16dp"
+        android:padding="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -89,7 +86,7 @@
             android:id="@+id/title_txt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="20dp"
             android:text="@string/title"
             android:textColor="@color/black"
             android:textSize="18sp"
@@ -99,8 +96,10 @@
             android:id="@+id/search_user"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="20dp"
             android:background="@drawable/green_stroke_bg"
+            android:clickable="true"
+            android:iconifiedByDefault="false"
             android:searchIcon="@drawable/search_resized">
 
         </SearchView>
@@ -109,7 +108,7 @@
             android:id="@+id/people_w_access_txt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="10dp"
             android:text="@string/poeple_with_access"
             android:textColor="@color/black"
             android:textSize="18sp"
@@ -119,14 +118,14 @@
             android:id="@+id/selected_recycler_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="10dp" />
 
         <TextView
             android:id="@+id/general_access_txt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
             android:text="@string/general_access"
             android:textColor="@color/black"
             android:textSize="18sp"
@@ -137,13 +136,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/card_background"
-            android:padding="8dp">
+            android:paddingStart="20dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="10dp">
 
             <ImageView
                 android:id="@+id/privacy_icon"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_marginStart="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
@@ -153,7 +154,7 @@
                 android:id="@+id/privacy_txt"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="10dp"
                 android:text="@string/privacy_public"
                 android:textColor="@color/black"
                 android:textSize="16sp"
@@ -165,7 +166,6 @@
                 android:id="@+id/role_txt"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
                 android:text="@string/view"
                 android:textColor="@color/black"
                 android:textSize="16sp"
@@ -178,10 +178,10 @@
                 android:id="@+id/textView4"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="10dp"
                 android:text="@string/anyone_can_view"
                 android:textColor="@color/text_gray"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 app:layout_constraintStart_toEndOf="@+id/privacy_icon"
                 app:layout_constraintTop_toBottomOf="@+id/privacy_txt" />
 
