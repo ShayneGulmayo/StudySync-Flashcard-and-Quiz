@@ -20,6 +20,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -45,6 +46,8 @@ public class EditChatRoomActivity extends AppCompatActivity {
     private ImageView backButton, chatroomPhoto, moreBtn;
     private TextView chatroomNameTextView;
     private Switch notifToggle;
+
+    private MaterialButton sharedSets;
 
     private FirebaseFirestore db;
     private FirebaseUser currentUser;
@@ -85,6 +88,8 @@ public class EditChatRoomActivity extends AppCompatActivity {
         moreBtn = findViewById(R.id.more_button);
         notifToggle = findViewById(R.id.notif_btn);
         notifToggle.setChecked(true);
+        sharedSets = findViewById(R.id.shared_sets_btn);
+
 
         roomId = getIntent().getStringExtra("roomId");
 
@@ -133,12 +138,16 @@ public class EditChatRoomActivity extends AppCompatActivity {
                             })
                             .addOnFailureListener(e -> {
                                 Toast.makeText(EditChatRoomActivity.this, "Failed to update preferences", Toast.LENGTH_SHORT).show();
-                                notifToggle.setChecked(!isChecked); // revert if failed
+                                notifToggle.setChecked(!isChecked);
                             });
                 }
             });
         });
-
+        sharedSets.setOnClickListener(view ->{
+            Intent intent = new Intent(EditChatRoomActivity.this, ChatRoomSharedSetsActivity.class);
+            intent.putExtra("roomId", roomId);
+            startActivity(intent);
+                });
     }
 
     private void showPopupMenu(View anchor) {
