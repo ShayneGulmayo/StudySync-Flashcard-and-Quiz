@@ -75,15 +75,31 @@ public class EditChatRoomActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_chat_room);
 
+        FirebaseAuth auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        String userId = auth.getCurrentUser().getUid();
         backButton = findViewById(R.id.back_button);
         chatroomPhoto = findViewById(R.id.chatroom_photo);
         chatroomNameTextView = findViewById(R.id.chatroom_name);
         moreBtn = findViewById(R.id.more_button);
         notifToggle = findViewById(R.id.notif_btn);
+        notifToggle.setChecked(true);
 
         roomId = getIntent().getStringExtra("roomId");
+
+        DocumentReference userRef = db.collection("users").document(userId);
+        userRef.get().addOnSuccessListener(documentSnapshot -> {
+            if (documentSnapshot.exists()) {
+                Map<String, Object> chatPrefs = (Map<String, Object>) documentSnapshot.get("chatNotificationPrefs");
+                if (chatPrefs != null && chatPrefs.containsKey(roomId)) {
+                    boolean isEnabled = Boolean.TRUE.equals(chatPrefs.get(roomId));
+                    notifToggle.setChecked(isEnabled);
+                } else {
+                    userRef.update("chatNotificationPrefs." + roomId, true);
+                }
+            }
+        });
 
         if (currentUser != null) {
             db.collection("users").document(currentUser.getUid()).get().addOnSuccessListener(snapshot -> {
@@ -104,11 +120,6 @@ public class EditChatRoomActivity extends AppCompatActivity {
             startActivity(intent);
         });
         notifToggle.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
-            FirebaseAuth auth = FirebaseAuth.getInstance();
-            String userId = auth.getCurrentUser().getUid();
-
-            DocumentReference userRef = db.collection("users").document(userId);
             userRef.get().addOnSuccessListener(documentSnapshot -> {
                 if (documentSnapshot.exists()) {
                     Map<String, Object> chatPrefs = (Map<String, Object>) documentSnapshot.get("chatNotificationPrefs");
@@ -118,11 +129,11 @@ public class EditChatRoomActivity extends AppCompatActivity {
 
                     userRef.update("chatNotificationPrefs", chatPrefs)
                             .addOnSuccessListener(aVoid -> {
-                                Toast.makeText(this, "Notifications " + (isChecked ? "enabled" : "disabled"), Toast.LENGTH_SHORT).show();
+                                Toast.makeText(EditChatRoomActivity.this, "Notifications " + (isChecked ? "enabled" : "disabled"), Toast.LENGTH_SHORT).show();
                             })
                             .addOnFailureListener(e -> {
-                                Toast.makeText(this, "Failed to update preferences", Toast.LENGTH_SHORT).show();
-                                notifToggle.setChecked(!isChecked); // revert switch
+                                Toast.makeText(EditChatRoomActivity.this, "Failed to update preferences", Toast.LENGTH_SHORT).show();
+                                notifToggle.setChecked(!isChecked); // revert if failed
                             });
                 }
             });
