@@ -44,6 +44,15 @@
             android:gravity="bottom"
             android:layout_marginTop="4dp">
 
+
+            <ImageView
+                android:id="@+id/videoPreview"
+                android:layout_width="200dp"
+                android:layout_height="300dp"
+                android:layout_marginTop="5dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"/>
+
             <ImageView
                 android:id="@+id/imageView"
                 android:layout_width="200dp"

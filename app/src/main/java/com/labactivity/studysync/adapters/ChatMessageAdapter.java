@@ -3,6 +3,8 @@ package com.labactivity.studysync.adapters;
 import static android.view.View.VISIBLE;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.icu.text.DateFormat;
 import android.net.Uri;
 import android.view.LayoutInflater;
@@ -14,6 +16,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -517,7 +520,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
     static class CurrentUserViewHolder extends RecyclerView.ViewHolder {
         TextView messageText, timestampText;
-        ImageView imageView;
+        ImageView imageView, videoPreview;
         boolean timestampVisible = false;
 
         public CurrentUserViewHolder(@NonNull View itemView) {
@@ -525,6 +528,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             messageText = itemView.findViewById(R.id.messageText);
             timestampText = itemView.findViewById(R.id.timestampText);
             imageView = itemView.findViewById(R.id.imageView);
+            videoPreview = itemView.findViewById(R.id.videoPreview);
         }
 
         public void bind(ChatMessage message) {
@@ -544,26 +548,24 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             } else if ("video".equals(message.getType())) {
                 messageText.setVisibility(View.GONE);
-                imageView.setVisibility(VISIBLE);
+                videoPreview.setVisibility(VISIBLE);
                 Glide.with(itemView.getContext())
                         .load(message.getVideoUrl())
                         .thumbnail(0.1f)
-                        .into(imageView);
+                        .into(videoPreview);
 
-                imageView.setOnClickListener(v -> {
+                videoPreview.setImageDrawable(ContextCompat.getDrawable(itemView.getContext(), R.drawable.playbtn));
+                videoPreview.setScaleType(ImageView.ScaleType.CENTER);
+                Drawable drawable = ContextCompat.getDrawable(itemView.getContext(), R.drawable.playbtn);
+                if (drawable != null) {
+                    drawable.setTint(Color.WHITE);
+                    videoPreview.setImageDrawable(drawable);
+                }
+
+
+                videoPreview.setOnClickListener(v -> {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(Uri.parse(message.getVideoUrl()), "video/*");
-                    itemView.getContext().startActivity(intent);
-                });
-
-            } else if ("file".equals(message.getType())) {
-                imageView.setVisibility(View.GONE);
-                messageText.setVisibility(VISIBLE);
-                messageText.setText("\uD83D\uDCCE " + message.getText());
-
-                messageText.setOnClickListener(v -> {
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setData(Uri.parse(message.getFileUrl()));
                     itemView.getContext().startActivity(intent);
                 });
 
@@ -582,7 +584,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
     static class OtherUserViewHolder extends RecyclerView.ViewHolder {
         TextView messageText, senderName, timestampText;
-        ImageView senderImage, imageView;
+        ImageView senderImage, imageView, videoPreview;
         boolean timestampVisible = false;
 
         public OtherUserViewHolder(@NonNull View itemView) {
@@ -592,6 +594,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             senderImage = itemView.findViewById(R.id.senderImage);
             timestampText = itemView.findViewById(R.id.timestampText);
             imageView = itemView.findViewById(R.id.imageView);
+            videoPreview = itemView.findViewById(R.id.videoPreview);
         }
 
         public void bind(ChatMessage message, boolean isSameSender) {
@@ -611,26 +614,24 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             } else if ("video".equals(message.getType())) {
                 messageText.setVisibility(View.GONE);
-                imageView.setVisibility(VISIBLE);
+                videoPreview.setVisibility(VISIBLE);
                 Glide.with(itemView.getContext())
                         .load(message.getVideoUrl())
                         .thumbnail(0.1f)
-                        .into(imageView);
+                        .into(videoPreview);
 
-                imageView.setOnClickListener(v -> {
+                videoPreview.setImageDrawable(ContextCompat.getDrawable(itemView.getContext(), R.drawable.playbtn));
+                videoPreview.setScaleType(ImageView.ScaleType.CENTER);
+                Drawable drawable = ContextCompat.getDrawable(itemView.getContext(), R.drawable.playbtn);
+                if (drawable != null) {
+                    drawable.setTint(Color.WHITE);
+                    videoPreview.setImageDrawable(drawable);
+                }
+
+
+                videoPreview.setOnClickListener(v -> {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(Uri.parse(message.getVideoUrl()), "video/*");
-                    itemView.getContext().startActivity(intent);
-                });
-
-            } else if ("file".equals(message.getType())) {
-                imageView.setVisibility(View.GONE);
-                messageText.setVisibility(VISIBLE);
-                messageText.setText("\uD83D\uDCCE " + message.getText());
-
-                messageText.setOnClickListener(v -> {
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setData(Uri.parse(message.getFileUrl()));
                     itemView.getContext().startActivity(intent);
                 });
 
