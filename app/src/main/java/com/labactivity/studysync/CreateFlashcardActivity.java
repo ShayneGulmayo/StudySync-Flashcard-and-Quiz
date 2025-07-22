@@ -44,16 +44,20 @@ import java.util.UUID;
 public class CreateFlashcardActivity extends AppCompatActivity {
 
     private EditText setNameEditText;
-    private LinearLayout flashcardContainer;
-    private FirebaseFirestore db;
-    private FirebaseAuth auth;
-    private View currentFlashcardView;
-    private ActivityResultLauncher<Intent> pickImageLauncher;
-    private String setId = null;
     private TextView roleTxt, privacyTxt;
     private ImageView privacyIcon;
+
+    private LinearLayout flashcardContainer;
+    private View currentFlashcardView;
+
+    private String setId = null;
     private boolean isPublic = true;
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
+
+    private ActivityResultLauncher<Intent> pickImageLauncher;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -89,12 +93,13 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                 }
         );
 
-        setId = getIntent().getStringExtra("setId");
-
-        if (setId != null) {
-            loadFlashcardSetForEdit(setId);
+        if (getIntent().hasExtra("setId")) {
+            setId = getIntent().getStringExtra("setId");
+            if (setId != null && !setId.trim().isEmpty()) {
+                loadFlashcardSetForEdit(setId);
+            }
         } else {
-            setId = FirebaseFirestore.getInstance().collection("flashcards").document().getId();
+            setId = db.collection("flashcards").document().getId();
             addFlashcardView();
             addFlashcardView();
         }
@@ -131,7 +136,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
                     privacyTxt.setText("Private");
                     roleTxt.setText("");
                     Glide.with(this).load(R.drawable.lock).into(privacyIcon);
-
                 } else if (selectedPrivacy.equals("Public")) {
                     isPublic = true;
                     privacyTxt.setText("Public");
@@ -213,7 +217,6 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
                             if (photoUrl != null && !photoUrl.isEmpty()) {
                                 Glide.with(this).load(photoUrl).into(imageButton);
-
                                 Map<String, String> imageData = new HashMap<>();
                                 imageData.put("photoUrl", photoUrl);
                                 if (photoPath != null) imageData.put("photoPath", photoPath);
@@ -302,64 +305,39 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             flashcardSet.put("privacyRole", null);
         }
 
-        if (setId != null) {
-            db.collection("flashcards").document(setId)
-                    .get()
-                    .addOnSuccessListener(existingDoc -> {
-                        if (existingDoc.exists()) {
-                            Map<String, Object> existingData = existingDoc.getData();
-                            if (existingData != null && existingData.containsKey("accessUsers")) {
-                                flashcardSet.put("accessUsers", existingData.get("accessUsers"));
-                            }
-                        }
+        db.collection("flashcards").document(setId)
+                .set(flashcardSet)
+                .addOnSuccessListener(unused -> {
+                    Map<String, Object> ownedSet = new HashMap<>();
+                    ownedSet.put("id", setId);
+                    ownedSet.put("type", "flashcard");
 
-                        db.collection("flashcards").document(setId)
-                                .set(flashcardSet)
-                                .addOnSuccessListener(doc -> {
-                                    Toast.makeText(this, "Flashcard set updated", Toast.LENGTH_SHORT).show();
-                                    finish();
-                                })
-                                .addOnFailureListener(e -> Toast.makeText(this, "Failed to update set", Toast.LENGTH_SHORT).show());
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Failed to fetch existing set before update", Toast.LENGTH_SHORT).show();
-                    });
+                    Map<String, Object> accessUsers = new HashMap<>();
+                    accessUsers.put(auth.getCurrentUser().getUid(), "Owner");
 
-        } else {
-            Map<String, Object> accessUsers = new HashMap<>();
-            accessUsers.put(auth.getCurrentUser().getUid(), "Owner");
-            flashcardSet.put("accessUsers", accessUsers);
+                    db.collection("flashcards").document(setId).update("accessUsers", accessUsers);
 
-            db.collection("flashcards")
-                    .add(flashcardSet)
-                    .addOnSuccessListener(doc -> {
-                        String generatedSetId = doc.getId();
-                        Map<String, Object> ownedSet = new HashMap<>();
-                        ownedSet.put("id", generatedSetId);
-                        ownedSet.put("type", "flashcard");
-
-                        DocumentReference userRef = db.collection("users").document(auth.getCurrentUser().getUid());
-                        userRef.update("owned_sets", com.google.firebase.firestore.FieldValue.arrayUnion(ownedSet))
-                                .addOnSuccessListener(unused -> {
-                                    Toast.makeText(this, "Flashcard set saved", Toast.LENGTH_SHORT).show();
-                                    finish();
-                                })
-                                .addOnFailureListener(e -> {
-                                    Map<String, Object> initData = new HashMap<>();
-                                    initData.put("owned_sets", java.util.Collections.singletonList(ownedSet));
-                                    userRef.set(initData, com.google.firebase.firestore.SetOptions.merge())
-                                            .addOnSuccessListener(aVoid -> {
-                                                Toast.makeText(this, "Flashcard set saved", Toast.LENGTH_SHORT).show();
-                                                finish();
-                                            })
-                                            .addOnFailureListener(innerErr -> {
-                                                Toast.makeText(this, "Saved set but failed to update owned_sets", Toast.LENGTH_LONG).show();
-                                                finish();
-                                            });
-                                });
-                    })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to save set", Toast.LENGTH_SHORT).show());
-        }
+                    DocumentReference userRef = db.collection("users").document(auth.getCurrentUser().getUid());
+                    userRef.update("owned_sets", com.google.firebase.firestore.FieldValue.arrayUnion(ownedSet))
+                            .addOnSuccessListener(unused2 -> {
+                                Toast.makeText(this, "Flashcard set saved", Toast.LENGTH_SHORT).show();
+                                finish();
+                            })
+                            .addOnFailureListener(e -> {
+                                Map<String, Object> initData = new HashMap<>();
+                                initData.put("owned_sets", java.util.Collections.singletonList(ownedSet));
+                                userRef.set(initData, com.google.firebase.firestore.SetOptions.merge())
+                                        .addOnSuccessListener(aVoid -> {
+                                            Toast.makeText(this, "Flashcard set saved", Toast.LENGTH_SHORT).show();
+                                            finish();
+                                        })
+                                        .addOnFailureListener(innerErr -> {
+                                            Toast.makeText(this, "Saved set but failed to update owned_sets", Toast.LENGTH_LONG).show();
+                                            finish();
+                                        });
+                            });
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to save set", Toast.LENGTH_SHORT).show());
     }
 
     @Override
@@ -398,14 +376,9 @@ public class CreateFlashcardActivity extends AppCompatActivity {
 
             String uid = auth.getCurrentUser().getUid();
             String fileName = "flashcard_" + UUID.randomUUID() + ".jpg";
-            if (setId == null) {
-                Toast.makeText(this, "Set ID not yet generated. Please save the set name first.", Toast.LENGTH_SHORT).show();
-                return;
-            }
             String fullPath = uid + "/" + setId + "/" + fileName;
             StorageReference storageRef = FirebaseStorage.getInstance()
                     .getReference("flashcard-images/" + fullPath);
-
 
             storageRef.putFile(Uri.fromFile(file))
                     .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl()
@@ -453,12 +426,8 @@ public class CreateFlashcardActivity extends AppCompatActivity {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Leave without saving?")
                 .setMessage("Are you sure you want to leave? Any unsaved changes will be lost.")
-                .setPositiveButton("Yes", (dialog, which) -> {
-                    super.onBackPressed();
-                })
-                .setNegativeButton("Cancel", (dialog, which) -> {
-                    dialog.dismiss();
-                })
+                .setPositiveButton("Yes", (dialog, which) -> super.onBackPressed())
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                 .show();
     }
 }
