@@ -215,6 +215,7 @@
                 }
                 Intent intent = new Intent(this, QuizProgressActivity.class);
                 intent.putExtra("quizId", quizId);
+                intent.putExtra("quizTitle", getIntent().getStringExtra("quizTitle"));
                 intent.putExtra("isOffline", isOffline);
                 intent.putExtra("score", correctCount);
                 intent.putExtra("incorrect", incorrectCount);
@@ -717,16 +718,36 @@
                 JSONObject data = new JSONObject();
                 JSONArray answersArray = new JSONArray();
 
+                int order = 0;
                 for (Map<String, Object> userAnswer : userAnswersList) {
                     JSONObject answerJson = new JSONObject();
+
                     answerJson.put("question", userAnswer.get("question"));
-                    answerJson.put("correctAnswers", new JSONArray((List<?>) userAnswer.get("correctAnswers")));
-                    answerJson.put("userAnswer", userAnswer.get("userAnswer"));
+                    answerJson.put("photoUrl", userAnswer.get("photoUrl")); // Add if available
                     answerJson.put("isCorrect", userAnswer.get("isCorrect"));
+                    answerJson.put("order", order); // preserve order
+
+                    // Correct answers: could be list or string
+                    Object correctAnswers = userAnswer.get("correctAnswers");
+                    if (correctAnswers instanceof List) {
+                        answerJson.put("correct", new JSONArray((List<?>) correctAnswers));
+                    } else {
+                        answerJson.put("correct", correctAnswers); // string fallback
+                    }
+
+                    // User selected answers: could be list or string
+                    Object userAns = userAnswer.get("userAnswer");
+                    if (userAns instanceof List) {
+                        answerJson.put("selected", new JSONArray((List<?>) userAns));
+                    } else {
+                        answerJson.put("selected", userAns); // string fallback
+                    }
+
                     answersArray.put(answerJson);
+                    order++;
                 }
 
-                data.put("userAnswers", answersArray);
+                data.put("answeredQuestions", answersArray); // MUST use this exact key
                 data.put("score", score);
                 data.put("originalQuestionCount", originalQuestionCount);
 
@@ -738,6 +759,7 @@
                 Log.e("QuizView", "Error saving temp offline attempt", e);
             }
         }
+
 
 
         private void resetOptionColors() {

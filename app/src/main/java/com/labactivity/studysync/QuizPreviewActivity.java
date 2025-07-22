@@ -17,14 +17,17 @@ import android.os.Environment;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
 import com.google.common.reflect.TypeToken;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.google.gson.Gson;
-
-
 
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -65,6 +68,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -76,6 +80,8 @@ import androidx.viewpager2.widget.ViewPager2;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class QuizPreviewActivity extends AppCompatActivity {
 
@@ -90,6 +96,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
     private Switch shuffleSwitch, shuffleOptionsSwitch;
     private Button startQuizBtn, cancelReminderBtn;
     private MaterialButton downloadBtn, setReminderBtn, convertBtn, shareToChatBtn;
+
 
 
     @Override
@@ -227,6 +234,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
         startQuizBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, QuizViewActivity.class);
             intent.putExtra("quizId", quizId); // required in both modes
+            intent.putExtra("quizTitle", title);
             intent.putExtra("photoUrl", photoUrl);
             intent.putExtra("shuffle", shuffleSwitch.isChecked());
             intent.putExtra("shuffleOptions", shuffleOptionsSwitch.isChecked());
@@ -530,90 +538,8 @@ public class QuizPreviewActivity extends AppCompatActivity {
         });
 
         copyBtn.setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-
-            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-            if (currentUser == null) {
-                Toast.makeText(this, "You must be signed in to copy this quiz.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            String newQuizId = db.collection("quiz").document().getId();
-            String userId = currentUser.getUid();
-
-            db.collection("quiz").document(quizId)
-                    .get()
-                    .addOnSuccessListener(doc -> {
-                        if (!doc.exists()) {
-                            Toast.makeText(this, "Quiz not found", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                        Map<String, Object> originalData = doc.getData();
-                        if (originalData == null) {
-                            Toast.makeText(this, "Failed to copy quiz data.", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                        // ✅ Add " (copy)" to the quiz title
-                        Object originalTitle = originalData.get("title");
-                        if (originalTitle != null && originalTitle instanceof String) {
-                            String copiedTitle = ((String) originalTitle).trim();
-                            if (!copiedTitle.toLowerCase().endsWith("(Copy)")) {
-                                copiedTitle += " (Copy)";
-                            }
-                            originalData.put("title", copiedTitle);
-                        }
-
-                        db.collection("users").document(userId)
-                                .get()
-                                .addOnSuccessListener(userDoc -> {
-                                    String username = userDoc.getString("username");
-                                    originalData.put("owner_uid", userId);
-                                    originalData.put("owner_username", username != null ? username : "Unknown");
-                                    originalData.put("created_at", Timestamp.now());
-                                    originalData.put("reminder", "");
-                                    originalData.put("privacy", "private");
-                                    originalData.put("id", newQuizId);
-                                    originalData.put("privacyRole", "view");
-
-                                    Map<String, Object> accessUsers = new HashMap<>();
-                                    accessUsers.put(userId, "Owner");
-                                    originalData.put("accessUsers", accessUsers);
-
-                                    db.collection("quiz").document(newQuizId)
-                                            .set(originalData)
-                                            .addOnSuccessListener(aVoid -> {
-                                                DocumentReference userRef = db.collection("users").document(userId);
-                                                userRef.get().addOnSuccessListener(userSnapshot -> {
-                                                    List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userSnapshot.get("owned_sets");
-                                                    if (ownedSets == null) ownedSets = new ArrayList<>();
-
-                                                    Map<String, Object> newSet = new HashMap<>();
-                                                    newSet.put("id", newQuizId);
-                                                    newSet.put("type", "quiz");
-
-                                                    ownedSets.add(newSet);
-
-                                                    userRef.update("owned_sets", ownedSets)
-                                                            .addOnSuccessListener(unused -> {
-                                                                Toast.makeText(this, "Quiz copied successfully!", Toast.LENGTH_SHORT).show();
-
-                                                                // ✅ Redirect to copied quiz
-                                                                Intent intent = new Intent(this, QuizPreviewActivity.class); // or the activity that views quiz sets
-                                                                intent.putExtra("quizId", newQuizId);
-                                                                startActivity(intent);
-                                                            })
-                                                            .addOnFailureListener(e -> Toast.makeText(this, "Failed to add to owned sets.", Toast.LENGTH_SHORT).show());
-                                                });
-                                            })
-                                            .addOnFailureListener(e -> Toast.makeText(this, "Failed to copy quiz.", Toast.LENGTH_SHORT).show());
-                                })
-                                .addOnFailureListener(e -> Toast.makeText(this, "Failed to fetch user info.", Toast.LENGTH_SHORT).show());
-                    });
+            copyQuiz(quizId);
         });
-
-
 
         privacyBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
@@ -675,6 +601,112 @@ public class QuizPreviewActivity extends AppCompatActivity {
         bottomSheetDialog.show();
     }
 
+    private void copyQuiz(String originalQuizId) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        db.collection("users").document(userId).get()
+                .addOnSuccessListener(userSnapshot -> {
+                    if (!userSnapshot.exists()) return;
+                    String username = userSnapshot.getString("username");
+
+                    db.collection("quiz").document(originalQuizId).get()
+                            .addOnSuccessListener(originalSnapshot -> {
+                                if (!originalSnapshot.exists()) return;
+
+                                Map<String, Object> originalData = originalSnapshot.getData();
+                                if (originalData == null) return;
+
+                                // Prepare base copy data
+                                Map<String, Object> quizCopy = new HashMap<>();
+                                quizCopy.put("title", originalData.get("title") + " (Copy)");
+                                quizCopy.put("owner_uid", userId);
+                                quizCopy.put("owner_username", username);
+                                quizCopy.put("created_at", Timestamp.now());
+                                quizCopy.put("privacy", "private");
+                                quizCopy.put("privacyRole", "view");
+                                quizCopy.put("progress", 0);
+                                quizCopy.put("number_of_items", originalData.get("number_of_items"));
+                                quizCopy.put("accessUsers", Collections.singletonMap(userId, "Owner"));
+
+                                List<Map<String, Object>> originalQuestions = (List<Map<String, Object>>) originalData.get("questions");
+                                List<Map<String, Object>> copiedQuestions = new ArrayList<>();
+
+                                db.collection("quiz").add(quizCopy)
+                                        .addOnSuccessListener(newQuizRef -> {
+                                            String newQuizId = newQuizRef.getId();
+                                            final int[] pending = {originalQuestions.size()};
+
+                                            for (Map<String, Object> question : originalQuestions) {
+                                                Map<String, Object> copiedQuestion = new HashMap<>(question);
+
+                                                String oldPath = (String) question.get("photoPath");
+
+                                                if (oldPath != null && !oldPath.isEmpty()) {
+                                                    String oldOwnerUid = (String) originalData.get("owner_uid");
+                                                    StorageReference oldImageRef = storage.getReference("quiz_images/" + oldOwnerUid + "/" + originalQuizId + "/" + oldPath);
+
+                                                    oldImageRef.getBytes(5 * 1024 * 1024)
+                                                            .addOnSuccessListener(bytes -> {
+                                                                String newFilename = "quiz_" + UUID.randomUUID() + ".jpg";
+                                                                StorageReference newRef = storage.getReference("quiz_images/" + userId + "/" + newQuizId + "/" + newFilename);
+
+                                                                newRef.putBytes(bytes)
+                                                                        .addOnSuccessListener(taskSnapshot -> newRef.getDownloadUrl()
+                                                                                .addOnSuccessListener(uri -> {
+                                                                                    copiedQuestion.put("photoPath", newFilename);
+                                                                                    copiedQuestion.put("photoUrl", uri.toString());
+                                                                                    copiedQuestions.add(copiedQuestion);
+                                                                                    checkSaveComplete(newQuizRef, copiedQuestions, pending);
+                                                                                }))
+                                                                        .addOnFailureListener(e -> {
+                                                                            copiedQuestion.remove("photoPath");
+                                                                            copiedQuestion.remove("photoUrl");
+                                                                            copiedQuestions.add(copiedQuestion);
+                                                                            checkSaveComplete(newQuizRef, copiedQuestions, pending);
+                                                                        });
+                                                            })
+                                                            .addOnFailureListener(e -> {
+                                                                copiedQuestion.remove("photoPath");
+                                                                copiedQuestion.remove("photoUrl");
+                                                                copiedQuestions.add(copiedQuestion);
+                                                                checkSaveComplete(newQuizRef, copiedQuestions, pending);
+                                                            });
+                                                } else {
+                                                    copiedQuestions.add(copiedQuestion);
+                                                    checkSaveComplete(newQuizRef, copiedQuestions, pending);
+                                                }
+                                            }
+
+                                            // Add to owned_sets
+                                            Map<String, Object> ownedSetEntry = new HashMap<>();
+                                            ownedSetEntry.put("id", newQuizId);
+                                            ownedSetEntry.put("type", "quiz");
+                                            ownedSetEntry.put("lastAccessed", System.currentTimeMillis());
+
+                                            db.collection("users").document(userId)
+                                                    .update("owned_sets", FieldValue.arrayUnion(ownedSetEntry));
+                                        });
+                            });
+                });
+    }
+
+    private void checkSaveComplete(DocumentReference newQuizRef, List<Map<String, Object>> copiedQuestions, int[] counter) {
+        counter[0]--;
+        if (counter[0] == 0) {
+            newQuizRef.update("questions", copiedQuestions)
+                    .addOnSuccessListener(unused -> {
+                        Toast.makeText(this, "Quiz copied successfully!", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent(this, QuizPreviewActivity.class);
+                        intent.putExtra("quizId", newQuizRef.getId());
+                        startActivity(intent);
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to update quiz questions.", Toast.LENGTH_SHORT).show();
+                    });
+        }
+    }
 
     private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)
