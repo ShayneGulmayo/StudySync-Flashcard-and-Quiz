@@ -1090,11 +1090,12 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         db.collection("flashcards").add(copyData)
                 .addOnSuccessListener(newDocRef -> {
                     long timestamp = System.currentTimeMillis();
+                    int progress = 0; // Default value, adjust if you track specific progress
 
                     Map<String, Object> ownedSetData = new HashMap<>();
                     ownedSetData.put("id", newDocRef.getId());
                     ownedSetData.put("type", "flashcard");
-                    ownedSetData.put("progress", 0);
+                    ownedSetData.put("progress", progress);
                     ownedSetData.put("lastAccessed", timestamp);
 
                     // Optional: track where it was copied from
