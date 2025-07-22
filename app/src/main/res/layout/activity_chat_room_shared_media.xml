@@ -9,10 +9,12 @@
     android:background="@color/white">
 
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/consLayout"
+
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/navigationView"
         android:layout_width="match_parent"
         android:layout_height="70dp"
+        android:layout_alignParentTop="true"
         android:background="@color/white"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -22,25 +24,21 @@
             android:id="@+id/backButton"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_marginStart="20dp"
+            android:layout_gravity="left|center_vertical"
+            android:layout_margin="20dp"
             android:contentDescription="Back"
-            android:src="@drawable/arrow_back"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:src="@drawable/arrow_back" />
 
         <TextView
+            android:id="@+id/txtView_fullname"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:text="Shared Media"
             android:textColor="@color/black"
             android:textSize="18sp"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            android:textStyle="bold" />
+    </com.google.android.material.navigation.NavigationView>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -48,7 +46,7 @@
         android:layout_height="0dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/consLayout"
+        app:layout_constraintTop_toBottomOf="@id/navigationView"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
