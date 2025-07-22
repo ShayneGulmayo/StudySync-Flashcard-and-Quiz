@@ -29,6 +29,7 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
             android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
             android:ellipsize="end"
             android:maxLines="1"
             android:text="Full Name"
@@ -74,11 +75,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="5dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
                     android:text="12 cards | Created by username"
                     android:textColor="@color/text_gray"
-                    android:textSize="14sp" />
+                    android:textSize="14sp"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:breakStrategy="simple"
+                    />
+
 
                 <LinearLayout
                     android:layout_width="match_parent"

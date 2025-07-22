@@ -5,7 +5,6 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -47,7 +46,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
     private TextView chatroomNameTextView;
     private Switch notifToggle;
 
-    private MaterialButton sharedSets;
+    private MaterialButton sharedSets, deleteChatRoom;
 
     private FirebaseFirestore db;
     private FirebaseUser currentUser;
@@ -89,7 +88,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
         notifToggle = findViewById(R.id.notif_btn);
         notifToggle.setChecked(true);
         sharedSets = findViewById(R.id.shared_sets_btn);
-
+        deleteChatRoom = findViewById(R.id.delete_chatroom_btn);
 
         roomId = getIntent().getStringExtra("roomId");
 
@@ -117,7 +116,8 @@ public class EditChatRoomActivity extends AppCompatActivity {
         backButton.setOnClickListener(v -> onBackPressed());
         chatroomPhoto.setOnClickListener(v -> openImagePicker());
         moreBtn.setOnClickListener(this::showPopupMenu);
-        findViewById(R.id.delete_chatroom_btn).setOnClickListener(v -> attemptDeleteChatRoom());
+
+        deleteChatRoom.setOnClickListener(v -> attemptDeleteChatRoom());
         findViewById(R.id.leave_chatroom_btn).setOnClickListener(v -> attemptLeaveChatRoom());
         findViewById(R.id.see_members_btn).setOnClickListener(v -> {
             Intent intent = new Intent(EditChatRoomActivity.this, SeeMembersActivity.class);
@@ -143,6 +143,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
                 }
             });
         });
+
         sharedSets.setOnClickListener(view ->{
             Intent intent = new Intent(EditChatRoomActivity.this, ChatRoomSharedSetsActivity.class);
             intent.putExtra("roomId", roomId);
@@ -192,7 +193,6 @@ public class EditChatRoomActivity extends AppCompatActivity {
                 .show();
     }
 
-
     private void openImagePicker() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
@@ -218,6 +218,16 @@ public class EditChatRoomActivity extends AppCompatActivity {
                                     .error(R.drawable.user_profile)
                                     .circleCrop()
                                     .into(chatroomPhoto);
+
+                            String uid = currentUser.getUid();
+                            boolean isOwner = uid.equals(ownerId);
+                            boolean isAdmin = admins != null && admins.contains(uid);
+
+                            if (!isOwner && !isAdmin) {
+                                deleteChatRoom.setVisibility(View.GONE);
+                            } else {
+                                deleteChatRoom.setVisibility(View.VISIBLE);
+                            }
                         }
                     }
                 });
@@ -296,14 +306,6 @@ public class EditChatRoomActivity extends AppCompatActivity {
     private void attemptDeleteChatRoom() {
         if (currentRoom == null || currentUser == null) return;
 
-        String uid = currentUser.getUid();
-        boolean isOwner = uid.equals(ownerId);
-        boolean isAdmin = admins != null && admins.contains(uid);
-
-        if (!isOwner && !isAdmin) {
-            Toast.makeText(this, "Only the owner or an admin can delete this chat room.", Toast.LENGTH_SHORT).show();
-            return;
-        }
 
         new AlertDialog.Builder(this)
                 .setTitle("Delete Chat Room")

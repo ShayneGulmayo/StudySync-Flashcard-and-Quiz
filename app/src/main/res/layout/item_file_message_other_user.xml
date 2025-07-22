@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/messageContainer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginRight="120dp"
     android:orientation="horizontal"
-    android:padding="3dp"
-    android:layout_marginRight="120dp">
+    android:padding="5dp">
 
     <ImageView
         android:id="@+id/senderImage"
@@ -38,7 +36,7 @@
             android:textSize="14sp"
             android:textStyle="bold" />
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:id="@+id/fileLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -46,71 +44,65 @@
             android:background="@drawable/bg_message_other_user"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="15dp"
-            android:weightSum="4">
+            android:padding="15dp">
 
             <ImageView
                 android:id="@+id/fileIcon"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
+                android:layout_marginEnd="10dp"
                 android:contentDescription="File Icon"
-                android:src="@drawable/attach_file"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                android:src="@drawable/attach_file" />
 
-
-            <TextView
-                android:id="@+id/fileName"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_marginEnd="10dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="example.pdf"
-                android:textColor="@android:color/black"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toStartOf="@+id/saveFileButton"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toEndOf="@+id/fileIcon"
-                app:layout_constraintTop_toTopOf="parent" />
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/fileDetails"
+                <TextView
+                    android:id="@+id/fileName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="example.pdf"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/fileDetails"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="PDF · 120 KB"
+                    android:textColor="@color/text_gray"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_marginEnd="10dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="PDF · 120 KB"
-                android:textColor="@color/text_gray"
-                android:textSize="14sp"
-                app:layout_constraintEnd_toStartOf="@+id/saveFileButton"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toEndOf="@+id/fileIcon"
-                app:layout_constraintTop_toBottomOf="@+id/fileName" />
+                android:layout_height="match_parent"
+                android:gravity="center">
 
-            <ImageView
-                android:id="@+id/saveFileButton"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:clickable="true"
-                android:contentDescription="Save File"
-                android:focusable="true"
-                android:src="@drawable/download"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                <ImageView
+                    android:id="@+id/saveFileButton"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="center"
+                    android:clickable="true"
+                    android:contentDescription="Save File"
+                    android:focusable="true"
+                    android:src="@drawable/download" />
+            </LinearLayout>
+        </LinearLayout>
 
         <TextView
             android:id="@+id/timestampText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
             android:layout_marginStart="10dp"
             android:text="12:00 PM"
             android:textColor="@color/text_gray"

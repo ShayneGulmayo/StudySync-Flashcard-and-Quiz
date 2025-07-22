@@ -101,8 +101,9 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
         boolean targetIsAdmin = admins != null && admins.contains(targetUid);
 
         boolean isDeleted = target.getUser().isDeleted();
+        boolean isUserNotFound = "User Not Found".equals(targetName);
 
-        if (isDeleted) {
+        if (isUserNotFound || isDeleted) {
             setOwner.setVisibility(View.GONE);
             setAdmin.setVisibility(View.GONE);
             remove.setVisibility(View.VISIBLE);
@@ -111,6 +112,7 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
             setAdmin.setVisibility((isOwner || isAdmin) ? View.VISIBLE : View.GONE);
             remove.setVisibility((isOwner || isAdmin) ? View.VISIBLE : View.GONE);
         }
+
 
         setAdmin.setText(targetIsAdmin ? "Remove from Admin" : "Set as Admin");
 

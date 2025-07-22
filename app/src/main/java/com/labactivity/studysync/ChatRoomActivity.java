@@ -34,10 +34,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.labactivity.studysync.adapters.ChatMessageAdapter;
 import com.labactivity.studysync.models.ChatMessage;
-import com.labactivity.studysync.utils.SupabaseUploader;
-import com.yalantis.ucrop.util.FileUtils;
 
-import java.io.File;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;

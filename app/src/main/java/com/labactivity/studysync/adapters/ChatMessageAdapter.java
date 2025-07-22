@@ -1,5 +1,6 @@
 package com.labactivity.studysync.adapters;
 
+import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
 import android.content.Intent;
@@ -136,7 +137,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             btnViewSet = itemView.findViewById(R.id.btnViewSet);
 
             itemView.setOnClickListener(v -> {
-                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? View.GONE : VISIBLE);
+                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? GONE : VISIBLE);
             });
 
         }
@@ -151,7 +152,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             db.collection("users").document(message.getSenderId()).get().addOnSuccessListener(userSnap -> {
                 User user = userSnap.toObject(User.class);
                 if (user != null) {
-                    senderName.setText(user.getUsername());
+                    senderName.setText(user.getFullName());
                     Glide.with(itemView.getContext())
                             .load(user.getPhotoUrl())
                             .placeholder(R.drawable.user_profile)
@@ -168,30 +169,52 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             if ("flashcard".equals(message.getSetType())) {
                 db.collection("flashcards").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
-                    Flashcard flashcard = snapshot.toObject(Flashcard.class);
-                    if (flashcard != null) {
+                    if (snapshot.exists()) {
+                        Flashcard flashcard = snapshot.toObject(Flashcard.class);
                         sharedTitle.setText(flashcard.getTitle());
                         sharedType.setText("Flashcard Set");
+
                         db.collection("users").document(flashcard.getOwnerUid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
                             String desc = flashcard.getNumber_Of_Items() + " terms" +
                                     (owner != null ? " · by " + owner.getUsername() : "");
                             sharedDescription.setText(desc);
+                        }).addOnFailureListener(e -> {
+                            sharedDescription.setText(flashcard.getNumber_Of_Items() + " terms");
                         });
+
+                    } else {
+                        sharedTitle.setText("Flashcard Set Unavailable");
+                        sharedType.setText("Flashcard Set");
+                        sharedDescription.setText("This flashcard set has been deleted.");
+                        btnViewSet.setVisibility(View.GONE);
+                        saveSetBtn.setVisibility(View.GONE);
+                        savedIndicator.setVisibility(View.GONE);
                     }
                 });
             } else if ("quiz".equals(message.getSetType())) {
                 db.collection("quiz").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
-                    Quiz quiz = snapshot.toObject(Quiz.class);
-                    if (quiz != null) {
+                    if (snapshot.exists()) {
+                        Quiz quiz = snapshot.toObject(Quiz.class);
                         sharedTitle.setText(quiz.getTitle());
                         sharedType.setText("Quiz Set");
+
                         db.collection("users").document(quiz.getOwner_uid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
                             String desc = quiz.getNumber_of_items() + " items" +
                                     (owner != null ? " · by " + owner.getUsername() : "");
                             sharedDescription.setText(desc);
+                        }).addOnFailureListener(e -> {
+                            sharedDescription.setText(quiz.getNumber_of_items() + " items");
                         });
+
+                    } else {
+                        sharedTitle.setText("Quiz Set Unavailable");
+                        sharedType.setText("Quiz Set");
+                        sharedDescription.setText("This quiz set has been deleted.");
+                        btnViewSet.setVisibility(View.GONE);
+                        saveSetBtn.setVisibility(View.GONE);
+                        savedIndicator.setVisibility(View.GONE);
                     }
                 });
             }
@@ -225,10 +248,11 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     updateBookmarkIcon(true);
                     saveSetBtn.setEnabled(false);
                     saveSetBtn.setClickable(false);
+                    saveSetBtn.setVisibility(GONE);
                     savedIndicator.setVisibility(VISIBLE);
                 } else {
                     updateBookmarkIcon(isSaved.get());
-                    savedIndicator.setVisibility(isSaved.get() ? VISIBLE : View.GONE);
+                    savedIndicator.setVisibility(isSaved.get() ? VISIBLE : GONE);
 
                     saveSetBtn.setOnClickListener(v -> {
                         Map<String, Object> setData = new HashMap<>();
@@ -242,7 +266,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                                         Toast.makeText(itemView.getContext(), "Set unsaved", Toast.LENGTH_SHORT).show();
                                         isSaved.set(false);
                                         updateBookmarkIcon(false);
-                                        savedIndicator.setVisibility(View.GONE);
+                                        savedIndicator.setVisibility(GONE);
                                     });
                         } else {
                             db.collection("users").document(currentUserId)
@@ -282,10 +306,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         }
     }
 
-
-
-
-
     static class FileCurrentUserViewHolder extends RecyclerView.ViewHolder {
         TextView fileName, fileDetails, timestampText;
         ImageView saveFileButton;
@@ -304,7 +324,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
 
             itemView.setOnClickListener(view -> {
-                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? View.GONE : VISIBLE);
+                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? GONE : VISIBLE);
             });
             saveFileButton.setOnClickListener(v -> {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -341,7 +361,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     .circleCrop()
                     .into(senderImage);
             itemView.setOnClickListener(view -> {
-                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? View.GONE : VISIBLE);
+                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? GONE : VISIBLE);
             });
 
             senderImage.setOnClickListener(v -> {
@@ -375,7 +395,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             savedIndicator = itemView.findViewById(R.id.savedIndicator);
 
             itemView.setOnClickListener(v -> {
-                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? View.GONE : VISIBLE);
+                timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? GONE : VISIBLE);
             });
         }
 
@@ -388,10 +408,11 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             if ("flashcard".equals(message.getSetType())) {
                 db.collection("flashcards").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
-                    Flashcard flashcard = snapshot.toObject(Flashcard.class);
-                    if (flashcard != null) {
+                    if (snapshot.exists()) {
+                        Flashcard flashcard = snapshot.toObject(Flashcard.class);
                         sharedTitle.setText(flashcard.getTitle());
                         sharedType.setText("Flashcard Set");
+
                         db.collection("users").document(flashcard.getOwnerUid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
                             String desc = flashcard.getNumber_Of_Items() + " terms" +
@@ -400,14 +421,22 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                         }).addOnFailureListener(e -> {
                             sharedDescription.setText(flashcard.getNumber_Of_Items() + " terms");
                         });
+
+                    } else {
+                        sharedTitle.setText("Flashcard Set Unavailable");
+                        sharedType.setText("Flashcard Set");
+                        sharedDescription.setText("This flashcard set has been deleted.");
+                        btnViewSet.setVisibility(View.GONE);
+                        saveSetBtn.setVisibility(GONE);
                     }
                 });
             } else if ("quiz".equals(message.getSetType())) {
                 db.collection("quiz").document(message.getSetId()).get().addOnSuccessListener(snapshot -> {
-                    Quiz quiz = snapshot.toObject(Quiz.class);
-                    if (quiz != null) {
+                    if (snapshot.exists()) {
+                        Quiz quiz = snapshot.toObject(Quiz.class);
                         sharedTitle.setText(quiz.getTitle());
                         sharedType.setText("Quiz Set");
+
                         db.collection("users").document(quiz.getOwner_uid()).get().addOnSuccessListener(ownerDoc -> {
                             User owner = ownerDoc.toObject(User.class);
                             String desc = quiz.getNumber_of_items() + " items" +
@@ -416,9 +445,18 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                         }).addOnFailureListener(e -> {
                             sharedDescription.setText(quiz.getNumber_of_items() + " items");
                         });
+
+                    } else {
+                        sharedTitle.setText("Quiz Set Unavailable");
+                        sharedType.setText("Quiz Set");
+                        sharedDescription.setText("This quiz set has been deleted.");
+                        btnViewSet.setVisibility(View.GONE);
+                        saveSetBtn.setVisibility(GONE);
+
                     }
                 });
             }
+
 
             db.collection("users").document(currentUserId).get().addOnSuccessListener(userDoc -> {
                 AtomicBoolean isSaved = new AtomicBoolean(false);
@@ -449,10 +487,11 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                     updateBookmarkIcon(true);
                     saveSetBtn.setEnabled(false);
                     saveSetBtn.setClickable(false);
+                    saveSetBtn.setVisibility(GONE);
                     savedIndicator.setVisibility(VISIBLE);
                 } else {
                     updateBookmarkIcon(isSaved.get());
-                    savedIndicator.setVisibility(isSaved.get() ? VISIBLE : View.GONE);
+                    savedIndicator.setVisibility(isSaved.get() ? VISIBLE : GONE);
 
                     saveSetBtn.setOnClickListener(v -> {
                         Map<String, Object> setData = new HashMap<>();
@@ -466,7 +505,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                                         Toast.makeText(itemView.getContext(), "Set unsaved", Toast.LENGTH_SHORT).show();
                                         isSaved.set(false);
                                         updateBookmarkIcon(false);
-                                        savedIndicator.setVisibility(View.GONE);
+                                        savedIndicator.setVisibility(GONE);
                                     });
                         } else {
                             db.collection("users").document(currentUserId)
@@ -506,17 +545,12 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         }
     }
 
-
-
-
-
     private static String readableFileSize(long size) {
         if (size <= 0) return "0 B";
         final String[] units = new String[]{"B", "KB", "MB", "GB", "TB"};
         int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
         return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
-
 
     static class CurrentUserViewHolder extends RecyclerView.ViewHolder {
         TextView messageText, timestampText;
@@ -533,10 +567,10 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
         public void bind(ChatMessage message) {
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
-            timestampText.setVisibility(View.GONE);
+            timestampText.setVisibility(GONE);
 
             if ("image".equals(message.getType())) {
-                messageText.setVisibility(View.GONE);
+                messageText.setVisibility(GONE);
                 imageView.setVisibility(VISIBLE);
                 Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
 
@@ -547,7 +581,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
 
             } else if ("video".equals(message.getType())) {
-                messageText.setVisibility(View.GONE);
+                messageText.setVisibility(GONE);
                 videoPreview.setVisibility(VISIBLE);
                 Glide.with(itemView.getContext())
                         .load(message.getVideoUrl())
@@ -570,14 +604,14 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
 
             } else {
-                imageView.setVisibility(View.GONE);
+                imageView.setVisibility(GONE);
                 messageText.setVisibility(VISIBLE);
                 messageText.setText(message.getText());
             }
 
             itemView.setOnClickListener(v -> {
                 timestampVisible = !timestampVisible;
-                timestampText.setVisibility(timestampVisible ? VISIBLE : View.GONE);
+                timestampText.setVisibility(timestampVisible ? VISIBLE : GONE);
             });
         }
     }
@@ -599,10 +633,10 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
         public void bind(ChatMessage message, boolean isSameSender) {
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
-            timestampText.setVisibility(View.GONE);
+            timestampText.setVisibility(GONE);
 
             if ("image".equals(message.getType())) {
-                messageText.setVisibility(View.GONE);
+                messageText.setVisibility(GONE);
                 imageView.setVisibility(VISIBLE);
                 Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
 
@@ -613,7 +647,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
 
             } else if ("video".equals(message.getType())) {
-                messageText.setVisibility(View.GONE);
+                messageText.setVisibility(GONE);
                 videoPreview.setVisibility(VISIBLE);
                 Glide.with(itemView.getContext())
                         .load(message.getVideoUrl())
@@ -636,13 +670,13 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
 
             } else {
-                imageView.setVisibility(View.GONE);
+                imageView.setVisibility(GONE);
                 messageText.setVisibility(VISIBLE);
                 messageText.setText(message.getText());
             }
 
             if (isSameSender) {
-                senderName.setVisibility(View.GONE);
+                senderName.setVisibility(GONE);
                 senderImage.setVisibility(View.INVISIBLE);
             } else {
                 senderName.setText(message.getSenderName());
@@ -662,7 +696,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             itemView.setOnClickListener(v -> {
                 timestampVisible = !timestampVisible;
-                timestampText.setVisibility(timestampVisible ? VISIBLE : View.GONE);
+                timestampText.setVisibility(timestampVisible ? VISIBLE : GONE);
             });
         }
 

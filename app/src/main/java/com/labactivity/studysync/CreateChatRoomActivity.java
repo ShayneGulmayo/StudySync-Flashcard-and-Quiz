@@ -81,11 +81,22 @@ public class CreateChatRoomActivity extends AppCompatActivity {
                     allUsers.clear();
                     for (DocumentSnapshot doc : querySnapshot) {
                         User user = doc.toObject(User.class);
-                        if (user != null && !user.getUid().equals(currentUserId)) {
+                        if (user != null) {
                             user.setUid(doc.getId());
-                            allUsers.add(user);
+
+                            String username = user.getUsername();
+                            Boolean isDeleted = doc.getBoolean("isDeleted");
+
+                            if ("User Not Found".equalsIgnoreCase(username) || Boolean.TRUE.equals(isDeleted)) {
+                                continue;
+                            }
+
+                            if (!user.getUid().equals(currentUserId)) {
+                                allUsers.add(user);
+                            }
                         }
                     }
+
                     refreshAdapters(allUsers);
                 });
     }

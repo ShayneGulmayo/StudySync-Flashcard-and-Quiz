@@ -64,25 +64,30 @@ public class AddMembersActivity extends AppCompatActivity {
             for (User user : selectedUsers) {
                db.collection("chat_rooms").document(chatRoomId)
                         .update("members", FieldValue.arrayUnion(user.getUid()))
-                        .addOnSuccessListener(aVoid -> {
-                            Map<String, Object> systemMessage = new HashMap<>();
-                            systemMessage.put("senderId", "system");
-                            systemMessage.put("senderName", "System");
-                            systemMessage.put("text", user.getFullName() + " was added to the chat.");
-                            systemMessage.put("timestamp", com.google.firebase.Timestamp.now());
-                            systemMessage.put("type", "system");
+                       .addOnSuccessListener(aVoid -> {
+                           String messageText = user.getFullName() + " was added to the chat.";
 
-                            db.collection("chat_rooms")
-                                    .document(chatRoomId)
-                                    .collection("messages")
-                                    .add(systemMessage);
-                        });
+                           Map<String, Object> systemMessage = new HashMap<>();
+                           systemMessage.put("senderId", "system");
+                           systemMessage.put("senderName", "System");
+                           systemMessage.put("text", messageText);
+                           systemMessage.put("timestamp", com.google.firebase.Timestamp.now());
+                           systemMessage.put("type", "system");
+
+                           db.collection("chat_rooms")
+                                   .document(chatRoomId)
+                                   .collection("messages")
+                                   .add(systemMessage);
+
+                           db.collection("chat_rooms")
+                                   .document(chatRoomId)
+                                   .update("lastMessage", messageText,
+                                           "lastMessageType", "system",
+                                           "lastMessageSender", null);
+                       });
             }
-
             finish();
         });
-
-
 
         searchInput.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override public boolean onQueryTextSubmit(String query) {
@@ -116,11 +121,23 @@ public class AddMembersActivity extends AppCompatActivity {
             allUsers.clear();
             for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                 User user = doc.toObject(User.class);
-                if (user != null && !existingMemberIds.contains(user.getUid())) {
+
+                if (user != null) {
                     user.setUid(doc.getId());
-                    allUsers.add(user);
+
+                    String username = user.getUsername();
+                    Boolean isDeleted = doc.getBoolean("isDeleted");
+
+                    if ("User Not Found".equalsIgnoreCase(username) || Boolean.TRUE.equals(isDeleted)) {
+                        continue;
+                    }
+
+                    if (!existingMemberIds.contains(user.getUid())) {
+                        allUsers.add(user);
+                    }
                 }
             }
+
             filterUsers(searchInput.getQuery().toString().trim());
         });
     }

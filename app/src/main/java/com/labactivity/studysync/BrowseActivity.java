@@ -134,8 +134,16 @@ public class BrowseActivity extends AppCompatActivity {
             for (DocumentSnapshot doc : userSnap) {
                 User user = doc.toObject(User.class);
                 if (user != null) {
+                    Boolean isDeleted = doc.getBoolean("isDeleted");
+                    String username = doc.getString("username");
+
+                    // ✅ Skip deleted or "User Not Found" users
+                    if (Boolean.TRUE.equals(isDeleted) || "User Not Found".equalsIgnoreCase(username)) {
+                        continue;
+                    }
+
                     user.setUid(doc.getId());
-                    user.setUsername(doc.getString("username"));
+                    user.setUsername(username);
                     user.setPhotoUrl(doc.getString("photoUrl"));
                     user.setFirstName(doc.getString("firstName"));
                     user.setLastName(doc.getString("lastName"));
@@ -144,6 +152,7 @@ public class BrowseActivity extends AppCompatActivity {
                     userMap.put(user.getUid(), user);
                 }
             }
+
 
             // Step 2: Load flashcards (after users are cached)
             db.collection("flashcards").get().addOnSuccessListener(flashcardSnap -> {
@@ -247,11 +256,16 @@ public class BrowseActivity extends AppCompatActivity {
             boolean matchesQuery = false;
 
             if ("user".equals(item.getType())) {
-                String username = item.getUser().getUsername().toLowerCase();
-                String fullName = item.getUser().getFullName().toLowerCase();
-                matchesQuery = username.contains(query) || fullName.contains(query);
+                User u = item.getUser();
+                if (u == null || "User Not Found".equalsIgnoreCase(u.getUsername()) || Boolean.TRUE.equals(u.isDeleted())) {
+                    continue; // ✅ Skip deleted users
+                }
 
-            } else if ("flashcard".equals(item.getType())) {
+                String username = u.getUsername().toLowerCase();
+                String fullName = u.getFullName().toLowerCase();
+                matchesQuery = username.contains(query) || fullName.contains(query);
+            }
+            else if ("flashcard".equals(item.getType())) {
                 matchesQuery = item.getFlashcard().getTitle().toLowerCase().contains(query);
 
             } else if ("quiz".equals(item.getType())) {
