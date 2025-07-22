@@ -75,7 +75,7 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
         Flashcard set = flashcard.get(position);
 
         String title = set.getTitle();
-        if (title.length() > 20) title = title.substring(0, 17) + "...";
+        if (title.length() > 30) title = title.substring(0, 27) + "...";
         holder.setNameText.setText(title);
         holder.setItemText.setText(set.getNumber_Of_Items() + " items");
 

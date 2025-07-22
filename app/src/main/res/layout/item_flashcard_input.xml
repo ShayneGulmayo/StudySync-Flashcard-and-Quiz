@@ -47,7 +47,7 @@
                     <EditText
                         android:id="@+id/flashcard_term"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp"
+                        android:layout_height="wrap_content"
                         android:backgroundTint="@color/primary"
                         android:inputType="text|textMultiLine"
                         android:paddingStart="20dp"
@@ -102,7 +102,7 @@
                     <EditText
                         android:id="@+id/flashcard_definition"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp"
+                        android:layout_height="wrap_content"
                         android:backgroundTint="@color/primary"
                         android:inputType="text|textMultiLine"
                         android:paddingStart="20dp"

@@ -131,6 +131,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:layout_marginBottom="5dp"
+                    android:inputType="textMultiLine"
                     android:minHeight="48dp"
                     android:padding="12dp"
                     android:textColor="@color/black"
