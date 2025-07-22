@@ -1,31 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/messageContainer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:padding="3dp"
     android:gravity="end"
-    android:layout_marginLeft="120dp">
+    android:layout_marginStart="120dp">
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="end">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/fileLayout"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
             android:background="@drawable/bg_message_current_user"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="15dp"
-            android:weightSum="4">
+            android:padding="12dp">
 
             <ImageView
                 android:id="@+id/fileIcon"
@@ -38,7 +34,6 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:tint="@color/white" />
 
-
             <TextView
                 android:id="@+id/fileName"
                 android:layout_width="wrap_content"
@@ -46,13 +41,14 @@
                 android:layout_marginStart="10dp"
                 android:layout_marginEnd="10dp"
                 android:ellipsize="end"
+                android:maxLines="1"
                 android:text="example.pdf"
                 android:textColor="@color/white"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                app:layout_constraintEnd_toStartOf="@+id/saveFileButton"
+                app:layout_constraintEnd_toStartOf="@id/saveFileButton"
                 app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toEndOf="@+id/fileIcon"
+                app:layout_constraintStart_toEndOf="@id/fileIcon"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
@@ -60,21 +56,22 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
+                android:layout_marginTop="2dp"
                 android:layout_marginEnd="10dp"
                 android:ellipsize="end"
+                android:maxLines="1"
                 android:text="PDF · 120 KB"
                 android:textColor="@color/light_gray"
                 android:textSize="14sp"
-                app:layout_constraintEnd_toStartOf="@+id/saveFileButton"
+                app:layout_constraintEnd_toStartOf="@id/saveFileButton"
                 app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toEndOf="@+id/fileIcon"
-                app:layout_constraintTop_toBottomOf="@+id/fileName" />
-
+                app:layout_constraintStart_toEndOf="@id/fileIcon"
+                app:layout_constraintTop_toBottomOf="@id/fileName" />
 
             <ImageView
                 android:id="@+id/saveFileButton"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:clickable="true"
                 android:contentDescription="Save File"
                 android:focusable="true"
@@ -83,14 +80,15 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:tint="@color/white" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <TextView
             android:id="@+id/timestampText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="end"
             android:layout_marginEnd="10dp"
+            android:layout_gravity="end"
             android:text="12:00 PM"
             android:textColor="@color/text_gray"
             android:textSize="14sp"

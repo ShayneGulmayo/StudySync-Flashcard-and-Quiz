@@ -12,9 +12,9 @@ import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import androidx.appcompat.widget.SearchView;
 import android.widget.TextView;
-import android.widget.Toast;
+
+import androidx.appcompat.widget.SearchView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.fragment.app.Fragment;
@@ -27,12 +27,9 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
-import com.labactivity.studysync.CreateFlashcardActivity;
-import com.labactivity.studysync.CreateQuizActivity;
 import com.labactivity.studysync.FlashcardPreviewActivity;
 import com.labactivity.studysync.GenerateSetActivity;
 import com.labactivity.studysync.QuizPreviewActivity;
-import com.labactivity.studysync.QuizViewActivity;
 import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.adapters.SetAdapter;
@@ -47,23 +44,22 @@ public class SetFragment extends Fragment {
     private RecyclerView recyclerView;
     private ProgressBar progressBar;
     private SetAdapter adapter;
-    private ArrayList<Flashcard> allSets;
-    private ArrayList<Flashcard> displayedSets;
     private FirebaseFirestore db;
     private ImageView addButton;
     private MaterialButtonToggleGroup toggleGroup;
     private TextView noSetsText;
     private SearchView searchView;
-    private int totalCollectionsToLoad = 3;
-    private int collectionsLoaded = 0;
     private String currentUserPhotoUrl;
     private String currentSearchQuery = "";
-    private final Map<String, Integer> progressMap = new HashMap<>();
     private String defaultFilter = null;
     private boolean isReturningFromCreate = false;
     private int setsLoadedCount = 0;
+    private int totalCollectionsToLoad = 3;
+    private int collectionsLoaded = 0;
     private int totalSetsToLoad = 0;
-
+    private ArrayList<Flashcard> allSets;
+    private ArrayList<Flashcard> displayedSets;
+    private final Map<String, Integer> progressMap = new HashMap<>();
 
     private final ActivityResultLauncher<Intent> createFlashcardLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -149,6 +145,13 @@ public class SetFragment extends Fragment {
             loadAllSets();
         }
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // TODO: Remove snapshot listeners if using ListenerRegistration to prevent leaks
+    }
+
 
 
     private void checkAndApplyInitialFilter() {
@@ -248,55 +251,55 @@ public class SetFragment extends Fragment {
         totalCollectionsToLoad = 4;
 
         db.collection("users").document(currentUid)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        currentUserPhotoUrl = documentSnapshot.getString("photoUrl");
-
-                        List<Map<String, Object>> owned = (List<Map<String, Object>>) documentSnapshot.get("owned_sets");
-                        if (owned != null) {
-                            for (Map<String, Object> entry : owned) {
-                                String id = (String) entry.get("id");
-                                Long progress = entry.get("progress") != null ? ((Number) entry.get("progress")).longValue() : 0;
-                                if (id != null) progressMap.put(id, progress.intValue());
-
-                                entry.put("source", "owned");
-                                totalSetsToLoad++;
-                                loadSingleSet(entry);
-                            }
-                        }
-                        collectionsLoaded++;
-                        checkAndApplyInitialFilter();
-
-                        List<Map<String, Object>> saved = (List<Map<String, Object>>) documentSnapshot.get("saved_sets");
-                        if (saved != null) {
-                            for (Map<String, Object> entry : saved) {
-                                String id = (String) entry.get("id");
-                                Long progress = entry.get("progress") != null ? ((Number) entry.get("progress")).longValue() : 0;
-                                if (id != null) progressMap.put(id, progress.intValue());
-
-                                entry.put("source", "saved");
-                                totalSetsToLoad++;
-                                loadSingleSet(entry);
-                            }
-                        }
-                        collectionsLoaded++;
-                        checkAndApplyInitialFilter();
-
-                    } else {
+                .addSnapshotListener((documentSnapshot, e) -> {
+                    if (e != null || documentSnapshot == null || !documentSnapshot.exists()) {
                         currentUserPhotoUrl = null;
                         collectionsLoaded += 2;
                         checkAndApplyInitialFilter();
+                        loadFlashcardsAndQuizzes(currentUid);
+                        return;
                     }
 
-                    loadFlashcardsAndQuizzes(currentUid); // ✅ merge progress later here
-                })
-                .addOnFailureListener(e -> {
-                    currentUserPhotoUrl = null;
-                    collectionsLoaded += 2;
+                    currentUserPhotoUrl = documentSnapshot.getString("photoUrl");
+
+                    allSets.clear();
+                    displayedSets.clear();
+                    progressMap.clear();
+                    totalSetsToLoad = 0;
+                    setsLoadedCount = 0;
+
+                    List<Map<String, Object>> owned = (List<Map<String, Object>>) documentSnapshot.get("owned_sets");
+                    if (owned != null) {
+                        for (Map<String, Object> entry : owned) {
+                            String id = (String) entry.get("id");
+                            Long progress = entry.get("progress") != null ? ((Number) entry.get("progress")).longValue() : 0;
+                            if (id != null) progressMap.put(id, progress.intValue());
+
+                            entry.put("source", "owned");
+                            totalSetsToLoad++;
+                            loadSingleSet(entry);
+                        }
+                    }
+
+                    List<Map<String, Object>> saved = (List<Map<String, Object>>) documentSnapshot.get("saved_sets");
+                    if (saved != null) {
+                        for (Map<String, Object> entry : saved) {
+                            String id = (String) entry.get("id");
+                            Long progress = entry.get("progress") != null ? ((Number) entry.get("progress")).longValue() : 0;
+                            if (id != null) progressMap.put(id, progress.intValue());
+
+                            entry.put("source", "saved");
+                            totalSetsToLoad++;
+                            loadSingleSet(entry);
+                        }
+                    }
+
+                    collectionsLoaded = 2;
                     checkAndApplyInitialFilter();
+
                     loadFlashcardsAndQuizzes(currentUid);
                 });
+
     }
 
 
@@ -338,8 +341,14 @@ public class SetFragment extends Fragment {
     private void loadFlashcardsAndQuizzes(String currentUid) {
         db.collection("flashcards")
                 .whereEqualTo("owner_uid", currentUid)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
+                .addSnapshotListener((queryDocumentSnapshots, e) -> {
+                    if (e != null || queryDocumentSnapshots == null) {
+                        collectionsLoaded++;
+                        checkAndApplyInitialFilter();
+                        return;
+                    }
+
+                    boolean changed = false;
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         if (!setAlreadyExists(doc.getId())) {
                             Flashcard set = parseSet(doc);
@@ -347,20 +356,25 @@ public class SetFragment extends Fragment {
                             set.setPhotoUrl(currentUserPhotoUrl);
                             set.setReminder(doc.getString("reminder"));
                             allSets.add(set);
+                            changed = true;
                         }
                     }
-                    collectionsLoaded++;
-                    checkAndApplyInitialFilter();
-                })
-                .addOnFailureListener(e -> {
+                    if (changed) applyFilters();
+
                     collectionsLoaded++;
                     checkAndApplyInitialFilter();
                 });
 
         db.collection("quiz")
                 .whereEqualTo("owner_uid", currentUid)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
+                .addSnapshotListener((queryDocumentSnapshots, e) -> {
+                    if (e != null || queryDocumentSnapshots == null) {
+                        collectionsLoaded++;
+                        checkAndApplyInitialFilter();
+                        return;
+                    }
+
+                    boolean changed = false;
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         if (!setAlreadyExists(doc.getId())) {
                             Flashcard set = new Flashcard(
@@ -382,18 +396,17 @@ public class SetFragment extends Fragment {
                             }
 
                             allSets.add(set);
-
+                            changed = true;
                         }
                     }
 
-                    collectionsLoaded++;
-                    checkAndApplyInitialFilter();
-                })
-                .addOnFailureListener(e -> {
+                    if (changed) applyFilters();
+
                     collectionsLoaded++;
                     checkAndApplyInitialFilter();
                 });
     }
+
 
     private boolean setAlreadyExists(String id) {
         for (Flashcard set : allSets) {

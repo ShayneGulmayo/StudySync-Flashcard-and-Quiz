@@ -1089,9 +1089,16 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private void saveCopiedFlashcardSet(Map<String, Object> copyData, String userId) {
         db.collection("flashcards").add(copyData)
                 .addOnSuccessListener(newDocRef -> {
+                    long timestamp = System.currentTimeMillis();
+
                     Map<String, Object> ownedSetData = new HashMap<>();
                     ownedSetData.put("id", newDocRef.getId());
                     ownedSetData.put("type", "flashcard");
+                    ownedSetData.put("progress", 0);
+                    ownedSetData.put("lastAccessed", timestamp);
+
+                    // Optional: track where it was copied from
+                    // ownedSetData.put("copiedFrom", originalSetId); // only if you store the original ID
 
                     db.collection("users").document(userId)
                             .update("owned_sets", FieldValue.arrayUnion(ownedSetData))
@@ -1110,6 +1117,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to copy flashcard set.", Toast.LENGTH_SHORT).show();
                 });
     }
+
 
     private void showDeleteConfirmationDialog() {
         if (isFinishing() || isDestroyed()) return;
