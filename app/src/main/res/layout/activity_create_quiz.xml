@@ -113,6 +113,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
                 android:hint="@string/quiz_title"
+                android:minHeight="50dp"
                 app:boxBackgroundColor="@color/white"
                 app:boxCornerRadiusBottomEnd="15dp"
                 app:boxCornerRadiusBottomStart="15dp"
@@ -129,13 +130,16 @@
                 <EditText
                     android:id="@+id/quiz_name"
                     android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:layout_marginBottom="5dp"
-                    android:inputType="textMultiLine"
-                    android:minHeight="48dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="top|start"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:maxLines="4"
+                    android:minLines="1"
                     android:padding="12dp"
+                    android:scrollHorizontally="false"
                     android:textColor="@color/black"
                     android:textSize="16sp" />
+
             </com.google.android.material.textfield.TextInputLayout>
 
 
