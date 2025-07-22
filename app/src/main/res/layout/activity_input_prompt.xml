@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".InputPromptActivity"
-    android:background="@color/white">
+    android:background="@color/white"
+    android:fitsSystemWindows="true">
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
@@ -60,22 +61,32 @@
                 app:tint="@color/primary" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
-
-    <EditText
-        android:id="@+id/promptEditTxt"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_margin="20dp"
-        android:background="@drawable/custom_edittxt"
-        android:gravity="top|left"
-        android:hint="Enter Prompt or Paste Text"
-        android:padding="20dp"
-        android:textColor="@color/black"
-        android:textSize="16sp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/linearLayout"
         app:layout_constraintBottom_toTopOf="@id/generateBtn"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/linearLayout" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <EditText
+            android:id="@+id/promptEditTxt"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="20dp"
+            android:background="@drawable/custom_edittxt"
+            android:gravity="top|start"
+            android:hint="Enter Prompt or Paste Text"
+            android:padding="20dp"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:inputType="textMultiLine"
+            android:overScrollMode="always"
+            android:scrollbars="vertical" />
+    </ScrollView>
+
+
 
     <Button
         android:id="@+id/generateBtn"

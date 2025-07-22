@@ -38,6 +38,7 @@
             android:exported="false" />
         <activity
             android:name=".InputPromptActivity"
+            android:windowSoftInputMode="adjustPan"
             android:exported="false" />
         <activity
             android:name=".LoadingSetActivity"
