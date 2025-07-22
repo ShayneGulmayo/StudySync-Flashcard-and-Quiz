@@ -236,7 +236,14 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         ownerTextView.setOnClickListener(v -> openUserProfile());
         ownerPhotoImageView.setOnClickListener(v -> openUserProfile());
 
-        backButton.setOnClickListener(v -> { finish(); });
+        backButton.setOnClickListener(v -> {
+            if (fromNotification) {
+                Intent intent = new Intent(FlashcardPreviewActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+            }
+            finish();
+        });
 
         saveSetBtn.setOnClickListener(view -> toggleSaveState());
 
@@ -1089,17 +1096,9 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private void saveCopiedFlashcardSet(Map<String, Object> copyData, String userId) {
         db.collection("flashcards").add(copyData)
                 .addOnSuccessListener(newDocRef -> {
-                    long timestamp = System.currentTimeMillis();
-                    int progress = 0; // Default value, adjust if you track specific progress
-
                     Map<String, Object> ownedSetData = new HashMap<>();
                     ownedSetData.put("id", newDocRef.getId());
                     ownedSetData.put("type", "flashcard");
-                    ownedSetData.put("progress", progress);
-                    ownedSetData.put("lastAccessed", timestamp);
-
-                    // Optional: track where it was copied from
-                    // ownedSetData.put("copiedFrom", originalSetId); // only if you store the original ID
 
                     db.collection("users").document(userId)
                             .update("owned_sets", FieldValue.arrayUnion(ownedSetData))
@@ -1118,7 +1117,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to copy flashcard set.", Toast.LENGTH_SHORT).show();
                 });
     }
-
 
     private void showDeleteConfirmationDialog() {
         if (isFinishing() || isDestroyed()) return;

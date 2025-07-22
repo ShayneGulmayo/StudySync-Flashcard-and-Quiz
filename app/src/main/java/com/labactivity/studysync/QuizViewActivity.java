@@ -35,6 +35,7 @@
     import androidx.annotation.Nullable;
     import androidx.appcompat.app.AlertDialog;
     import androidx.appcompat.app.AppCompatActivity;
+    import androidx.cardview.widget.CardView;
     import androidx.core.content.ContextCompat;
     import com.bumptech.glide.Glide;
     import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -70,6 +71,8 @@
         private boolean shouldShuffle = false;
         private ImageView questionImage;
         private boolean isOffline = false;
+        private CardView questionCard;
+
 
         @Override
         protected void onCreate(Bundle savedInstanceState) {
@@ -137,6 +140,8 @@
             linearLayoutOptions = findViewById(R.id.linear_layout_options);
             chooseAnswerLabel = findViewById(R.id.choose_answer_label);
             questionImage = findViewById(R.id.question_image);
+            questionCard = findViewById(R.id.question_img_card);
+
 
             Button btnCheck = findViewById(R.id.btn_check_answer);
             ImageView moreButton = findViewById(R.id.more_button);
@@ -266,21 +271,21 @@
             quizQuestionTextView.setText(questionText);
 
             if (questionData.containsKey("photoUrl") && questionData.get("photoUrl") != null) {
-                Object photoObj = questionData.get("photoUrl");
-                String photoUrl = photoObj != null ? photoObj.toString() : "";
+                String photoUrl = questionData.get("photoUrl").toString();
 
                 if (!photoUrl.trim().isEmpty()) {
-                    questionImage.setVisibility(View.VISIBLE);
+                    questionCard.setVisibility(View.VISIBLE);
                     Glide.with(this)
                             .load(photoUrl)
                             .centerCrop()
                             .into(questionImage);
                 } else {
-                    questionImage.setVisibility(View.GONE);
+                    questionCard.setVisibility(View.GONE);
                 }
             } else {
-                questionImage.setVisibility(View.GONE);
+                questionCard.setVisibility(View.GONE);
             }
+
 
             linearLayoutOptions.removeAllViews();
 
@@ -324,22 +329,22 @@
 
             quizQuestionTextView.setText(questionText);
 
-            if (questionData.containsKey("photoUrl")) {
-                Object photoObj = questionData.get("photoUrl");
-                String photoUrl = photoObj != null ? photoObj.toString() : "";
+            if (questionData.containsKey("photoUrl") && questionData.get("photoUrl") != null) {
+                String photoUrl = questionData.get("photoUrl").toString();
 
                 if (!photoUrl.trim().isEmpty()) {
-                    questionImage.setVisibility(View.VISIBLE);
+                    questionCard.setVisibility(View.VISIBLE);
                     Glide.with(this)
                             .load(photoUrl)
                             .centerCrop()
                             .into(questionImage);
                 } else {
-                    questionImage.setVisibility(View.GONE);
+                    questionCard.setVisibility(View.GONE);
                 }
             } else {
-                questionImage.setVisibility(View.GONE);
+                questionCard.setVisibility(View.GONE);
             }
+
 
             linearLayoutOptions.removeAllViews();
 

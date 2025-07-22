@@ -17,6 +17,7 @@
         android:paddingBottom="16dp">
 
         <!-- ✅ Answer Status -->
+
         <TextView
             android:id="@+id/status_label"
             android:layout_width="match_parent"
@@ -32,16 +33,30 @@
         <!-- ✅ Question Image (Optional) -->
 
         <!-- ✅ Question -->
-        <ImageView
-            android:id="@+id/question_image"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+        <androidx.cardview.widget.CardView
+            android:id="@+id/question_img_card"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
             android:layout_marginStart="20dp"
             android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
-            android:contentDescription="Question Image"
-            android:scaleType="centerCrop"
-            android:visibility="gone" />
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="20dp"
+            android:visibility="gone"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:cardPreventCornerOverlap="false">
+
+            <ImageView
+                android:id="@+id/question_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:clipToOutline="true"
+                android:contentDescription="Question Image"
+                android:scaleType="centerCrop" />
+        </androidx.cardview.widget.CardView>
+
+
 
         <TextView
             android:id="@+id/question_text"

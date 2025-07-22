@@ -331,6 +331,8 @@ public class CreateQuizActivity extends AppCompatActivity {
             if (doc.exists()) {
                 quizRef.update(quizData)
                         .addOnSuccessListener(documentReference -> {
+                            resetQuizAttemptsPercentage(quizId);
+                            resetOwnedSetProgressForUsers(quizId);
                             Toast.makeText(this, "Quiz updated successfully!", Toast.LENGTH_SHORT).show();
                             finish();
                         })
@@ -376,6 +378,58 @@ public class CreateQuizActivity extends AppCompatActivity {
             }
         });
     }
+
+    private void resetQuizAttemptsPercentage(String quizId) {
+        CollectionReference attemptsRef = db.collection("quiz").document(quizId).collection("quiz_attempt");
+
+        attemptsRef.get().addOnSuccessListener(querySnapshot -> {
+            WriteBatch batch = db.batch();
+
+            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                DocumentReference attemptRef = doc.getReference();
+                batch.update(attemptRef, "percentage", 0);
+            }
+
+            batch.commit().addOnSuccessListener(aVoid ->
+                    Log.d("ProgressReset", "Quiz attempt percentages set to 0%")
+            ).addOnFailureListener(e ->
+                    Log.e("ProgressReset", "Failed to update quiz attempts", e)
+            );
+        });
+    }
+
+    private void resetOwnedSetProgressForUsers(String quizId) {
+        db.collection("users").get().addOnSuccessListener(usersSnapshot -> {
+            WriteBatch batch = db.batch();
+
+            for (DocumentSnapshot userDoc : usersSnapshot.getDocuments()) {
+                List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userDoc.get("owned_sets");
+
+                if (ownedSets == null) continue;
+
+                boolean updated = false;
+
+                for (Map<String, Object> set : ownedSets) {
+                    if (quizId.equals(set.get("id"))) {
+                        set.put("progress", 0);
+                        updated = true;
+                    }
+                }
+
+                if (updated) {
+                    batch.update(userDoc.getReference(), "owned_sets", ownedSets);
+                }
+            }
+
+            batch.commit().addOnSuccessListener(aVoid ->
+                    Log.d("ProgressReset", "Owned sets progress set to 0% for all users")
+            ).addOnFailureListener(e ->
+                    Log.e("ProgressReset", "Failed to update owned_sets", e)
+            );
+        });
+    }
+
+
 
 
     private void showExitConfirmation() {
@@ -991,10 +1045,6 @@ public class CreateQuizActivity extends AppCompatActivity {
             return null;
         }
     }
-
-
-
-
 
     @Override
     public void onBackPressed() {

@@ -27,6 +27,7 @@ import java.util.Collections;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 import com.google.common.reflect.TypeToken;
 import com.google.firebase.auth.FirebaseAuth;
@@ -351,6 +352,7 @@ public class QuizProgressActivity extends AppCompatActivity {
         LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
         LayoutInflater inflater = LayoutInflater.from(this);
 
+
         db.collection("quiz")
                 .document(quizId)
                 .collection("quiz_attempt")
@@ -371,23 +373,29 @@ public class QuizProgressActivity extends AppCompatActivity {
                             int number = 1;
                             for (Map<String, Object> q : answeredQuestions) {
                                 View answerView = inflater.inflate(R.layout.item_quiz_attempt_view, answersLayout, false);
+                                LinearLayout answerLinearLayout = answerView.findViewById(R.id.answer_linear_layout);
+
 
                                 TextView questionText = answerView.findViewById(R.id.question_text);
                                 TextView correctAnswerText = answerView.findViewById(R.id.correct_answer_text);
                                 TextView selectedWrongAnswerText = answerView.findViewById(R.id.selected_wrong_answer_text);
                                 View wrongAnswerContainer = answerView.findViewById(R.id.selected_wrong_answer_container);
+                                CardView questionImageCard = answerView.findViewById(R.id.question_img_card);
 
                                 ImageView questionImageView = answerView.findViewById(R.id.question_image); // must exist in XML
                                 String photoUrl = (String) q.get("photoUrl");
 
                                 if (photoUrl != null && !photoUrl.trim().isEmpty() && !photoUrl.equals("Add Image")) {
+                                    questionImageCard.setVisibility(View.VISIBLE);
                                     questionImageView.setVisibility(View.VISIBLE);
+
                                     Glide.with(this)
                                             .load(photoUrl)
                                             .into(questionImageView);
                                 } else {
-                                    questionImageView.setVisibility(View.GONE);
+                                    questionImageCard.setVisibility(View.GONE);
                                 }
+
 
 
                                 String question = (String) q.get("question");
@@ -407,6 +415,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                                     statusLabel.setText("Incorrect");
                                     statusLabel.setBackgroundColor(Color.parseColor("#F24F4F"));
                                     wrongAnswerContainer.setVisibility(View.VISIBLE);
+                                    answerLinearLayout.setBackgroundResource(R.drawable.light_red_stroke_bg);
                                 }
 
                                 if (correctObj instanceof String && selectedObj instanceof String) {

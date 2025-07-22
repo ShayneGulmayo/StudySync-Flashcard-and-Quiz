@@ -6,9 +6,14 @@ import android.content.Context;
 
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
@@ -26,7 +31,12 @@ import com.google.gson.Gson;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.provider.Settings;
+import android.text.Layout;
+import android.text.StaticLayout;
+import android.text.TextPaint;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -61,6 +71,9 @@ import com.labactivity.studysync.models.Quiz;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 import com.google.firebase.firestore.DocumentReference;
 
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Calendar;
 
 import java.io.File;
@@ -533,8 +546,8 @@ public class QuizPreviewActivity extends AppCompatActivity {
         }
 
         downloadBtn.setOnClickListener(v -> {
-            Toast.makeText(this, "Download clicked", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
+            showDownloadOptionsDialog();
         });
 
         copyBtn.setOnClickListener(v -> {
@@ -983,106 +996,203 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
 
     private void downloadOfflinePdf(String quizId) {
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
+
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         DocumentReference quizRef = db.collection("quiz").document(quizId);
+
         quizRef.get().addOnSuccessListener(documentSnapshot -> {
-            if (documentSnapshot.exists()) {
-                String quizTitle = documentSnapshot.getString("title");
-                List<Map<String, Object>> questionList = (List<Map<String, Object>>) documentSnapshot.get("questions");
-                if (questionList == null || questionList.isEmpty()) {
-                    Toast.makeText(this, "Quiz has no questions.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                List<Quiz.Question> questions = new ArrayList<>();
-                for (Map<String, Object> questionMap : questionList) {
-                    Quiz.Question question = new Quiz.Question();
-                    question.setQuestion((String) questionMap.get("question"));
-                    question.setType((String) questionMap.get("type"));
-                    question.setChoices((List<String>) questionMap.get("choices"));
-                    question.setPhotoUrl((String) questionMap.get("photoUrl"));
-
-                    Object correctAnsRaw = questionMap.get("correctAnswer");
-                    if (correctAnsRaw instanceof String) {
-                        question.setCorrectAnswer((String) correctAnsRaw);
-                    } else if (correctAnsRaw instanceof List) {
-                        List<String> answerList = new ArrayList<>();
-                        for (Object a : (List<?>) correctAnsRaw) {
-                            answerList.add(String.valueOf(a));
-                        }
-                        question.setCorrectAnswer(String.join(", ", answerList));
-                    }
-
-                    questions.add(question);
-                }
-
-                // Now generate the PDF
-                PdfDocument document = new PdfDocument();
-                Paint paint = new Paint();
-                paint.setColor(Color.BLACK);
-                paint.setTextSize(14);
-
-                int pageNumber = 1;
-                int yPosition = 50;
-                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
-                PdfDocument.Page page = document.startPage(pageInfo);
-                Canvas canvas = page.getCanvas();
-
-                canvas.drawText("Quiz Title: " + quizTitle, 40, yPosition, paint);
-                yPosition += 40;
-
-                for (int i = 0; i < questions.size(); i++) {
-                    Quiz.Question q = questions.get(i);
-                    if (yPosition > 750) {
-                        document.finishPage(page);
-                        pageNumber++;
-                        pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
-                        page = document.startPage(pageInfo);
-                        canvas = page.getCanvas();
-                        yPosition = 50;
-                    }
-
-                    canvas.drawText("Q" + (i + 1) + ": " + q.getQuestion(), 40, yPosition, paint);
-                    yPosition += 20;
-
-                    if (q.getChoices() != null && !q.getChoices().isEmpty()) {
-                        for (String choice : q.getChoices()) {
-                            canvas.drawText(" - " + choice, 60, yPosition, paint);
-                            yPosition += 20;
-                        }
-                    }
-
-                    canvas.drawText("Answer: " + q.getCorrectAnswerAsString(), 60, yPosition, paint);
-                    yPosition += 40;
-                }
-
-                document.finishPage(page);
-
-                File downloadDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "StudySync");
-                if (!downloadDir.exists()) {
-                    downloadDir.mkdirs();
-                }
-
-                String fileName = quizTitle.replaceAll("[^a-zA-Z0-9]", "_") + ".pdf";
-                File file = new File(downloadDir, fileName);
-
-                try {
-                    FileOutputStream fos = new FileOutputStream(file);
-                    document.writeTo(fos);
-                    document.close();
-                    fos.close();
-                    Toast.makeText(this, "PDF downloaded successfully!", Toast.LENGTH_SHORT).show();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, "Failed to save PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-            } else {
+            if (!documentSnapshot.exists()) {
                 Toast.makeText(this, "Quiz does not exist.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String quizTitle = documentSnapshot.getString("title");
+            List<Map<String, Object>> questionList = (List<Map<String, Object>>) documentSnapshot.get("questions");
+            if (questionList == null || questionList.isEmpty()) {
+                Toast.makeText(this, "Quiz has no questions.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            List<Quiz.Question> questions = new ArrayList<>();
+            for (Map<String, Object> questionMap : questionList) {
+                Quiz.Question question = new Quiz.Question();
+                question.setQuestion((String) questionMap.get("question"));
+                question.setType((String) questionMap.get("type"));
+                question.setChoices((List<String>) questionMap.get("choices"));
+                question.setPhotoUrl((String) questionMap.get("photoUrl"));
+
+                Object correctAnsRaw = questionMap.get("correctAnswer");
+                if (correctAnsRaw instanceof String) {
+                    question.setCorrectAnswer((String) correctAnsRaw);
+                } else if (correctAnsRaw instanceof List) {
+                    List<String> answerList = new ArrayList<>();
+                    for (Object a : (List<?>) correctAnsRaw) {
+                        answerList.add(String.valueOf(a));
+                    }
+                    question.setCorrectAnswer(String.join(", ", answerList));
+                }
+                questions.add(question);
+            }
+
+            PdfDocument document = new PdfDocument();
+            Paint paint = new Paint();
+            paint.setColor(Color.BLACK);
+            paint.setTextSize(14);
+
+            int pageNumber = 1;
+            int yPosition = 50;
+            PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
+            PdfDocument.Page page = document.startPage(pageInfo);
+            Canvas canvas = page.getCanvas();
+
+            drawWrappedText(canvas, "Quiz Title: " + quizTitle, 40, 500, yPosition, paint);
+            yPosition += 40;
+
+            for (int i = 0; i < questions.size(); i++) {
+                Quiz.Question q = questions.get(i);
+
+                // Image (First)
+                if (!TextUtils.isEmpty(q.getPhotoUrl())) {
+                    try {
+                        URL url = new URL(q.getPhotoUrl());
+                        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                        conn.setDoInput(true);
+                        conn.connect();
+                        InputStream input = conn.getInputStream();
+                        Bitmap bitmap = BitmapFactory.decodeStream(input);
+                        Bitmap rounded = getRoundedCornerBitmap(bitmap, 30);
+                        Bitmap scaled = Bitmap.createScaledBitmap(rounded, 180, 180, false);
+
+                        if (yPosition + scaled.getHeight() + 60 > 800) {
+                            document.finishPage(page);
+                            pageNumber++;
+                            pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
+                            page = document.startPage(pageInfo);
+                            canvas = page.getCanvas();
+                            yPosition = 50;
+                        }
+
+                        canvas.drawBitmap(scaled, 40, yPosition, null);
+                        yPosition += scaled.getHeight() + 20;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                // Question Text
+                String questionTypeRaw = q.getType();
+                String questionType = questionTypeRaw.substring(0, 1).toUpperCase() + questionTypeRaw.substring(1).toLowerCase();
+                String questionLine = "Q" + (i + 1) + ": " + q.getQuestion();
+                if ("enumeration".equalsIgnoreCase(questionType)) {
+                    int expected = q.getChoices() != null ? q.getChoices().size() : 0;
+                    questionLine += " (Enumeration, " + expected + " Items)";
+                } else {
+                    questionLine += " (" + questionType + ")";
+                }
+
+                drawWrappedText(canvas, questionLine, 40, 500, yPosition, paint);
+                yPosition += 30;
+
+                // Choices (if not enumeration)
+                if (!"enumeration".equalsIgnoreCase(questionType) && q.getChoices() != null) {
+                    drawWrappedText(canvas, "Options:", 40, 500, yPosition, paint);
+                    yPosition += 25;
+
+                    for (int j = 0; j < q.getChoices().size(); j++) {
+                        char choiceLabel = (char) ('A' + j);
+                        drawWrappedText(canvas, choiceLabel + ". " + q.getChoices().get(j), 60, 460, yPosition, paint);
+                        yPosition += 25;
+                    }
+                }
+
+                yPosition += 15;
+
+                // Correct Answer
+                if ("enumeration".equalsIgnoreCase(questionType)) {
+                    drawWrappedText(canvas, "✔️ Answer:", 40, 500, yPosition, paint);
+                    yPosition += 25;
+                    for (int j = 0; j < q.getChoices().size(); j++) {
+                        drawWrappedText(canvas, (j + 1) + ". " + q.getChoices().get(j), 60, 460, yPosition, paint);
+                        yPosition += 25;
+                    }
+                } else {
+                    drawWrappedText(canvas, "✔️ Answer: " + q.getCorrectAnswerAsString(), 40, 500, yPosition, paint);
+                    yPosition += 25;
+                }
+
+                // Extra spacing before next question
+                yPosition += 30;
+
+                if (yPosition > 750) {
+                    document.finishPage(page);
+                    pageNumber++;
+                    pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
+                    page = document.startPage(pageInfo);
+                    canvas = page.getCanvas();
+                    yPosition = 50;
+                }
+            }
+
+            document.finishPage(page);
+
+            File downloadDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "StudySync");
+            if (!downloadDir.exists()) downloadDir.mkdirs();
+
+            String fileName = quizTitle.replaceAll("[\\\\/:*?\"<>|]", "_") + ".pdf";
+            File file = new File(downloadDir, fileName);
+
+            try {
+                FileOutputStream fos = new FileOutputStream(file);
+                document.writeTo(fos);
+                document.close();
+                fos.close();
+                Toast.makeText(this, "PDF downloaded successfully!", Toast.LENGTH_SHORT).show();
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Failed to save PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         }).addOnFailureListener(e -> {
             Toast.makeText(this, "Failed to fetch quiz: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         });
     }
+
+
+    public static Bitmap getRoundedCornerBitmap(Bitmap bitmap, int cornerRadius) {
+        Bitmap output = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(output);
+
+        final Paint paint = new Paint();
+        final Rect rect = new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight());
+        final RectF rectF = new RectF(rect);
+
+        paint.setAntiAlias(true);
+        canvas.drawRoundRect(rectF, cornerRadius, cornerRadius, paint);
+
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+        canvas.drawBitmap(bitmap, rect, rect, paint);
+
+        return output;
+    }
+
+
+    private void drawWrappedText(Canvas canvas, String text, float x, int maxWidth, int startY, Paint paint) {
+        TextPaint textPaint = new TextPaint(paint);
+        StaticLayout staticLayout = StaticLayout.Builder.obtain(text, 0, text.length(), textPaint, maxWidth)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setLineSpacing(0, 1)
+                .setIncludePad(false)
+                .build();
+
+        canvas.save();
+        canvas.translate(x, startY);
+        staticLayout.draw(canvas);
+        canvas.restore();
+    }
+
+
+
 
 
 
