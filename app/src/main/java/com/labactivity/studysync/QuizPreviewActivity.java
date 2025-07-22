@@ -555,6 +555,16 @@ public class QuizPreviewActivity extends AppCompatActivity {
                             return;
                         }
 
+                        // ✅ Add " (copy)" to the quiz title
+                        Object originalTitle = originalData.get("title");
+                        if (originalTitle != null && originalTitle instanceof String) {
+                            String copiedTitle = ((String) originalTitle).trim();
+                            if (!copiedTitle.toLowerCase().endsWith("(Copy)")) {
+                                copiedTitle += " (Copy)";
+                            }
+                            originalData.put("title", copiedTitle);
+                        }
+
                         db.collection("users").document(userId)
                                 .get()
                                 .addOnSuccessListener(userDoc -> {
@@ -571,11 +581,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                     accessUsers.put(userId, "Owner");
                                     originalData.put("accessUsers", accessUsers);
 
-                                    // Upload new quiz document
                                     db.collection("quiz").document(newQuizId)
                                             .set(originalData)
                                             .addOnSuccessListener(aVoid -> {
-                                                // Add to owned_sets
                                                 DocumentReference userRef = db.collection("users").document(userId);
                                                 userRef.get().addOnSuccessListener(userSnapshot -> {
                                                     List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userSnapshot.get("owned_sets");
@@ -588,7 +596,14 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                                     ownedSets.add(newSet);
 
                                                     userRef.update("owned_sets", ownedSets)
-                                                            .addOnSuccessListener(unused -> Toast.makeText(this, "Quiz copied successfully!", Toast.LENGTH_SHORT).show())
+                                                            .addOnSuccessListener(unused -> {
+                                                                Toast.makeText(this, "Quiz copied successfully!", Toast.LENGTH_SHORT).show();
+
+                                                                // ✅ Redirect to copied quiz
+                                                                Intent intent = new Intent(this, QuizPreviewActivity.class); // or the activity that views quiz sets
+                                                                intent.putExtra("quizId", newQuizId);
+                                                                startActivity(intent);
+                                                            })
                                                             .addOnFailureListener(e -> Toast.makeText(this, "Failed to add to owned sets.", Toast.LENGTH_SHORT).show());
                                                 });
                                             })
@@ -597,6 +612,8 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to fetch user info.", Toast.LENGTH_SHORT).show());
                     });
         });
+
+
 
         privacyBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
