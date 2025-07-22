@@ -21,6 +21,9 @@
         android:theme="@style/Theme.StudySync"
         tools:targetApi="31">
         <activity
+            android:name=".ChatRoomSharedMediaActivity"
+            android:exported="false" />
+        <activity
             android:name=".ChatRoomSharedSetsActivity"
             android:exported="false" />
         <activity

@@ -46,7 +46,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
     private TextView chatroomNameTextView;
     private Switch notifToggle;
 
-    private MaterialButton sharedSets, deleteChatRoom;
+    private MaterialButton sharedSets, sharedMedia, deleteChatRoom;
 
     private FirebaseFirestore db;
     private FirebaseUser currentUser;
@@ -89,6 +89,8 @@ public class EditChatRoomActivity extends AppCompatActivity {
         notifToggle.setChecked(true);
         sharedSets = findViewById(R.id.shared_sets_btn);
         deleteChatRoom = findViewById(R.id.delete_chatroom_btn);
+        sharedMedia = findViewById(R.id.media_files_btn);
+
 
         roomId = getIntent().getStringExtra("roomId");
 
@@ -149,6 +151,12 @@ public class EditChatRoomActivity extends AppCompatActivity {
             intent.putExtra("roomId", roomId);
             startActivity(intent);
                 });
+
+        sharedMedia.setOnClickListener(view -> {
+            Intent intent = new Intent(EditChatRoomActivity.this, ChatRoomSharedMediaActivity.class);
+            intent.putExtra("roomId", roomId);
+            startActivity(intent);
+        });
     }
 
     private void showPopupMenu(View anchor) {
