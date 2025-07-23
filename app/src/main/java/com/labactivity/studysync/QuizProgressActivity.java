@@ -2,6 +2,7 @@ package com.labactivity.studysync;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
@@ -114,8 +115,9 @@ public class QuizProgressActivity extends AppCompatActivity {
                 List<Map<String, Object>> userAnswersList = new Gson().fromJson(userAnswersJson, listType);
 
                 if (userAnswersList != null) {
-                    displayOfflineQuizProgress(userAnswersList); // ✅ Progress only shown in offline
-                    displayOfflineAnsweredQuestions(userAnswersList, true); // ✅ Answers shown offline only
+                    displayOfflineQuizProgress(userAnswersList, quizTitle); // ✅ Progress only shown in offline
+                    List<Map<String, Object>> loadedAnswers = loadAnsweredQuestionsFromFile();
+                    displayOfflineAnsweredQuestions(loadedAnswers);// ✅ Answers shown offline only
                 }
             }
 
@@ -457,12 +459,10 @@ public class QuizProgressActivity extends AppCompatActivity {
     }
 
 
-    private void displayOfflineQuizProgress(List<Map<String, Object>> userAnswersList) {
-        if (userAnswersList == null || userAnswersList.isEmpty()) {
-            return;
-        }
+    private void displayOfflineQuizProgress(List<Map<String, Object>> userAnswersList, String quizTitle) {
+        if (userAnswersList == null || userAnswersList.isEmpty()) return;
 
-        // Reference progress-related UI
+        // Get UI elements
         TextView quizTitleText = findViewById(R.id.txtView_quiz_title);
         TextView correctText = findViewById(R.id.know_items);
         TextView incorrectText = findViewById(R.id.still_learning_items);
@@ -473,37 +473,115 @@ public class QuizProgressActivity extends AppCompatActivity {
         int correctCount = 0;
 
         for (Map<String, Object> q : userAnswersList) {
-            boolean isCorrect = (boolean) q.getOrDefault("isCorrect", false);
-            if (isCorrect) correctCount++;
+            if ((boolean) q.getOrDefault("isCorrect", false)) {
+                correctCount++;
+            }
         }
 
         int incorrectCount = totalQuestions - correctCount;
         int percentage = (int) ((correctCount / (double) totalQuestions) * 100);
 
-        String quizTitle = getIntent().getStringExtra("quizTitle");
-        if (quizTitle != null) quizTitleText.setText(quizTitle);
-
+        quizTitleText.setText(quizTitle != null ? quizTitle : "Untitled Quiz");
         correctText.setText("Correct: " + correctCount);
         incorrectText.setText("Incorrect: " + incorrectCount);
         progressPercentageText.setText(percentage + "%");
         progressBar.setProgress(percentage);
     }
 
-    private void displayOfflineAnsweredQuestions(List<Map<String, Object>> userAnswersList, boolean isOffline) {
-        if (!isOffline || userAnswersList == null || userAnswersList.isEmpty()) {
+
+    private List<Map<String, Object>> loadAnsweredQuestionsFromFile() {
+        File file = new File(getCacheDir(), "quiz_progress_data.json");
+        if (!file.exists()) {
+            Log.e("QUIZ_LOAD", "Progress file not found.");
+            return Collections.emptyList();
+        }
+
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            byte[] data = new byte[(int) file.length()];
+            fis.read(data);
+            fis.close();
+
+            String jsonStr = new String(data);
+            Log.d("QUIZ_LOAD", "Raw file content: " + jsonStr);
+
+            JSONObject json = new JSONObject(jsonStr);
+            JSONArray answeredQuestionsArray = json.optJSONArray("answeredQuestions");
+            if (answeredQuestionsArray == null) {
+                Log.e("QUIZ_LOAD", "answeredQuestions array is missing");
+                return Collections.emptyList();
+            }
+
+            List<Map<String, Object>> questions = new ArrayList<>();
+
+            for (int i = 0; i < answeredQuestionsArray.length(); i++) {
+                JSONObject qObj = answeredQuestionsArray.getJSONObject(i);
+                Map<String, Object> map = new HashMap<>();
+
+                map.put("number", qObj.optInt("number"));
+                map.put("question", qObj.optString("question"));
+                map.put("photoUrl", qObj.optString("photoUrl", null));
+                map.put("photoPath", qObj.optString("photoPath", null));
+                map.put("isCorrect", qObj.optBoolean("isCorrect", false));
+
+                // Parse correctAnswers
+                List<String> correctList = new ArrayList<>();
+                Object correctAns = qObj.opt("correctAnswers");
+                if (correctAns instanceof JSONArray) {
+                    JSONArray arr = (JSONArray) correctAns;
+                    for (int j = 0; j < arr.length(); j++) {
+                        correctList.add(arr.optString(j, ""));
+                    }
+                } else if (correctAns != null) {
+                    correctList.add(correctAns.toString());
+                }
+                map.put("correctAnswers", correctList);
+
+                // Parse userAnswer
+                List<String> userList = new ArrayList<>();
+                Object userAns = qObj.opt("userAnswer");
+                if (userAns instanceof JSONArray) {
+                    JSONArray arr = (JSONArray) userAns;
+                    for (int j = 0; j < arr.length(); j++) {
+                        userList.add(arr.optString(j, ""));
+                    }
+                } else if (userAns != null) {
+                    userList.add(userAns.toString());
+                }
+                map.put("userAnswer", userList);
+
+                questions.add(map);
+            }
+
+            return questions;
+
+        } catch (Exception e) {
+            Log.e("QUIZ_LOAD", "Error parsing saved progress", e);
+            return Collections.emptyList();
+        }
+    }
+
+
+
+
+    private void displayOfflineAnsweredQuestions(List<Map<String, Object>> userAnswersList) {
+        if (userAnswersList == null || userAnswersList.isEmpty()) {
+            Log.w("QUIZ_DISPLAY", "No answers to display.");
             return;
         }
 
         LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
         LayoutInflater inflater = LayoutInflater.from(this);
-
         int number = 1;
 
         for (Map<String, Object> q : userAnswersList) {
             boolean isCorrect = (boolean) q.getOrDefault("isCorrect", false);
-            String question = (String) q.getOrDefault("question", "No question text found.");
-            Object correct = q.get("correctAnswers");
-            Object userAnswer = q.get("userAnswer");
+            String question = (String) q.getOrDefault("question", "No question text");
+            String photoPath = (String) q.get("photoPath");
+
+            // Safely cast lists
+            List<String> correctAnswers = (List<String>) q.getOrDefault("correctAnswers", new ArrayList<>());
+            List<String> userAnswers = (List<String>) q.getOrDefault("userAnswer", new ArrayList<>());
 
             View answerView = inflater.inflate(R.layout.item_quiz_attempt_view, answersLayout, false);
 
@@ -512,11 +590,14 @@ public class QuizProgressActivity extends AppCompatActivity {
             TextView selectedWrongAnswerText = answerView.findViewById(R.id.selected_wrong_answer_text);
             View wrongAnswerContainer = answerView.findViewById(R.id.selected_wrong_answer_container);
             ImageView questionImageView = answerView.findViewById(R.id.question_image);
+            View questionImgCard = answerView.findViewById(R.id.question_img_card);
             TextView statusLabel = answerView.findViewById(R.id.status_label);
 
+            // Question number and text
             questionText.setText(number + ". " + question);
             number++;
 
+            // Correct/Incorrect UI
             if (isCorrect) {
                 statusLabel.setText("Correct");
                 statusLabel.setBackgroundColor(Color.parseColor("#00BF63"));
@@ -527,30 +608,37 @@ public class QuizProgressActivity extends AppCompatActivity {
                 wrongAnswerContainer.setVisibility(View.VISIBLE);
             }
 
-            // Display correct answer(s)
-            if (correct instanceof List) {
-                correctAnswerText.setText(TextUtils.join(", ", (List<?>) correct));
-            } else if (correct != null) {
-                correctAnswerText.setText(correct.toString());
+            // Correct answers
+            if (!correctAnswers.isEmpty()) {
+                correctAnswerText.setText(TextUtils.join(", ", correctAnswers));
             } else {
                 correctAnswerText.setText("No correct answer");
             }
 
-            // Display user's answer(s) even if incorrect
-            if (userAnswer instanceof List) {
-                selectedWrongAnswerText.setText(TextUtils.join(", ", (List<?>) userAnswer));
-            } else if (userAnswer != null) {
-                selectedWrongAnswerText.setText(userAnswer.toString());
+            // User's wrong answers
+            if (!isCorrect && !userAnswers.isEmpty()) {
+                selectedWrongAnswerText.setText(TextUtils.join(", ", userAnswers));
             } else {
-                selectedWrongAnswerText.setText("No answer");
+                selectedWrongAnswerText.setText("");
             }
 
-            questionImageView.setVisibility(View.GONE); // No image in offline mode
+            // Image
+            if (photoPath != null && !photoPath.isEmpty()) {
+                File imageFile = new File(photoPath);
+                if (imageFile.exists()) {
+                    questionImageView.setImageURI(Uri.fromFile(imageFile));
+                    questionImageView.setVisibility(View.VISIBLE);
+                    questionImgCard.setVisibility(View.VISIBLE);
+                } else {
+                    questionImgCard.setVisibility(View.GONE);
+                }
+            } else {
+                questionImgCard.setVisibility(View.GONE);
+            }
 
             answersLayout.addView(answerView);
         }
     }
-
 
     private void renderAnswerViews(List<Map<String, Object>> userAnswersList, boolean isOffline) {
         if (!isOffline) return;

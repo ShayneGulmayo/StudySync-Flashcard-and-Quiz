@@ -213,7 +213,7 @@
 
                 if (!userAnswersList.isEmpty()) {
                     if (isOffline) {
-                        saveOfflineAttemptTemp();
+                        goToOfflineQuizProgressActivity();
                     } else {
                         saveQuizAttempt(userAnswersList, correctCount);
                     }
@@ -246,6 +246,14 @@
                 Toast.makeText(this, "Unsupported or missing question type. Skipping...", Toast.LENGTH_SHORT).show();
                 currentQuestionIndex++;
                 displayNextValidQuestion();
+            }
+        }
+
+        private void resetOptionColors() {
+            for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
+                View child = linearLayoutOptions.getChildAt(i);
+                MaterialCardView card = child.findViewById(R.id.cardOption);
+                card.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.white));
             }
         }
 
@@ -318,6 +326,31 @@
             }
         }
 
+        private void addOptionView(String optionText, String correctAnswer) {
+            View optionView = LayoutInflater.from(this).inflate(R.layout.item_quiz_options, linearLayoutOptions, false);
+            TextView tvOption = optionView.findViewById(R.id.tvOptionText);
+            MaterialCardView cardOption = optionView.findViewById(R.id.cardOption);
+
+            if (tvOption == null || cardOption == null) {
+                Toast.makeText(this, "Quiz layout error: option views missing", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            tvOption.setText(optionText);
+
+            cardOption.setOnClickListener(v -> {
+                if (hasAnswered) return;
+
+                resetOptionColors();
+
+                cardOption.setCardBackgroundColor(ContextCompat.getColor(this, R.color.pale_green));
+
+                selectedAnswer = optionText;
+            });
+
+            linearLayoutOptions.addView(optionView);
+        }
+
         private void displayEnumeration(Map<String, Object> questionData) {
             chooseAnswerLabel.setText("Type your answers");
             selectedAnswer = null;
@@ -370,110 +403,6 @@
                 input.setHint("Enter answer " + (i + 1));
                 linearLayoutOptions.addView(inputView);
             }
-        }
-
-
-        private void addOptionView(String optionText, String correctAnswer) {
-            View optionView = LayoutInflater.from(this).inflate(R.layout.item_quiz_options, linearLayoutOptions, false);
-            TextView tvOption = optionView.findViewById(R.id.tvOptionText);
-            MaterialCardView cardOption = optionView.findViewById(R.id.cardOption);
-
-            if (tvOption == null || cardOption == null) {
-                Toast.makeText(this, "Quiz layout error: option views missing", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            tvOption.setText(optionText);
-
-            cardOption.setOnClickListener(v -> {
-                if (hasAnswered) return;
-
-                resetOptionColors();
-
-                cardOption.setCardBackgroundColor(ContextCompat.getColor(this, R.color.pale_green));
-
-                selectedAnswer = optionText;
-            });
-
-            linearLayoutOptions.addView(optionView);
-        }
-
-        private void loadIncorrectQuestions() {
-            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            db.collection("quiz")
-                    .document(quizId)
-                    .collection("quiz_attempt")
-                    .document(userId)
-                    .get()
-                    .addOnSuccessListener(doc -> {
-                        List<Map<String, Object>> answered = (List<Map<String, Object>>) doc.get("answeredQuestions");
-                        if (answered != null) {
-                            originalQuestionCount = answered.size();
-                        }
-                        incorrectQuestions.clear();
-
-                        for (Map<String, Object> q : answered) {
-                            if (q == null) continue;
-
-                            Boolean isCorrect = (Boolean) q.get("isCorrect");
-                            Object rawQuestion = q.get("question");
-                            Object rawType = q.get("type");
-
-                            if (isCorrect == null || isCorrect || rawQuestion == null || rawType == null) {
-                                continue;
-                            }
-
-                            String type = rawType.toString().toLowerCase().trim();
-                            Map<String, Object> reconstructed = new HashMap<>();
-                            reconstructed.put("question", rawQuestion);
-                            reconstructed.put("type", type);
-                            reconstructed.put("correct", q.get("correct"));
-                            reconstructed.put("selected", q.get("selected"));
-
-                            if ("multiple choice".equals(type)) {
-                                if (q.get("choices") instanceof List) {
-                                    reconstructed.put("correctAnswer", q.get("correct"));
-                                    reconstructed.put("choices", q.get("choices"));
-                                } else {
-                                    continue;
-                                }
-                            } else if ("enumeration".equals(type)) {
-                                if (q.get("correct") instanceof List) {
-                                    reconstructed.put("correctAnswer", q.get("correct"));
-                                } else {
-                                    continue;
-                                }
-                            } else {
-                                continue;
-                            }
-
-                            if (q.containsKey("photoUrl")) {
-                                reconstructed.put("photoUrl", q.get("photoUrl"));
-                            }
-
-                            incorrectQuestions.add(reconstructed);
-                        }
-
-                        questions = incorrectQuestions;
-                        if (!questions.isEmpty()) {
-                            currentQuestionIndex = 0;
-                            displayNextValidQuestion();
-                        } else {
-                            if ("retake_incorrect_only".equals(mode)) {
-                                Toast.makeText(this, "🎉 All questions were answered correctly!", Toast.LENGTH_LONG).show();
-                                Intent intent = new Intent(this, QuizProgressActivity.class);
-                                intent.putExtra("quizId", quizId);
-                                startActivity(intent);
-                                finish();
-                            } else {
-                                loadQuizFromFirestore();
-                            }
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Failed to load previous attempt.", Toast.LENGTH_SHORT).show();
-                        finish();
-                    });
         }
 
         private void handleAnswerCheck() {
@@ -645,14 +574,88 @@
             }
         }
 
-        private void loadOfflineQuiz(String fileName, @Nullable List<Map<String, Object>> incorrectAnswers) {
-            if ("normal".equals(mode)) {
-                File tempFile = new File(getFilesDir(), "temp_" + quizId + ".json");
-                if (tempFile.exists()) {
-                    tempFile.delete();
-                }
-            }
 
+
+
+        private void loadIncorrectQuestions() {
+            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            db.collection("quiz")
+                    .document(quizId)
+                    .collection("quiz_attempt")
+                    .document(userId)
+                    .get()
+                    .addOnSuccessListener(doc -> {
+                        List<Map<String, Object>> answered = (List<Map<String, Object>>) doc.get("answeredQuestions");
+                        if (answered != null) {
+                            originalQuestionCount = answered.size();
+                        }
+                        incorrectQuestions.clear();
+
+                        for (Map<String, Object> q : answered) {
+                            if (q == null) continue;
+
+                            Boolean isCorrect = (Boolean) q.get("isCorrect");
+                            Object rawQuestion = q.get("question");
+                            Object rawType = q.get("type");
+
+                            if (isCorrect == null || isCorrect || rawQuestion == null || rawType == null) {
+                                continue;
+                            }
+
+                            String type = rawType.toString().toLowerCase().trim();
+                            Map<String, Object> reconstructed = new HashMap<>();
+                            reconstructed.put("question", rawQuestion);
+                            reconstructed.put("type", type);
+                            reconstructed.put("correct", q.get("correct"));
+                            reconstructed.put("selected", q.get("selected"));
+
+                            if ("multiple choice".equals(type)) {
+                                if (q.get("choices") instanceof List) {
+                                    reconstructed.put("correctAnswer", q.get("correct"));
+                                    reconstructed.put("choices", q.get("choices"));
+                                } else {
+                                    continue;
+                                }
+                            } else if ("enumeration".equals(type)) {
+                                if (q.get("correct") instanceof List) {
+                                    reconstructed.put("correctAnswer", q.get("correct"));
+                                } else {
+                                    continue;
+                                }
+                            } else {
+                                continue;
+                            }
+
+                            if (q.containsKey("photoUrl")) {
+                                reconstructed.put("photoUrl", q.get("photoUrl"));
+                            }
+
+                            incorrectQuestions.add(reconstructed);
+                        }
+
+                        questions = incorrectQuestions;
+                        if (!questions.isEmpty()) {
+                            currentQuestionIndex = 0;
+                            displayNextValidQuestion();
+                        } else {
+                            if ("retake_incorrect_only".equals(mode)) {
+                                Toast.makeText(this, "🎉 All questions were answered correctly!", Toast.LENGTH_LONG).show();
+                                Intent intent = new Intent(this, QuizProgressActivity.class);
+                                intent.putExtra("quizId", quizId);
+                                startActivity(intent);
+                                finish();
+                            } else {
+                                loadQuizFromFirestore();
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to load previous attempt.", Toast.LENGTH_SHORT).show();
+                        finish();
+                    });
+        }
+
+        private void loadOfflineQuiz(String fileName, @Nullable List<Map<String, Object>> incorrectAnswers) {
             try {
                 File file = new File(getFilesDir(), fileName);
                 if (!file.exists()) {
@@ -682,7 +685,6 @@
                 for (Object obj : rawList) {
                     if (obj instanceof Map) {
                         Map<String, Object> question = (Map<String, Object>) obj;
-
 
                         if (incorrectAnswers != null) {
                             for (Map<String, Object> incorrect : incorrectAnswers) {
@@ -716,6 +718,75 @@
                 finish();
             }
         }
+
+
+        private void goToOfflineQuizProgressActivity() {
+            try {
+                String quizTitle = getIntent().getStringExtra("quizTitle");
+                if (quizTitle == null) quizTitle = "Untitled Quiz";
+
+                JSONObject data = new JSONObject();
+                JSONArray questionsArray = new JSONArray();
+
+                int correct = 0;
+                int incorrect = 0;
+
+                for (int i = 0; i < userAnswersList.size(); i++) {
+                    Map<String, Object> q = userAnswersList.get(i);
+                    JSONObject qObj = new JSONObject();
+
+                    qObj.put("number", i + 1);
+                    qObj.put("question", q.get("question"));
+                    qObj.put("photoUrl", q.get("photoUrl"));
+                    qObj.put("photoPath", q.get("photoPath")); // ✅ ADD THIS
+                    qObj.put("isCorrect", q.get("isCorrect"));
+
+                    // Tally
+                    if (Boolean.TRUE.equals(q.get("isCorrect"))) {
+                        correct++;
+                    } else {
+                        incorrect++;
+                    }
+
+                    Object correctAns = q.get("correctAnswers");
+                    if (correctAns instanceof List) {
+                        qObj.put("correctAnswers", new JSONArray((List<?>) correctAns)); // ✅ USE CORRECT KEY
+                    } else {
+                        qObj.put("correctAnswers", correctAns);
+                    }
+
+                    Object userAns = q.get("userAnswer");
+                    if (userAns instanceof List) {
+                        qObj.put("userAnswer", new JSONArray((List<?>) userAns));
+                    } else {
+                        qObj.put("userAnswer", userAns);
+                    }
+
+                    questionsArray.put(qObj);
+                }
+
+                data.put("quizTitle", quizTitle);
+                data.put("answeredQuestions", questionsArray);
+                data.put("correctCount", correct);
+                data.put("incorrectCount", incorrect);
+                data.put("percentage", (int) (((double) correct / originalQuestionCount) * 100));
+
+                // Save as temp file
+                File file = new File(getCacheDir(), "quiz_progress_data.json");
+                FileOutputStream fos = new FileOutputStream(file);
+                fos.write(data.toString().getBytes());
+                fos.close();
+
+                // Launch activity
+                Intent intent = new Intent(this, QuizProgressActivity.class);
+                startActivity(intent);
+
+            } catch (Exception e) {
+                Log.e("QUIZVIEW", "Failed to save progress data", e);
+            }
+        }
+
+
 
 
         private void saveOfflineAttemptTemp() {
@@ -762,16 +833,6 @@
                 fos.close();
             } catch (Exception e) {
                 Log.e("QuizView", "Error saving temp offline attempt", e);
-            }
-        }
-
-
-
-        private void resetOptionColors() {
-            for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
-                View child = linearLayoutOptions.getChildAt(i);
-                MaterialCardView card = child.findViewById(R.id.cardOption);
-                card.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.white));
             }
         }
 
