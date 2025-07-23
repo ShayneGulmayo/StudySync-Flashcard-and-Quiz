@@ -27,6 +27,7 @@ import java.util.Collections;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 import com.google.common.reflect.TypeToken;
 import com.google.firebase.auth.FirebaseAuth;
@@ -85,59 +86,68 @@ public class QuizProgressActivity extends AppCompatActivity {
             return;
         }
 
-        db.collection("quiz").document(quizId).get().addOnSuccessListener(documentSnapshot -> {
-            if (documentSnapshot.exists()) {
-                if (isOffline) {
-                    String userAnswersJson = getIntent().getStringExtra("userAnswers");
-                    if (userAnswersJson != null) {
-                        try {
-                            JSONObject wrapper = new JSONObject();
-                            wrapper.put("userAnswers", new JSONArray(userAnswersJson));
+        if (isOffline) {
+            // 🔹 OFFLINE MODE
+            String quizTitle = getIntent().getStringExtra("quizTitle");
+            if (quizTitle != null && !quizTitle.trim().isEmpty()) {
+                quizTitleText.setText(quizTitle);
+            } else {
+                quizTitleText.setText("Untitled Quiz");
+            }
 
-                            File file = new File(getCacheDir(), "offline_quiz_attempt.json");
-                            FileOutputStream fos = new FileOutputStream(file);
-                            fos.write(wrapper.toString().getBytes());
-                            fos.close();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            Toast.makeText(this, "Failed to cache offline answers", Toast.LENGTH_SHORT).show();
-                        }
+            String userAnswersJson = getIntent().getStringExtra("userAnswers");
+            if (userAnswersJson != null) {
+                try {
+                    JSONObject wrapper = new JSONObject();
+                    wrapper.put("userAnswers", new JSONArray(userAnswersJson));
 
-
-
-                        Type listType = new TypeToken<List<Map<String, Object>>>() {}.getType();
-                        List<Map<String, Object>> userAnswersList = new Gson().fromJson(userAnswersJson, listType);
-
-                        if (userAnswersList != null) {
-                            displayOfflineAnsweredQuestions(userAnswersList, true);//this should handle AND DISPLAY OFFLINE QUIZ ANSWERS ONLY, DO NOT GET INFO FROM FIRESTORE
-                        }
-                    }
-
-                    int correct = getIntent().getIntExtra("score", 0);
-                    int incorrect = getIntent().getIntExtra("incorrect", 0);
-                    int percentage = getIntent().getIntExtra("percentage", 0);
-
-                    correctText.setText(correct + " Items");
-                    incorrectText.setText(incorrect + " Items");
-                    progressCircle.setProgress(percentage);
-                    progressPercentageText.setText(percentage + "%");
-
-                    if (percentage == 100) {
-                        review_questions_btn.setVisibility(View.GONE);
-                    }
-                } else {
-                    displayQuizProgress(documentSnapshot); // isnt this supposed to be a display page for progress percentage, know, and still learning count IN ONLINE QUIZ MODE
-                    displayAnsweredQuestions();//displays answers saved to firestore FROM ONLINE QUIZ MODE correctly
+                    File file = new File(getCacheDir(), "offline_quiz_attempt.json");
+                    FileOutputStream fos = new FileOutputStream(file);
+                    fos.write(wrapper.toString().getBytes());
+                    fos.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(this, "Failed to cache offline answers", Toast.LENGTH_SHORT).show();
                 }
 
-            } else {
-                Toast.makeText(this, "Quiz not found", Toast.LENGTH_SHORT).show();
-                finish();
+                Type listType = new TypeToken<List<Map<String, Object>>>() {}.getType();
+                List<Map<String, Object>> userAnswersList = new Gson().fromJson(userAnswersJson, listType);
+
+                if (userAnswersList != null) {
+                    displayOfflineQuizProgress(userAnswersList); // ✅ Progress only shown in offline
+                    displayOfflineAnsweredQuestions(userAnswersList, true); // ✅ Answers shown offline only
+                }
             }
-        }).addOnFailureListener(e -> {
-            Toast.makeText(this, "Failed to fetch quiz", Toast.LENGTH_SHORT).show();
-            finish();
-        });
+
+            int correct = getIntent().getIntExtra("score", 0);
+            int incorrect = getIntent().getIntExtra("incorrect", 0);
+            int percentage = getIntent().getIntExtra("percentage", 0);
+
+            correctText.setText(correct + " Items");
+            incorrectText.setText(incorrect + " Items");
+            progressCircle.setProgress(percentage);
+            progressPercentageText.setText(percentage + "%");
+
+            if (percentage == 100) {
+                review_questions_btn.setVisibility(View.GONE);
+            }
+
+        } else {
+            // 🔹 ONLINE MODE
+            db.collection("quiz").document(quizId).get().addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    displayQuizProgress(documentSnapshot); // ✅ Only when online
+                    displayAnsweredQuestions(); // ✅ Answers from Firestore only
+                } else {
+                    Toast.makeText(this, "Quiz not found", Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+            }).addOnFailureListener(e -> {
+                Toast.makeText(this, "Failed to fetch quiz", Toast.LENGTH_SHORT).show();
+                finish();
+            });
+        }
+
 
         back_button.setOnClickListener(v -> onBackPressed());
 
@@ -342,6 +352,7 @@ public class QuizProgressActivity extends AppCompatActivity {
         LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
         LayoutInflater inflater = LayoutInflater.from(this);
 
+
         db.collection("quiz")
                 .document(quizId)
                 .collection("quiz_attempt")
@@ -362,23 +373,29 @@ public class QuizProgressActivity extends AppCompatActivity {
                             int number = 1;
                             for (Map<String, Object> q : answeredQuestions) {
                                 View answerView = inflater.inflate(R.layout.item_quiz_attempt_view, answersLayout, false);
+                                LinearLayout answerLinearLayout = answerView.findViewById(R.id.answer_linear_layout);
+
 
                                 TextView questionText = answerView.findViewById(R.id.question_text);
                                 TextView correctAnswerText = answerView.findViewById(R.id.correct_answer_text);
                                 TextView selectedWrongAnswerText = answerView.findViewById(R.id.selected_wrong_answer_text);
                                 View wrongAnswerContainer = answerView.findViewById(R.id.selected_wrong_answer_container);
+                                CardView questionImageCard = answerView.findViewById(R.id.question_img_card);
 
                                 ImageView questionImageView = answerView.findViewById(R.id.question_image); // must exist in XML
                                 String photoUrl = (String) q.get("photoUrl");
 
                                 if (photoUrl != null && !photoUrl.trim().isEmpty() && !photoUrl.equals("Add Image")) {
+                                    questionImageCard.setVisibility(View.VISIBLE);
                                     questionImageView.setVisibility(View.VISIBLE);
+
                                     Glide.with(this)
                                             .load(photoUrl)
                                             .into(questionImageView);
                                 } else {
-                                    questionImageView.setVisibility(View.GONE);
+                                    questionImageCard.setVisibility(View.GONE);
                                 }
+
 
 
                                 String question = (String) q.get("question");
@@ -398,6 +415,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                                     statusLabel.setText("Incorrect");
                                     statusLabel.setBackgroundColor(Color.parseColor("#F24F4F"));
                                     wrongAnswerContainer.setVisibility(View.VISIBLE);
+                                    answerLinearLayout.setBackgroundResource(R.drawable.light_red_stroke_bg);
                                 }
 
                                 if (correctObj instanceof String && selectedObj instanceof String) {
@@ -438,14 +456,13 @@ public class QuizProgressActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to load answers", Toast.LENGTH_SHORT).show());
     }
 
-    private void displayOfflineAnsweredQuestions(List<Map<String, Object>> userAnswersList, boolean isOffline) {
-        if (!isOffline || userAnswersList == null || userAnswersList.isEmpty()) {
+
+    private void displayOfflineQuizProgress(List<Map<String, Object>> userAnswersList) {
+        if (userAnswersList == null || userAnswersList.isEmpty()) {
             return;
         }
 
-        // Reference UI elements
-        LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
-        LayoutInflater inflater = LayoutInflater.from(this);
+        // Reference progress-related UI
         TextView quizTitleText = findViewById(R.id.txtView_quiz_title);
         TextView correctText = findViewById(R.id.know_items);
         TextView incorrectText = findViewById(R.id.still_learning_items);
@@ -454,16 +471,39 @@ public class QuizProgressActivity extends AppCompatActivity {
 
         int totalQuestions = userAnswersList.size();
         int correctCount = 0;
+
+        for (Map<String, Object> q : userAnswersList) {
+            boolean isCorrect = (boolean) q.getOrDefault("isCorrect", false);
+            if (isCorrect) correctCount++;
+        }
+
+        int incorrectCount = totalQuestions - correctCount;
+        int percentage = (int) ((correctCount / (double) totalQuestions) * 100);
+
+        String quizTitle = getIntent().getStringExtra("quizTitle");
+        if (quizTitle != null) quizTitleText.setText(quizTitle);
+
+        correctText.setText("Correct: " + correctCount);
+        incorrectText.setText("Incorrect: " + incorrectCount);
+        progressPercentageText.setText(percentage + "%");
+        progressBar.setProgress(percentage);
+    }
+
+    private void displayOfflineAnsweredQuestions(List<Map<String, Object>> userAnswersList, boolean isOffline) {
+        if (!isOffline || userAnswersList == null || userAnswersList.isEmpty()) {
+            return;
+        }
+
+        LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
+        LayoutInflater inflater = LayoutInflater.from(this);
+
         int number = 1;
 
-        // Display answered questions
         for (Map<String, Object> q : userAnswersList) {
             boolean isCorrect = (boolean) q.getOrDefault("isCorrect", false);
             String question = (String) q.getOrDefault("question", "No question text found.");
             Object correct = q.get("correctAnswers");
             Object userAnswer = q.get("userAnswer");
-
-            if (isCorrect) correctCount++;
 
             View answerView = inflater.inflate(R.layout.item_quiz_attempt_view, answersLayout, false);
 
@@ -487,37 +527,29 @@ public class QuizProgressActivity extends AppCompatActivity {
                 wrongAnswerContainer.setVisibility(View.VISIBLE);
             }
 
-            // Set correct and user answers
-            if (correct instanceof List && userAnswer instanceof List) {
+            // Display correct answer(s)
+            if (correct instanceof List) {
                 correctAnswerText.setText(TextUtils.join(", ", (List<?>) correct));
-                if (!isCorrect) {
-                    selectedWrongAnswerText.setText(TextUtils.join(", ", (List<?>) userAnswer));
-                }
-            } else if (correct instanceof String && userAnswer instanceof String) {
-                correctAnswerText.setText((String) correct);
-                if (!isCorrect) {
-                    selectedWrongAnswerText.setText((String) userAnswer);
-                }
+            } else if (correct != null) {
+                correctAnswerText.setText(correct.toString());
+            } else {
+                correctAnswerText.setText("No correct answer");
             }
 
-            questionImageView.setVisibility(View.GONE); // No image in offline
+            // Display user's answer(s) even if incorrect
+            if (userAnswer instanceof List) {
+                selectedWrongAnswerText.setText(TextUtils.join(", ", (List<?>) userAnswer));
+            } else if (userAnswer != null) {
+                selectedWrongAnswerText.setText(userAnswer.toString());
+            } else {
+                selectedWrongAnswerText.setText("No answer");
+            }
+
+            questionImageView.setVisibility(View.GONE); // No image in offline mode
+
             answersLayout.addView(answerView);
         }
-
-        // Calculate and show summary
-        int incorrectCount = totalQuestions - correctCount;
-        int percentage = (int) ((correctCount / (double) totalQuestions) * 100);
-
-        // Assume quizTitle is passed via Intent or loaded from file
-        String quizTitle = getIntent().getStringExtra("quizTitle");
-        if (quizTitle != null) quizTitleText.setText(quizTitle);
-
-        correctText.setText("Correct: " + correctCount);
-        incorrectText.setText("Incorrect: " + incorrectCount);
-        progressPercentageText.setText(percentage + "%");
-        progressBar.setProgress(percentage);
     }
-
 
 
     private void renderAnswerViews(List<Map<String, Object>> userAnswersList, boolean isOffline) {

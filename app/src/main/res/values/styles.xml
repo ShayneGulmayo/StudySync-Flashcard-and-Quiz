@@ -17,4 +17,9 @@
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar"></style>
 
 
+    <style name="RoundedImageStyle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
 </resources>

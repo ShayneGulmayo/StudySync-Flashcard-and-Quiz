@@ -85,14 +85,24 @@
             android:orientation="horizontal"
             android:padding="20dp">
 
-            <ImageView
-                android:id="@+id/question_image"
+            <androidx.cardview.widget.CardView
+                android:id="@+id/question_img_card"
                 android:layout_width="120dp"
                 android:layout_height="120dp"
                 android:layout_marginEnd="10dp"
-                android:contentDescription="Question Image"
-                android:scaleType="centerCrop"
-                android:visibility="visible" />
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardPreventCornerOverlap="true"
+                app:cardUseCompatPadding="false">
+
+                <ImageView
+                    android:id="@+id/question_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="Question Image"
+                    android:scaleType="centerCrop" />
+            </androidx.cardview.widget.CardView>
+
 
 
             <TextView

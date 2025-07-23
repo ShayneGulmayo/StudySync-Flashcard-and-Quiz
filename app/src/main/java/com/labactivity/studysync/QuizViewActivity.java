@@ -35,6 +35,7 @@
     import androidx.annotation.Nullable;
     import androidx.appcompat.app.AlertDialog;
     import androidx.appcompat.app.AppCompatActivity;
+    import androidx.cardview.widget.CardView;
     import androidx.core.content.ContextCompat;
     import com.bumptech.glide.Glide;
     import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -70,6 +71,8 @@
         private boolean shouldShuffle = false;
         private ImageView questionImage;
         private boolean isOffline = false;
+        private CardView questionCard;
+
 
         @Override
         protected void onCreate(Bundle savedInstanceState) {
@@ -137,6 +140,8 @@
             linearLayoutOptions = findViewById(R.id.linear_layout_options);
             chooseAnswerLabel = findViewById(R.id.choose_answer_label);
             questionImage = findViewById(R.id.question_image);
+            questionCard = findViewById(R.id.question_img_card);
+
 
             Button btnCheck = findViewById(R.id.btn_check_answer);
             ImageView moreButton = findViewById(R.id.more_button);
@@ -215,6 +220,7 @@
                 }
                 Intent intent = new Intent(this, QuizProgressActivity.class);
                 intent.putExtra("quizId", quizId);
+                intent.putExtra("quizTitle", getIntent().getStringExtra("quizTitle"));
                 intent.putExtra("isOffline", isOffline);
                 intent.putExtra("score", correctCount);
                 intent.putExtra("incorrect", incorrectCount);
@@ -265,21 +271,21 @@
             quizQuestionTextView.setText(questionText);
 
             if (questionData.containsKey("photoUrl") && questionData.get("photoUrl") != null) {
-                Object photoObj = questionData.get("photoUrl");
-                String photoUrl = photoObj != null ? photoObj.toString() : "";
+                String photoUrl = questionData.get("photoUrl").toString();
 
                 if (!photoUrl.trim().isEmpty()) {
-                    questionImage.setVisibility(View.VISIBLE);
+                    questionCard.setVisibility(View.VISIBLE);
                     Glide.with(this)
                             .load(photoUrl)
                             .centerCrop()
                             .into(questionImage);
                 } else {
-                    questionImage.setVisibility(View.GONE);
+                    questionCard.setVisibility(View.GONE);
                 }
             } else {
-                questionImage.setVisibility(View.GONE);
+                questionCard.setVisibility(View.GONE);
             }
+
 
             linearLayoutOptions.removeAllViews();
 
@@ -323,22 +329,22 @@
 
             quizQuestionTextView.setText(questionText);
 
-            if (questionData.containsKey("photoUrl")) {
-                Object photoObj = questionData.get("photoUrl");
-                String photoUrl = photoObj != null ? photoObj.toString() : "";
+            if (questionData.containsKey("photoUrl") && questionData.get("photoUrl") != null) {
+                String photoUrl = questionData.get("photoUrl").toString();
 
                 if (!photoUrl.trim().isEmpty()) {
-                    questionImage.setVisibility(View.VISIBLE);
+                    questionCard.setVisibility(View.VISIBLE);
                     Glide.with(this)
                             .load(photoUrl)
                             .centerCrop()
                             .into(questionImage);
                 } else {
-                    questionImage.setVisibility(View.GONE);
+                    questionCard.setVisibility(View.GONE);
                 }
             } else {
-                questionImage.setVisibility(View.GONE);
+                questionCard.setVisibility(View.GONE);
             }
+
 
             linearLayoutOptions.removeAllViews();
 
@@ -717,16 +723,36 @@
                 JSONObject data = new JSONObject();
                 JSONArray answersArray = new JSONArray();
 
+                int order = 0;
                 for (Map<String, Object> userAnswer : userAnswersList) {
                     JSONObject answerJson = new JSONObject();
+
                     answerJson.put("question", userAnswer.get("question"));
-                    answerJson.put("correctAnswers", new JSONArray((List<?>) userAnswer.get("correctAnswers")));
-                    answerJson.put("userAnswer", userAnswer.get("userAnswer"));
+                    answerJson.put("photoUrl", userAnswer.get("photoUrl")); // Add if available
                     answerJson.put("isCorrect", userAnswer.get("isCorrect"));
+                    answerJson.put("order", order); // preserve order
+
+                    // Correct answers: could be list or string
+                    Object correctAnswers = userAnswer.get("correctAnswers");
+                    if (correctAnswers instanceof List) {
+                        answerJson.put("correct", new JSONArray((List<?>) correctAnswers));
+                    } else {
+                        answerJson.put("correct", correctAnswers); // string fallback
+                    }
+
+                    // User selected answers: could be list or string
+                    Object userAns = userAnswer.get("userAnswer");
+                    if (userAns instanceof List) {
+                        answerJson.put("selected", new JSONArray((List<?>) userAns));
+                    } else {
+                        answerJson.put("selected", userAns); // string fallback
+                    }
+
                     answersArray.put(answerJson);
+                    order++;
                 }
 
-                data.put("userAnswers", answersArray);
+                data.put("answeredQuestions", answersArray); // MUST use this exact key
                 data.put("score", score);
                 data.put("originalQuestionCount", originalQuestionCount);
 
@@ -738,6 +764,7 @@
                 Log.e("QuizView", "Error saving temp offline attempt", e);
             }
         }
+
 
 
         private void resetOptionColors() {
