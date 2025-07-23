@@ -132,6 +132,8 @@ public class Quiz {
         private Object correctAnswer;
         private String reminder;
         private String photoUrl;
+        private String localPhotoPath;
+
 
         public Question() {}
 
@@ -185,6 +187,13 @@ public class Quiz {
 
         public void setPhotoUrl(String photoUrl) {this.photoUrl = photoUrl;}
 
+        public String getLocalPhotoPath() {
+            return localPhotoPath;
+        }
+
+        public void setLocalPhotoPath(String localPhotoPath) {
+            this.localPhotoPath = localPhotoPath;
+        }
 
         public String getReminder() {
             return reminder;

@@ -1,5 +1,7 @@
 package com.labactivity.studysync.adapters;
 
+import android.content.Context;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +17,7 @@ import com.bumptech.glide.Glide;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.models.Quiz;
 
+import java.io.File;
 import java.util.List;
 
 public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapter.ViewHolder> {
@@ -40,26 +43,29 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
         String correctAnswer = question.getCorrectAnswerAsString();
         holder.answerText.setText(correctAnswer.isEmpty() ? "N/A" : correctAnswer);
 
-        String imageUrl = question.getPhotoUrl();
+        String localImagePath = question.getLocalPhotoPath(); // new field for offline
+        String imageUrl = question.getPhotoUrl(); // online fallback
 
-        if (imageUrl != null && !imageUrl.isEmpty()) {
+        if (localImagePath != null && !localImagePath.isEmpty()) {
+            File imageFile = new File(localImagePath);
+            if (imageFile.exists()) {
+                holder.questionImage.setVisibility(View.VISIBLE);
+                Glide.with(holder.itemView.getContext())
+                        .load(Uri.fromFile(imageFile))
+                        .fitCenter()
+                        .into(holder.questionImage);
+            } else {
+                holder.questionImage.setVisibility(View.GONE);
+            }
+        } else if (imageUrl != null && !imageUrl.isEmpty()) {
             holder.questionImage.setVisibility(View.VISIBLE);
-            //holder.answerImage.setVisibility(View.VISIBLE);
-
             Glide.with(holder.itemView.getContext())
                     .load(imageUrl)
-                    .fitCenter() // Replaced centerCrop with fitCenter to prevent zoomed-in effect
+                    .fitCenter()
                     .into(holder.questionImage);
-
-            //Glide.with(holder.itemView.getContext())
-            //        .load(imageUrl)
-            //        .fitCenter()
-            //        .into(holder.answerImage);
         } else {
             holder.questionImage.setVisibility(View.GONE);
-            //holder.answerImage.setVisibility(View.GONE);
         }
-
 
         float scale = holder.itemView.getContext().getResources().getDisplayMetrics().density;
         holder.cardFront.setCameraDistance(8000 * scale);
@@ -76,14 +82,9 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
                         .withEndAction(() -> {
                             holder.cardFront.setVisibility(View.GONE);
                             holder.cardFront.setRotationY(0f);
-
                             holder.cardBack.setRotationY(-90f);
                             holder.cardBack.setVisibility(View.VISIBLE);
-
-                            holder.cardBack.animate()
-                                    .rotationY(0f)
-                                    .setDuration(150)
-                                    .start();
+                            holder.cardBack.animate().rotationY(0f).setDuration(150).start();
                         }).start();
             } else {
                 holder.cardBack.animate()
@@ -92,18 +93,14 @@ public class QuizCarouselAdapter extends RecyclerView.Adapter<QuizCarouselAdapte
                         .withEndAction(() -> {
                             holder.cardBack.setVisibility(View.GONE);
                             holder.cardBack.setRotationY(0f);
-
                             holder.cardFront.setRotationY(-90f);
                             holder.cardFront.setVisibility(View.VISIBLE);
-
-                            holder.cardFront.animate()
-                                    .rotationY(0f)
-                                    .setDuration(150)
-                                    .start();
+                            holder.cardFront.animate().rotationY(0f).setDuration(150).start();
                         }).start();
             }
         });
     }
+
 
     @Override
     public int getItemCount() {
