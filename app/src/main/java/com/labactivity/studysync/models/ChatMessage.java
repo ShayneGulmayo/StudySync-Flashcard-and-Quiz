@@ -17,7 +17,7 @@ public class ChatMessage {
     private long fileSize;
     private String fileType;
     private String filePath;
-
+    private String action;
     private String setId;    // ID of the shared Flashcard or Quiz set
     private String setType;  // "flashcard" or "quiz"
 
@@ -74,5 +74,8 @@ public class ChatMessage {
 
     public void setVideoUrl(String videoUrl) {
         this.videoUrl = videoUrl;
+    }
+
+    public String getAction() { return action;
     }
 }

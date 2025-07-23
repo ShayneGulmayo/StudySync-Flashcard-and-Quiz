@@ -3,6 +3,7 @@ package com.labactivity.studysync.adapters;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
@@ -733,7 +734,11 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     static class AnnouncementViewHolder extends RecyclerView.ViewHolder {
         TextView messageText, senderName, timestampText;
         ImageView senderImage, imageView, videoPreview;
+        Button viewSetButton;
         boolean timestampVisible = false;
+
+        private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+        private final FirebaseAuth auth = FirebaseAuth.getInstance();
 
         public AnnouncementViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -743,6 +748,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             timestampText = itemView.findViewById(R.id.timestampText);
             imageView = itemView.findViewById(R.id.imageView);
             videoPreview = itemView.findViewById(R.id.videoPreview);
+            viewSetButton = itemView.findViewById(R.id.viewSetButton);
 
             messageText.setOnClickListener(v -> {
                 timestampVisible = !timestampVisible;
@@ -758,9 +764,8 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             } else {
                 timestampText.setText("");
             }
-            timestampText.setVisibility(View.GONE); // default hidden
-
-            senderName.setVisibility(GONE);
+            timestampText.setVisibility(View.GONE);
+            senderName.setVisibility(View.GONE);
 
             if (message.getSenderPhotoUrl() != null && !message.getSenderPhotoUrl().isEmpty()) {
                 Glide.with(itemView.getContext())
@@ -773,14 +778,51 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
                 imageView.setVisibility(View.VISIBLE);
-                Glide.with(itemView.getContext())
-                        .load(message.getImageUrl())
-                        .into(imageView);
+                Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
             } else {
                 imageView.setVisibility(View.GONE);
             }
 
             videoPreview.setVisibility(View.GONE);
+
+            // 🌟 View Set Button Logic
+            String setId = message.getSetId();
+            String setType = message.getSetType();
+            String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
+
+            if (setId != null && setType != null && currentUid != null
+                    && ("added".equals(message.getAction()) || "role_changed".equals(message.getAction()))) {
+
+                db.collection(setType.equals("quiz") ? "quiz" : "flashcards")
+                        .document(setId)
+                        .addSnapshotListener((snapshot, error) -> {
+                            if (error != null || snapshot == null || !snapshot.exists()) {
+                                viewSetButton.setVisibility(View.GONE);
+                                return;
+                            }
+
+                            Map<String, Object> accessUsers = (Map<String, Object>) snapshot.get("accessUsers");
+                            if (accessUsers != null && accessUsers.containsKey(currentUid)) {
+                                viewSetButton.setVisibility(View.VISIBLE);
+
+                                viewSetButton.setOnClickListener(v -> {
+                                    Context context = itemView.getContext();
+                                    Intent intent;
+                                    if (setType.equals("quiz")) {
+                                        intent = new Intent(context, QuizPreviewActivity.class);
+                                        intent.putExtra("quizId", setId);
+                                    } else {
+                                        intent = new Intent(context, FlashcardPreviewActivity.class);
+                                        intent.putExtra("setId", setId);
+                                    }
+                                    context.startActivity(intent);
+                                });
+                            } else {
+                                viewSetButton.setVisibility(View.GONE);
+                            }
+                        });
+            }
+
         }
     }
 

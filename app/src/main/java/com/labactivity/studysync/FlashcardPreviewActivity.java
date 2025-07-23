@@ -431,10 +431,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         TextView reqEditBtn = view.findViewById(R.id.reqEdit);
 
         switch (accessLevel) {
-            case "owner":
+            case "Owner":
                 break;
 
-            case "edit":
+            case "Editor":
                 privacyBtn.setVisibility(View.GONE);
                 reminderBtn.setVisibility(View.GONE);
                 sendToChatBtn.setVisibility(View.GONE);
@@ -445,7 +445,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 editBtn.setVisibility(View.VISIBLE);
                 break;
 
-            case "view":
+            case "Viewer":
                 privacyBtn.setVisibility(View.GONE);
                 reminderBtn.setVisibility(View.GONE);
                 sendToChatBtn.setVisibility(View.GONE);
@@ -1208,8 +1208,9 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             String title = (String) setData.get("title");
             titleTextView.setText(title != null ? title : "Untitled");
 
-            Long numberOfItems = setData.get("number_of_items") instanceof Number ? ((Number) setData.get("number_of_items")).longValue() : 0;
-            numberOfItemsTextView.setText("| "+numberOfItems + (numberOfItems == 1 ? " terms" : " terms"));
+            Long numberOfItems = setData.get("number_of_items") instanceof Number
+                    ? ((Number) setData.get("number_of_items")).longValue() : 0;
+            numberOfItemsTextView.setText("| " + numberOfItems + (numberOfItems == 1 ? " term" : " terms"));
 
             String ownerName = (String) setData.get("username");
             ownerTextView.setText(ownerName != null ? ownerName : "Unknown");
@@ -1225,6 +1226,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 ownerPhotoImageView.setImageResource(R.drawable.user_profile);
             }
 
+            // Hide buttons for offline mode
             moreButton.setVisibility(View.GONE);
             saveSetBtn.setVisibility(View.GONE);
             convertBtn.setVisibility(View.GONE);
@@ -1234,10 +1236,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             cancelReminderBtn.setVisibility(View.GONE);
             linearLayout.setVisibility(View.GONE);
 
-            accessLevel = "view";
-
+            accessLevel = "Viewer";
             loadFlashcards();
-
         } else {
             db.collection("flashcards").document(setId)
                     .get()
@@ -1247,36 +1247,47 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                             finish();
                             return;
                         }
-                        ownerUid = documentSnapshot.getString("owner_uid");
 
+                        ownerUid = documentSnapshot.getString("owner_uid");
                         String title = documentSnapshot.getString("title");
-                        String ownerUid = documentSnapshot.getString("owner_uid");
                         Long numberOfItems = documentSnapshot.getLong("number_of_items");
                         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                        currentPrivacy = documentSnapshot.getString("privacy") != null ? documentSnapshot.getString("privacy") : "Public";
 
                         titleTextView.setText(title != null ? title : "Untitled");
 
-                        currentPrivacy = documentSnapshot.getString("privacy") != null ? documentSnapshot.getString("privacy") : "Public";
+                        String currentUserId = currentUser != null ? currentUser.getUid() : null;
 
-                        File file = new File(getFilesDir(), "set_" + setId + ".json");
-
-                        if (currentUser != null && ownerUid != null) {
-                            if (ownerUid.equals(currentUser.getUid())) {
-                                accessLevel = "owner";
-                                saveSetBtn.setVisibility(View.GONE);
+                        if (ownerUid != null && currentUserId != null && ownerUid.equals(currentUserId)) {
+                            accessLevel = "Owner";
+                            saveSetBtn.setVisibility(View.GONE);
+                        } else if ("public".equalsIgnoreCase(currentPrivacy)) {
+                            String privacyRole = documentSnapshot.getString("privacyRole");
+                            if ("Editor".equalsIgnoreCase(privacyRole)) {
+                                accessLevel = "Editor";
                             } else {
-                                accessLevel = "view";
-                                saveSetBtn.setVisibility(View.VISIBLE);
+                                accessLevel = "Viewer";
                             }
+                            saveSetBtn.setVisibility(View.VISIBLE);
                         } else {
-                            accessLevel = "view";
+                            Map<String, String> accessUsers = (Map<String, String>) documentSnapshot.get("accessUsers");
+                            if (accessUsers != null && currentUserId != null && accessUsers.containsKey(currentUserId)) {
+                                String userRole = accessUsers.get(currentUserId);
+                                if ("Editor".equalsIgnoreCase(userRole)) {
+                                    accessLevel = "Editor";
+                                } else if ("Viewer".equalsIgnoreCase(userRole)) {
+                                    accessLevel = "Viewer";
+                                } else {
+                                    accessLevel = "none";
+                                }
+                            } else {
+                                accessLevel = "none";
+                            }
                             saveSetBtn.setVisibility(View.VISIBLE);
                         }
 
-                        loadFlashcards();
-
                         if (numberOfItems != null) {
-                            numberOfItemsTextView.setText("| "+numberOfItems + (numberOfItems == 1 ? " term" : " terms"));
+                            numberOfItemsTextView.setText("| " + numberOfItems + (numberOfItems == 1 ? " term" : " terms"));
                         } else {
                             numberOfItemsTextView.setText("| 0 terms");
                         }
@@ -1298,39 +1309,10 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
                         loadOwnerProfile(ownerUid);
 
-                        String currentUserId = auth.getCurrentUser().getUid();
-
-                        if (ownerUid != null && ownerUid.equals(currentUserId)) {
-                            accessLevel = "owner";
-                        } else if ("public".equals(currentPrivacy)) {
-                            String privacyRole = documentSnapshot.getString("privacyRole");
-                            if ("edit".equalsIgnoreCase(privacyRole)) {
-                                accessLevel = "edit";
-                            } else if ("view".equalsIgnoreCase(privacyRole)) {
-                                accessLevel = "view";
-                            } else {
-                                accessLevel = "none";
-                            }
-                        } else {
-                            Map<String, String> accessUsers = (Map<String, String>) documentSnapshot.get("accessUsers");
-                            if (accessUsers != null && accessUsers.containsKey(currentUserId)) {
-                                String userRole = accessUsers.get(currentUserId);
-                                if ("edit".equalsIgnoreCase(userRole)) {
-                                    accessLevel = "edit";
-                                } else if ("view".equalsIgnoreCase(userRole)) {
-                                    accessLevel = "view";
-                                } else {
-                                    accessLevel = "none";
-                                }
-                            } else {
-                                accessLevel = "none";
-                            }
-                        }
-
-                        if ("none".equals(accessLevel)) {
+                        // Redirect if access is not granted
+                        if ("none".equalsIgnoreCase(accessLevel)) {
                             if (isRedirecting) return;
                             isRedirecting = true;
-
                             Intent intent = new Intent(this, NoAccessActivity.class);
                             intent.putExtra("setId", setId);
                             startActivity(intent);

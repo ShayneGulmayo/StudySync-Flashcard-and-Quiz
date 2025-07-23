@@ -132,6 +132,17 @@ public class ChatRoomActivity extends AppCompatActivity {
 
         chatRoomPhoto.setOnClickListener(v -> openEditChatRoom());
         chatRoomNameText.setOnClickListener(v -> openEditChatRoom());
+
+        if ("studysync_announcements".equals(roomId)) {
+            messagesRef = db.collection("chat_rooms")
+                    .document("studysync_announcements")
+                    .collection("users")
+                    .document(currentUser.getUid())
+                    .collection("messages");
+        } else {
+            messagesRef = db.collection("chat_rooms").document(roomId).collection("messages");
+        }
+
     }
 
     private void updateChatRoomLastMessage(String message, String type, String senderName) {

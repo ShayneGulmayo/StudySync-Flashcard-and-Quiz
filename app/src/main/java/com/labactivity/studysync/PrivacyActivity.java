@@ -10,6 +10,7 @@ import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
@@ -88,7 +89,7 @@ public class PrivacyActivity extends AppCompatActivity {
         searchAdapter = new PrivacyUserAdapter(this, searchResults, selectedUserList, true, isPublic,
                 (user, selected, position) -> {
                     if (selected) {
-                        if (!containsUser(user)) selectedUserList.add(new UserWithRole(user, "View"));
+                        if (!containsUser(user)) selectedUserList.add(new UserWithRole(user, "Viewer"));
                     } else {
                         removeUser(user);
                     }
@@ -104,9 +105,9 @@ public class PrivacyActivity extends AppCompatActivity {
 
         roleTxt.setOnClickListener(v -> {
             if (!isPublic || !isActivityAlive()) return;
-            androidx.appcompat.widget.PopupMenu roleMenu = new androidx.appcompat.widget.PopupMenu(this, roleTxt);
-            roleMenu.getMenu().add("View");
-            roleMenu.getMenu().add("Edit");
+            PopupMenu roleMenu = new PopupMenu(this, roleTxt);
+            roleMenu.getMenu().add("Viewer");
+            roleMenu.getMenu().add("Editor");
             roleMenu.setOnMenuItemClickListener(item -> {
                 roleTxt.setText(item.getTitle());
                 return true;
@@ -116,7 +117,7 @@ public class PrivacyActivity extends AppCompatActivity {
 
         View.OnClickListener privacyMenuClickListener = v -> {
             if (!isActivityAlive()) return;
-            androidx.appcompat.widget.PopupMenu privacyMenu = new androidx.appcompat.widget.PopupMenu(this, privacyTxt);
+            PopupMenu privacyMenu = new PopupMenu(this, privacyTxt);
             privacyMenu.getMenu().add(isPublic ? "Private" : "Public");
             privacyMenu.setOnMenuItemClickListener(item -> {
                 String selection = item.getTitle().toString();
@@ -129,7 +130,7 @@ public class PrivacyActivity extends AppCompatActivity {
                 } else {
                     isPublic = true;
                     privacyTxt.setText("Public");
-                    if (TextUtils.isEmpty(roleTxt.getText())) roleTxt.setText("View");
+                    if (TextUtils.isEmpty(roleTxt.getText())) roleTxt.setText("Viewer");
                     Glide.with(this).load(R.drawable.public_icon).into(privacyIcon);
                     ((TextView) findViewById(R.id.textView4)).setText("Anyone can view");
                 }
@@ -173,7 +174,7 @@ public class PrivacyActivity extends AppCompatActivity {
 
                     isPublic = "public".equals(privacy);
                     if (isPublic) {
-                        roleTxt.setText(!TextUtils.isEmpty(privacyRole) ? capitalize(privacyRole) : "View");
+                        roleTxt.setText(!TextUtils.isEmpty(privacyRole) ? capitalize(privacyRole) : "Viewer");
                     } else {
                         roleTxt.setText("");
                     }
@@ -251,24 +252,52 @@ public class PrivacyActivity extends AppCompatActivity {
     }
 
     private void savePrivacySettings() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("privacy", isPublic ? "public" : "private");
-        data.put("privacyRole", isPublic ? roleTxt.getText().toString().toLowerCase() : null);
+        db.collection(setType).document(setId).get().addOnSuccessListener(doc -> {
+            Map<String, String> oldAccessMap = new HashMap<>();
+            if (doc.contains("accessUsers")) {
+                oldAccessMap.putAll((Map<String, String>) doc.get("accessUsers"));
+            }
 
-        Map<String, String> accessMap = new HashMap<>();
-        for (UserWithRole uwr : selectedUserList) {
-            String role = uwr.getUser().getUid().equals(currentUserId) ? "Owner" : uwr.getRole();
-            accessMap.put(uwr.getUser().getUid(), role);
-        }
-        data.put("accessUsers", accessMap);
+            Map<String, Object> data = new HashMap<>();
+            data.put("privacy", isPublic ? "public" : "private");
+            data.put("privacyRole", isPublic ? roleTxt.getText().toString().toLowerCase() : null);
 
-        db.collection(setType).document(setId).update(data)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Privacy settings saved.", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            Map<String, String> newAccessMap = new HashMap<>();
+            for (UserWithRole uwr : selectedUserList) {
+                String role = uwr.getUser().getUid().equals(currentUserId) ? "Owner" : uwr.getRole();
+                newAccessMap.put(uwr.getUser().getUid(), role);
+            }
+            data.put("accessUsers", newAccessMap);
+
+            db.collection(setType).document(setId).update(data)
+                    .addOnSuccessListener(aVoid -> {
+                        for (String uid : newAccessMap.keySet()) {
+                            String newRole = newAccessMap.get(uid);
+                            String oldRole = oldAccessMap.get(uid);
+
+                            if (!oldAccessMap.containsKey(uid)) {
+                                // Newly added user
+                                sendAccessNotification(uid, "added", newRole);
+                            } else if (!newRole.equals(oldRole)) {
+                                // Role changed
+                                sendAccessNotification(uid, "role_changed", newRole);
+                            }
+                        }
+
+                        for (String uid : oldAccessMap.keySet()) {
+                            if (!newAccessMap.containsKey(uid)) {
+                                sendAccessNotification(uid, "removed", oldAccessMap.get(uid));
+                            }
+                        }
+
+
+                        Toast.makeText(this, "Privacy settings saved.", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        });
     }
+
 
     private boolean containsUser(User user) {
         for (UserWithRole u : selectedUserList)
@@ -292,4 +321,66 @@ public class PrivacyActivity extends AppCompatActivity {
     private boolean isActivityAlive() {
         return !(isFinishing() || isDestroyed());
     }
+
+    private void sendAccessNotification(String toUserId, String action, String role) {
+        if (toUserId.equals(currentUserId)) return;
+
+        // Fetch full name from Firestore
+        db.collection("users")
+                .document(currentUserId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    String fullName = currentUserId;
+                    if (documentSnapshot.exists()) {
+                        String firstName = documentSnapshot.getString("firstName");
+                        String lastName = documentSnapshot.getString("lastName");
+                        fullName = (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+                        fullName = fullName.trim();
+                    }
+
+                    String setTitle = titleTxt.getText().toString();
+                    String messageText = "";
+
+                    if (action.equals("added")) {
+                        messageText = fullName + " added you as " + role.toLowerCase() + " to the set \"" + setTitle + "\".";
+                    } else if (action.equals("removed")) {
+                        messageText = fullName + " removed your access to the set \"" + setTitle + "\".";
+                    } else if (action.equals("role_changed")) {
+                        messageText = fullName + " changed your role to " + role.toLowerCase() + " in the set \"" + setTitle + "\".";
+                    }
+
+
+                    Map<String, Object> notificationData = new HashMap<>();
+                    notificationData.put("senderId", currentUserId);
+                    notificationData.put("receiverId", toUserId);
+                    notificationData.put("text", messageText);
+                    notificationData.put("timestamp", FieldValue.serverTimestamp());
+                    notificationData.put("type", "announcements");
+                    notificationData.put("setId", setId);
+                    notificationData.put("action", action);
+                    notificationData.put("setType", setType);
+
+                    // Save to Firestore path: chat_rooms/studysync_announcements/users/{uid}/messages/{messageId}
+                    DocumentReference messageDoc = db.collection("chat_rooms")
+                            .document("studysync_announcements")
+                            .collection("users")
+                            .document(toUserId)
+                            .collection("messages")
+                            .document(); // Auto-ID
+
+                    notificationData.put("messageId", messageDoc.getId());
+
+                    messageDoc.set(notificationData)
+                            .addOnSuccessListener(unused ->
+                                    Toast.makeText(this, "Access notification sent", Toast.LENGTH_SHORT).show()
+                            )
+                            .addOnFailureListener(e ->
+                                    Toast.makeText(this, "Failed to send: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                            );
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Failed to fetch user info: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                );
+    }
+
 }

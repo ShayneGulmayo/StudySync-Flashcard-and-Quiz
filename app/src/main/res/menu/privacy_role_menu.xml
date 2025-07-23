@@ -2,11 +2,11 @@
 
     <item
         android:id="@+id/view_role"
-        android:title="View"/>
+        android:title="Viewer"/>
 
     <item
         android:id="@+id/edit_role"
-        android:title="Edit"/>
+        android:title="Editor"/>
 
     <item
         android:id="@+id/remove_access"

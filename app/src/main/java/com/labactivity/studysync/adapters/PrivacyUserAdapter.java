@@ -103,10 +103,10 @@ public class PrivacyUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
                 popupMenu.setOnMenuItemClickListener(item -> {
                     if (item.getItemId() == R.id.view_role) {
-                        uwr.setRole("View");
+                        uwr.setRole("Viewer");
                         notifyItemChanged(adapterPos);
                     } else if (item.getItemId() == R.id.edit_role) {
-                        uwr.setRole("Edit");
+                        uwr.setRole("Editor");
                         notifyItemChanged(adapterPos);
                     } else if (item.getItemId() == R.id.remove_access) {
                         listener.onUserSelected(user, false, adapterPos);
