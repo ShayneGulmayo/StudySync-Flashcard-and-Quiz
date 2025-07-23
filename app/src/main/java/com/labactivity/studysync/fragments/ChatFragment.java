@@ -138,8 +138,11 @@ public class ChatFragment extends Fragment {
                 .addOnSuccessListener(aVoid -> {
                     DocumentReference messageRef = db.collection("chat_rooms")
                             .document("studysync_announcements")
+                            .collection("users")
+                            .document(userId)
                             .collection("messages")
                             .document("welcome_notes");
+
 
                     messageRef.get().addOnSuccessListener(doc -> {
                         if (!doc.exists()) {
