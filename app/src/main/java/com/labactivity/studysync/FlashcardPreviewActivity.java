@@ -427,7 +427,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         TextView sendToChatBtn = view.findViewById(R.id.sendToChat);
         TextView editBtn = view.findViewById(R.id.edit);
         TextView deleteBtn = view.findViewById(R.id.delete);
-        TextView reqAccessBtn = view.findViewById(R.id.reqAccess);
+        TextView reqViewBtn = view.findViewById(R.id.reqAccess);
         TextView reqEditBtn = view.findViewById(R.id.reqEdit);
 
         switch (accessLevel) {
@@ -439,7 +439,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 reminderBtn.setVisibility(View.GONE);
                 sendToChatBtn.setVisibility(View.GONE);
                 deleteBtn.setVisibility(View.GONE);
-                reqAccessBtn.setVisibility(View.GONE);
+                reqViewBtn.setVisibility(View.GONE);
                 copyBtn.setVisibility(View.VISIBLE);
                 downloadBtn.setVisibility(View.VISIBLE);
                 editBtn.setVisibility(View.VISIBLE);
@@ -452,7 +452,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 deleteBtn.setVisibility(View.GONE);
                 editBtn.setVisibility(View.GONE);
                 downloadBtn.setVisibility(View.VISIBLE);
-                reqAccessBtn.setVisibility(View.GONE);
+                reqViewBtn.setVisibility(View.GONE);
                 copyBtn.setVisibility(View.VISIBLE);
                 reqEditBtn.setVisibility(View.VISIBLE);
                 break;
@@ -465,7 +465,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 deleteBtn.setVisibility(View.GONE);
                 downloadBtn.setVisibility(View.GONE);
                 copyBtn.setVisibility(View.GONE);
-                reqAccessBtn.setVisibility(View.VISIBLE);
+                reqViewBtn.setVisibility(View.VISIBLE);
+                reqEditBtn.setVisibility(View.VISIBLE);
                 break;
         }
 
@@ -530,20 +531,97 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             showDeleteConfirmationDialog();
         });
 
-        reqEditBtn.setOnClickListener(v -> {
+        // View access request
+        reqViewBtn.setOnClickListener(v -> {
             if (!canNavigate()) return;
-            Toast.makeText(this, "Request Edit clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
+            sendAccessRequest("Viewer");
         });
 
-        reqAccessBtn.setOnClickListener(v -> {
+        reqEditBtn.setOnClickListener(v -> {
             if (!canNavigate()) return;
-            Toast.makeText(this, "Request Access clicked", Toast.LENGTH_SHORT).show();
-            bottomSheetDialog.dismiss();
+            sendAccessRequest("Editor");
         });
+
 
         bottomSheetDialog.show();
     }
+
+    private void sendAccessRequest(String requestedRole) {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null || setId == null || ownerUid == null) return;
+
+        String senderUid = currentUser.getUid();
+
+        db.collection("users").document(senderUid)
+                .get()
+                .addOnSuccessListener(userDoc -> {
+                    String firstName = userDoc.getString("firstName");
+                    String lastName = userDoc.getString("lastName");
+                    String senderPhoto = userDoc.getString("photoUrl") != null ? userDoc.getString("photoUrl") : "";
+
+                    String senderName = "";
+                    if (firstName != null) senderName += firstName;
+                    if (lastName != null) senderName += (senderName.isEmpty() ? "" : " ") + lastName;
+                    if (senderName.isEmpty()) senderName = "Unknown User";
+
+                    // Get flashcard title (ONLY for flashcards as requested)
+                    String finalSenderName = senderName;
+                    db.collection("flashcards").document(setId)
+                            .get()
+                            .addOnSuccessListener(setDoc -> {
+                                if (!setDoc.exists()) {
+                                    Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+
+                                String setTitle = setDoc.getString("title");
+                                if (setTitle == null || setTitle.isEmpty()) setTitle = "Untitled";
+
+                                String messageText = finalSenderName + " has requested " + requestedRole.toLowerCase() +
+                                        " access to your set \"" + setTitle + "\".";
+
+                                Map<String, Object> requestMessage = new HashMap<>();
+                                requestMessage.put("senderId", senderUid);
+                                requestMessage.put("senderName", finalSenderName);
+                                requestMessage.put("senderPhotoUrl", senderPhoto);
+                                requestMessage.put("setId", setId);
+                                requestMessage.put("setType", "flashcard");
+                                requestMessage.put("requestedRole", requestedRole);
+                                requestMessage.put("text", messageText);
+                                requestMessage.put("type", "request");
+                                requestMessage.put("status", "pending");
+                                requestMessage.put("timestamp", FieldValue.serverTimestamp());
+
+                                db.collection("chat_rooms")
+                                        .document("studysync_announcements")
+                                        .collection("users")
+                                        .document(ownerUid)
+                                        .collection("messages")
+                                        .add(requestMessage)
+                                        .addOnSuccessListener(docRef -> {
+                                            Toast.makeText(this, "Access request sent!", Toast.LENGTH_SHORT).show();
+                                            if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) {
+                                                bottomSheetDialog.dismiss();
+                                            }
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Toast.makeText(this, "Failed to send request.", Toast.LENGTH_SHORT).show();
+                                            Log.e("AccessRequest", "Firestore error", e);
+                                        });
+
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to fetch flashcard set.", Toast.LENGTH_SHORT).show();
+                                Log.e("AccessRequest", "Set fetch error", e);
+                            });
+
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to fetch user info.", Toast.LENGTH_SHORT).show();
+                    Log.e("AccessRequest", "User fetch error", e);
+                });
+    }
+
 
     private void showDownloadOptionsDialog() {
         String[] options = {"Download as PDF", "Download for Offline Use"};

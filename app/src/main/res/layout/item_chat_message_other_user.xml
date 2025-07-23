@@ -2,11 +2,11 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/messageContainer"
-    android:layout_width="match_parent"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:layout_marginRight="120dp"
     android:orientation="horizontal"
-    android:padding="3dp"
-    android:layout_marginRight="120dp">
+    android:padding="5dp">
 
     <ImageView
         android:id="@+id/senderImage"
@@ -19,11 +19,10 @@
         android:src="@drawable/user_profile" />
 
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical"
->
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/senderName"
@@ -41,9 +40,9 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:layout_marginTop="4dp"
             android:gravity="bottom"
-            android:layout_marginTop="4dp">
+            android:orientation="vertical">
 
 
             <ImageView
@@ -52,7 +51,7 @@
                 android:layout_height="300dp"
                 android:layout_marginTop="5dp"
                 android:scaleType="centerCrop"
-                android:visibility="gone"/>
+                android:visibility="gone" />
 
             <ImageView
                 android:id="@+id/imageView"
@@ -64,14 +63,14 @@
 
             <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:background="@drawable/bg_message_other_user"
                 android:orientation="vertical"
                 android:padding="15dp">
 
                 <TextView
                     android:id="@+id/messageText"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Message"
                     android:textColor="@android:color/black"
@@ -89,6 +88,39 @@
                     android:textSize="16sp"
                     android:visibility="gone"
                     app:cornerRadius="15dp" />
+
+                <LinearLayout
+                    android:id="@+id/button_holder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <Button
+                        android:id="@+id/accept_btn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="5dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/primary"
+                        android:text="Accept"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        app:cornerRadius="15dp" />
+
+                    <Button
+                        android:id="@+id/denied_btn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="5dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/warning"
+                        android:text="Denied"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        app:cornerRadius="15dp" />
+                </LinearLayout>
             </LinearLayout>
 
 

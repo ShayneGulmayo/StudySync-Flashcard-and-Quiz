@@ -11,7 +11,7 @@ public class ChatMessage {
     private String type;
     private String imageUrl;
     private String videoUrl;
-
+    private String status;
     private String fileUrl;
     private String fileName;
     private long fileSize;
@@ -20,9 +20,10 @@ public class ChatMessage {
     private String action;
     private String setId;    // ID of the shared Flashcard or Quiz set
     private String setType;  // "flashcard" or "quiz"
-
+    private String requestedRole;
     @ServerTimestamp
     private Date timestamp;
+    private String messageId;
 
     // Required no-arg constructor
     public ChatMessage() {}
@@ -77,5 +78,20 @@ public class ChatMessage {
     }
 
     public String getAction() { return action;
+    }
+
+    public String getRequestedRole() { return requestedRole;
+    }
+
+    public String getStatus() { return status;
+    }
+
+    public String getMessageId() { return messageId;
+    }
+
+    public void setRequestedRole(String requestedRole) { this.requestedRole = requestedRole;
+    }
+
+    public void setStatus(String status) { this.status = status;
     }
 }

@@ -14,7 +14,7 @@
         android:drawablePadding="20dp"
         android:paddingTop="10dp"
         android:paddingBottom="10dp"
-        android:text="@string/request_access"
+        android:text="Request View"
         android:textColor="@color/black"
         android:textSize="16sp"
         android:textStyle="bold"
