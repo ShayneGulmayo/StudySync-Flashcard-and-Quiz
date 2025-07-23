@@ -54,6 +54,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.labactivity.studysync.adapters.FlashcardCarouselAdapter;
 import com.labactivity.studysync.helpers.AlarmHelper;
+import com.labactivity.studysync.models.ChatMessage;
 import com.labactivity.studysync.models.Flashcard;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 import java.io.ByteArrayOutputStream;
@@ -68,6 +69,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -538,8 +540,43 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         reqAccessBtn.setOnClickListener(v -> {
             if (!canNavigate()) return;
-            Toast.makeText(this, "Request Access clicked", Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(this, "Your request has been sent.", Toast.LENGTH_SHORT).show();
             bottomSheetDialog.dismiss();
+
+            if (ownerUid == null || ownerUid.isEmpty()) {
+                Toast.makeText(this, "Owner ID not found.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String currentUserId = auth.getCurrentUser().getUid();
+
+            // Fetch current user's full name
+            db.collection("users").document(currentUserId)
+                    .get()
+                    .addOnSuccessListener(userDoc -> {
+                        String firstName = userDoc.getString("firstname");
+                        String lastName = userDoc.getString("lastName");
+                        String fullName = (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+
+                        ChatMessage requestMessage = new ChatMessage();
+                        requestMessage.setSenderId("system");
+                        requestMessage.setSenderName("StudySync System");
+                        requestMessage.setSenderPhotoUrl("");
+                        requestMessage.setText(fullName.trim() + " has requested access to your set.");
+                        requestMessage.setTimestamp(new Date());
+                        requestMessage.setType("request");
+
+                        db.collection("chat_rooms")
+                                .document("studysync_announcements")
+                                .collection("users")
+                                .document(ownerUid)
+                                .collection("messages")
+                                .add(requestMessage)
+                                .addOnSuccessListener(documentReference -> Log.d("AccessRequest", "Request sent successfully."))
+                                .addOnFailureListener(e -> Log.e("AccessRequest", "Failed to send request: " + e.getMessage()));
+                    })
+                    .addOnFailureListener(e -> Log.e("AccessRequest", "Failed to fetch sender name: " + e.getMessage()));
         });
 
         bottomSheetDialog.show();
@@ -1090,16 +1127,13 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         db.collection("flashcards").add(copyData)
                 .addOnSuccessListener(newDocRef -> {
                     long timestamp = System.currentTimeMillis();
-                    int progress = 0; // Default value, adjust if you track specific progress
+                    int progress = 0;
 
                     Map<String, Object> ownedSetData = new HashMap<>();
                     ownedSetData.put("id", newDocRef.getId());
                     ownedSetData.put("type", "flashcard");
                     ownedSetData.put("progress", progress);
                     ownedSetData.put("lastAccessed", timestamp);
-
-                    // Optional: track where it was copied from
-                    // ownedSetData.put("copiedFrom", originalSetId); // only if you store the original ID
 
                     db.collection("users").document(userId)
                             .update("owned_sets", FieldValue.arrayUnion(ownedSetData))
@@ -1118,7 +1152,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to copy flashcard set.", Toast.LENGTH_SHORT).show();
                 });
     }
-
 
     private void showDeleteConfirmationDialog() {
         if (isFinishing() || isDestroyed()) return;

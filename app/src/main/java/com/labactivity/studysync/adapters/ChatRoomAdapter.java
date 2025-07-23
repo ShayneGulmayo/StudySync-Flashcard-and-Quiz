@@ -32,7 +32,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
     private List<ChatRoom> fullList;
     private List<ChatRoom> filteredList;
     private final String currentUserId;
-    private Map<String, Date> lastOpenedMap;
+    private Map<String, Date> lastOpenedMap = new HashMap<>();
     private final Context context;
 
     public ChatRoomAdapter(Context context, List<ChatRoom> chatRooms, String currentUserId) {
@@ -49,7 +49,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
     }
 
     public void setUserLastOpenedMap(Map<String, Date> map) {
-        this.lastOpenedMap = map;
+        this.lastOpenedMap = map != null ? map : new HashMap<>();
     }
 
     public void filterByName(String query) {
@@ -92,6 +92,12 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
             case "set":
                 preview = "Shared a set";
                 break;
+            case "announcements":
+                preview = room.getLastMessage() != null ? room.getLastMessage() : "Welcome to StudySync!";
+                break;
+            case "request":
+                preview = room.getLastMessage() != null ? room.getLastMessage() : "Sent a request";
+                break;
             case "system":
                 preview = room.getLastMessage() != null ? room.getLastMessage() : "System update";
                 break;
@@ -101,14 +107,12 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
                 break;
         }
 
-        // Prefix with sender's name if not system
-        if (!"system".equals(type) && room.getLastMessageSender() != null) {
+        if (!type.equals("system") && !type.equals("announcements") && !type.equals("request") && room.getLastMessageSender() != null) {
             preview = room.getLastMessageSender() + ": " + preview;
         }
 
         holder.lastMessage.setText(preview);
 
-        // Load photo
         if (room.getPhotoUrl() != null && !room.getPhotoUrl().isEmpty()) {
             Glide.with(context)
                     .load(room.getPhotoUrl())
@@ -119,10 +123,17 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
             holder.groupImage.setImageResource(R.drawable.user_profile);
         }
 
-        boolean isUnread = room.isUnread();
+        boolean isUnread = false;
+        Date lastMessageTime = room.getLastMessageTimestamp();
+        Date lastOpened = lastOpenedMap != null ? lastOpenedMap.get(room.getId()) : null;
+
+        if (lastMessageTime != null && (lastOpened == null || lastMessageTime.after(lastOpened))) {
+            isUnread = true;
+        }
+
         holder.groupName.setTypeface(null, isUnread ? Typeface.BOLD : Typeface.NORMAL);
         holder.lastMessage.setTypeface(null,
-                "system".equals(type) ? Typeface.ITALIC : (isUnread ? Typeface.BOLD : Typeface.NORMAL));
+                type.equals("system") ? Typeface.ITALIC : (isUnread ? Typeface.BOLD : Typeface.NORMAL));
 
         holder.itemView.setOnClickListener(v -> {
             Map<String, Object> update = new HashMap<>();
@@ -138,7 +149,6 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
             context.startActivity(intent);
         });
     }
-
 
     @Override
     public int getItemCount() {

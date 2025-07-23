@@ -1,15 +1,20 @@
 package com.labactivity.studysync;
 
-import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.labactivity.studysync.models.ChatMessage;
+
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -21,16 +26,16 @@ public class NoAccessActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
+    private String ownerUid = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_no_access);
         auth = FirebaseAuth.getInstance();
-
-        initializeViews();
         db = FirebaseFirestore.getInstance();
 
+        initializeViews();
 
         if (getIntent().hasExtra("setId")) {
             setId = getIntent().getStringExtra("setId");
@@ -63,12 +68,12 @@ public class NoAccessActivity extends AppCompatActivity {
                         return;
                     }
 
-                    String ownerUid = doc.getString("owner_uid");
+                    ownerUid = doc.getString("owner_uid");
                     String privacy = doc.getString("privacy");
                     String privacyRole = doc.getString("privacyRole");
                     Map<String, String> accessUsers = (Map<String, String>) doc.get("accessUsers");
 
-                    final String[] userAccessRole = { null };
+                    final String[] userAccessRole = {null};
                     if (accessUsers != null && accessUsers.containsKey(currentUserId)) {
                         userAccessRole[0] = accessUsers.get(currentUserId);
                     }
@@ -115,7 +120,6 @@ public class NoAccessActivity extends AppCompatActivity {
         TextView reqAccessBtn = view.findViewById(R.id.reqAccess);
 
         if (privacy == null && privacyRole == null && !isSavedSet) {
-            // Owner — show all
         } else if ("public".equals(privacy) && "view".equalsIgnoreCase(privacyRole)) {
             privacyBtn.setVisibility(View.GONE);
             reminderBtn.setVisibility(View.GONE);
@@ -149,8 +153,51 @@ public class NoAccessActivity extends AppCompatActivity {
             reqAccessBtn.setVisibility(View.VISIBLE);
         }
 
-        reqAccessBtn.setOnClickListener(v -> bottomSheetDialog.dismiss());
+        reqAccessBtn.setOnClickListener(v -> {
+            if (!canNavigate()) return;
+
+            Toast.makeText(this, "Your request has been sent.", Toast.LENGTH_SHORT).show();
+            bottomSheetDialog.dismiss();
+
+            if (ownerUid == null || ownerUid.isEmpty()) {
+                Toast.makeText(this, "Owner ID not found.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String currentUserId = auth.getCurrentUser().getUid();
+
+            db.collection("users").document(currentUserId)
+                    .get()
+                    .addOnSuccessListener(userDoc -> {
+                        String firstName = userDoc.getString("firstName");
+                        String lastName = userDoc.getString("lastName");
+                        String fullName = (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+
+                        ChatMessage requestMessage = new ChatMessage();
+                        requestMessage.setSenderId("system");
+                        requestMessage.setSenderName("StudySync System");
+                        requestMessage.setSenderPhotoUrl("");
+                        requestMessage.setText(fullName.trim() + " has requested access to your set.");
+                        requestMessage.setTimestamp(new Date());
+                        requestMessage.setType("request");
+
+                        db.collection("chat_rooms")
+                                .document("studysync_announcements")
+                                .collection("users")
+                                .document(ownerUid)
+                                .collection("messages")
+                                .add(requestMessage)
+                                .addOnSuccessListener(documentReference -> Log.d("AccessRequest", "Request sent successfully."))
+                                .addOnFailureListener(e -> Log.e("AccessRequest", "Failed to send request: " + e.getMessage()));
+                    })
+                    .addOnFailureListener(e -> Log.e("AccessRequest", "Failed to fetch sender name: " + e.getMessage()));
+        });
+
+
         bottomSheetDialog.show();
     }
 
+    private boolean canNavigate() {
+        return !isFinishing() && !isDestroyed();
+    }
 }

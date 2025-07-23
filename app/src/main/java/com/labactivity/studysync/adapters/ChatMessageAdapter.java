@@ -8,11 +8,13 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.icu.text.DateFormat;
 import android.net.Uri;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,11 +23,15 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+
 import com.labactivity.studysync.FlashcardPreviewActivity;
 import com.labactivity.studysync.ImageViewerActivity;
 import com.labactivity.studysync.QuizPreviewActivity;
@@ -37,6 +43,7 @@ import com.labactivity.studysync.models.Quiz;
 import com.labactivity.studysync.models.User;
 
 import java.text.DecimalFormat;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,9 +57,9 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     private static final int VIEW_TYPE_SHARED_SET = 4;
     private static final int VIEW_TYPE_FILE_CURRENT_USER = 5;
     private static final int VIEW_TYPE_FILE_OTHER_USER = 6;
-
     private static final int VIEW_TYPE_SHARED_SET_CURRENT_USER = 7;
-
+    private static final int VIEW_TYPE_ANNOUNCEMENTS = 8;
+    private static final int VIEW_TYPE_REQUEST_MESSAGE = 9;
 
     private final String currentUserId;
 
@@ -65,6 +72,8 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     public int getItemViewType(int position) {
         ChatMessage message = getItem(position);
         if ("system".equals(message.getType())) return VIEW_TYPE_SYSTEM_MESSAGE;
+        if ("announcements".equals(message.getType())) return VIEW_TYPE_ANNOUNCEMENTS;
+        if ("request".equals(message.getType())) return VIEW_TYPE_REQUEST_MESSAGE;
         if ("set".equals(message.getType())) {
             return message.getSenderId().equals(currentUserId) ? VIEW_TYPE_SHARED_SET_CURRENT_USER : VIEW_TYPE_SHARED_SET;
         }
@@ -93,11 +102,14 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 return new FileCurrentUserViewHolder(inflater.inflate(R.layout.item_file_message_current_user, parent, false));
             case VIEW_TYPE_FILE_OTHER_USER:
                 return new FileOtherUserViewHolder(inflater.inflate(R.layout.item_file_message_other_user, parent, false));
+            case VIEW_TYPE_ANNOUNCEMENTS:
+                return new AnnouncementViewHolder(inflater.inflate(R.layout.item_chat_message_other_user, parent, false));
+            case VIEW_TYPE_REQUEST_MESSAGE:
+                return new RequestMessageViewHolder(inflater.inflate(R.layout.item_message_request, parent, false));
             default:
                 throw new IllegalArgumentException("Invalid view type");
         }
     }
-
 
     @Override
     protected void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, @NonNull ChatMessage message) {
@@ -116,6 +128,10 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             ((FileCurrentUserViewHolder) holder).bind(message);
         } else if (holder instanceof FileOtherUserViewHolder) {
             ((FileOtherUserViewHolder) holder).bind(message);
+        } else if (holder instanceof AnnouncementViewHolder) {
+            ((AnnouncementViewHolder) holder).bind(message);
+        } else if (holder instanceof RequestMessageViewHolder) {
+            ((RequestMessageViewHolder) holder).bind(message);
         }
     }
 
@@ -139,7 +155,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             itemView.setOnClickListener(v -> {
                 timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? GONE : VISIBLE);
             });
-
         }
 
         public void bind(ChatMessage message) {
@@ -712,6 +727,212 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
         public void bind(ChatMessage message) {
             systemMessageText.setText(message.getText());
+        }
+    }
+
+    static class AnnouncementViewHolder extends RecyclerView.ViewHolder {
+        TextView messageText, senderName, timestampText;
+        ImageView senderImage, imageView, videoPreview;
+        boolean timestampVisible = false;
+
+        public AnnouncementViewHolder(@NonNull View itemView) {
+            super(itemView);
+            messageText = itemView.findViewById(R.id.messageText);
+            senderName = itemView.findViewById(R.id.senderName);
+            senderImage = itemView.findViewById(R.id.senderImage);
+            timestampText = itemView.findViewById(R.id.timestampText);
+            imageView = itemView.findViewById(R.id.imageView);
+            videoPreview = itemView.findViewById(R.id.videoPreview);
+
+            messageText.setOnClickListener(v -> {
+                timestampVisible = !timestampVisible;
+                timestampText.setVisibility(timestampVisible ? View.VISIBLE : View.GONE);
+            });
+        }
+
+        public void bind(ChatMessage message) {
+            messageText.setText(message.getText());
+
+            if (message.getTimestamp() != null) {
+                timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
+            } else {
+                timestampText.setText("");
+            }
+            timestampText.setVisibility(View.GONE); // default hidden
+
+            senderName.setVisibility(GONE);
+
+            if (message.getSenderPhotoUrl() != null && !message.getSenderPhotoUrl().isEmpty()) {
+                Glide.with(itemView.getContext())
+                        .load(message.getSenderPhotoUrl())
+                        .placeholder(R.drawable.studysync_logo)
+                        .into(senderImage);
+            } else {
+                senderImage.setImageResource(R.drawable.studysync_logo);
+            }
+
+            if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
+                imageView.setVisibility(View.VISIBLE);
+                Glide.with(itemView.getContext())
+                        .load(message.getImageUrl())
+                        .into(imageView);
+            } else {
+                imageView.setVisibility(View.GONE);
+            }
+
+            videoPreview.setVisibility(View.GONE);
+        }
+    }
+
+    public class RequestMessageViewHolder extends RecyclerView.ViewHolder {
+        private final TextView requestSender, requestSetTitle, requestSetType, timestampText;
+        private final ImageView systemImage;
+        private final Button acceptBtn, denyBtn;
+        private final LinearLayout requestLayout;
+        private final FirebaseAuth auth = FirebaseAuth.getInstance();
+        private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        public RequestMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            requestSender = itemView.findViewById(R.id.request_sender);
+            requestSetTitle = itemView.findViewById(R.id.request_title);
+            requestSetType = itemView.findViewById(R.id.request_type);
+            systemImage = itemView.findViewById(R.id.systemImage);
+            acceptBtn = itemView.findViewById(R.id.accept_btn);
+            denyBtn = itemView.findViewById(R.id.denied_btn);
+            requestLayout = itemView.findViewById(R.id.RequestCard);
+            timestampText = itemView.findViewById(R.id.timestampText);
+
+            requestLayout.setOnClickListener(v -> {
+                if (timestampText.getVisibility() == View.GONE) {
+                    timestampText.setVisibility(View.VISIBLE);
+                } else {
+                    timestampText.setVisibility(View.GONE);
+                }
+            });
+        }
+
+        public void bind(ChatMessage message) {
+            if (message == null) return;
+
+            String senderId = message.getSenderId();
+            String setId = message.getSetId();
+            String setType = message.getSetType();
+            String timestamp = String.valueOf(message.getTimestamp());
+
+            // Show timestamp
+            timestampText.setText(timestamp != null ? timestamp : "");
+
+            // Handle system sender
+            if ("system".equals(senderId)) {
+                requestSender.setText("StudySync System");
+                systemImage.setImageResource(R.drawable.studysync_logo);
+                systemImage.setOnClickListener(null);
+            } else {
+                loadSenderInfo(senderId);
+            }
+
+            // Load set info
+            if ("flashcard".equals(setType)) {
+                loadSetInfo("flashcards", setId, "Flashcard");
+            } else if ("quiz".equals(setType)) {
+                loadSetInfo("quiz", setId, "Quiz");
+            } else {
+                showUnavailableSet();
+            }
+
+            // Setup buttons
+            FirebaseUser user = auth.getCurrentUser();
+            if (user == null) return;
+
+            String currentUserId = user.getUid();
+            db.collection("users").document(currentUserId).get()
+                    .addOnSuccessListener(snapshot -> {
+                        List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) snapshot.get("owned_sets");
+                        List<Map<String, Object>> savedSets = (List<Map<String, Object>>) snapshot.get("saved_sets");
+
+                        boolean isOwner = ownedSets != null && ownedSets.stream().anyMatch(set ->
+                                setId != null && setId.equals(set.get("id")) &&
+                                        setType != null && setType.equals(set.get("type"))
+                        );
+
+                        boolean isSaved = savedSets != null && savedSets.stream().anyMatch(set ->
+                                setId != null && setId.equals(set.get("id")) &&
+                                        setType != null && setType.equals(set.get("type"))
+                        );
+
+                        // Show buttons only if user owns the set and requester doesn't have access yet
+                        if (isOwner && !isSaved) {
+                            acceptBtn.setVisibility(View.VISIBLE);
+                            denyBtn.setVisibility(View.VISIBLE);
+                            acceptBtn.setOnClickListener(v -> {
+                                Toast.makeText(itemView.getContext(), "Request Accepted", Toast.LENGTH_SHORT).show();
+                                // TODO: Grant access in Firestore
+                            });
+                            denyBtn.setOnClickListener(v -> {
+                                Toast.makeText(itemView.getContext(), "Request Denied", Toast.LENGTH_SHORT).show();
+                                // TODO: Deny logic (optional)
+                            });
+                        } else {
+                            acceptBtn.setVisibility(View.GONE);
+                            denyBtn.setVisibility(View.GONE);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("RequestMsgViewHolder", "Failed to load user sets", e);
+                        acceptBtn.setVisibility(View.GONE);
+                        denyBtn.setVisibility(View.GONE);
+                    });
+        }
+
+        private void loadSenderInfo(String senderId) {
+            db.collection("users").document(senderId).get()
+                    .addOnSuccessListener(snapshot -> {
+                        if (snapshot.exists()) {
+                            String name = snapshot.getString("username");
+                            String photoUrl = snapshot.getString("photoUrl");
+
+                            requestSender.setText(name != null ? name : "Unknown User");
+                            Glide.with(itemView.getContext())
+                                    .load(photoUrl)
+                                    .placeholder(R.drawable.user_profile)
+                                    .into(systemImage);
+                        } else {
+                            showUnknownUser();
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("RequestMsgViewHolder", "Error loading sender info", e);
+                        showUnknownUser();
+                    });
+        }
+
+        private void loadSetInfo(String collection, String setId, String typeLabel) {
+            db.collection(collection).document(setId).get()
+                    .addOnSuccessListener(snapshot -> {
+                        if (snapshot.exists()) {
+                            String title = snapshot.getString("title");
+                            requestSetTitle.setText(title != null ? title : "(Untitled)");
+                            requestSetType.setText(typeLabel);
+                        } else {
+                            showUnavailableSet();
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("RequestMsgViewHolder", "Error loading set info", e);
+                        showUnavailableSet();
+                    });
+        }
+
+        private void showUnavailableSet() {
+            requestSetTitle.setText("This set is no longer available.");
+            requestSetType.setText("");
+        }
+
+        private void showUnknownUser() {
+            requestSender.setText("User Not Found");
+            systemImage.setImageResource(R.drawable.user_profile);
+            systemImage.setOnClickListener(null);
         }
     }
 

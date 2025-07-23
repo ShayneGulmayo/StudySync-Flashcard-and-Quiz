@@ -111,7 +111,7 @@ public class ChatRoomActivity extends AppCompatActivity {
         sendImg = findViewById(R.id.sendImg);
         sendFlashcardsandQuiz = findViewById(R.id.sendFlashcardsandQuiz);
 
-        ImageButton sendButton = findViewById(R.id.sendButton);
+        ImageButton sendButton = findViewById(R.id.sendMessage);
         ImageView backBtn = findViewById(R.id.back_button);
         ImageView moreBtn = findViewById(R.id.chatRoomSettings);
 
@@ -121,14 +121,8 @@ public class ChatRoomActivity extends AppCompatActivity {
 
         messagesRef = db.collection("chat_rooms").document(roomId).collection("messages");
 
-        fetchChatRoomDetails(() -> {
-            if (!memberUids.contains(currentUser.getUid())) {
-                Toast.makeText(this, "Access Denied", Toast.LENGTH_SHORT).show();
-                finish();
-                return;
-            }
-            setUpRecyclerView();
-        });
+        fetchChatRoomDetails(this::setUpRecyclerView);
+
 
         sendButton.setOnClickListener(v -> sendMessage());
         sendImg.setOnClickListener(v -> openImagePicker());
@@ -294,8 +288,6 @@ public class ChatRoomActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> Toast.makeText(this, "File upload failed", Toast.LENGTH_SHORT).show());
     }
 
-
-
     private void showSendMorePopup() {
         View popupView = LayoutInflater.from(this).inflate(R.layout.item_send_more, null);
 
@@ -331,26 +323,80 @@ public class ChatRoomActivity extends AppCompatActivity {
         db.collection("chat_rooms").document(roomId)
                 .get()
                 .addOnSuccessListener(doc -> {
-                    if (doc.exists()) {
-                        memberUids = (List<String>) doc.get("members");
-
-                        String roomName = doc.getString("chatRoomName");
-                        if (roomName != null && !roomName.trim().isEmpty()) {
-                            chatRoomNameText.setText(roomName);
-                        }
-
-                        String photoUrl = doc.getString("photoUrl");
-                        if (photoUrl != null && !photoUrl.isEmpty()) {
-                            Glide.with(this).load(photoUrl)
-                                    .placeholder(R.drawable.user_profile)
-                                    .error(R.drawable.user_profile)
-                                    .circleCrop()
-                                    .into(chatRoomPhoto);
-                        }
-                        onSuccess.run();
-                    } else {
+                    if (!doc.exists()) {
                         Toast.makeText(this, "Chat room not found", Toast.LENGTH_SHORT).show();
                         finish();
+                        return;
+                    }
+
+                    if (currentUser == null) {
+                        Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+                        finish();
+                        return;
+                    }
+
+                    String roomName = doc.getString("chatRoomName");
+                    if (roomName != null && !roomName.trim().isEmpty()) {
+                        chatRoomNameText.setText(roomName);
+                    }
+
+                    String photoUrl = doc.getString("photoUrl");
+                    if (photoUrl != null && !photoUrl.trim().isEmpty()) {
+                        Glide.with(this)
+                                .load(photoUrl)
+                                .placeholder(R.drawable.user_profile)
+                                .error(R.drawable.user_profile)
+                                .circleCrop()
+                                .into(chatRoomPhoto);
+                    }
+
+                    String roomType = doc.getString("type");
+                    boolean isSystemRoom = "announcements".equalsIgnoreCase(roomType);
+
+                    TextView systemNoticeText = findViewById(R.id.systemNoticeText);
+                    ImageButton sendButton = findViewById(R.id.sendMessage);
+                    ImageView moreBtn = findViewById(R.id.chatRoomSettings);
+
+                    messageEditText.setVisibility(isSystemRoom ? View.GONE : View.VISIBLE);
+                    sendFlashcardsandQuiz.setVisibility(isSystemRoom ? View.GONE : View.VISIBLE);
+                    sendImg.setVisibility(isSystemRoom ? View.GONE : View.VISIBLE);
+                    moreBtn.setVisibility(isSystemRoom ? View.GONE : View.VISIBLE);
+                    sendButton.setVisibility(isSystemRoom ? View.GONE : View.VISIBLE);
+                    systemNoticeText.setVisibility(isSystemRoom ? View.VISIBLE : View.GONE);
+
+                    if (isSystemRoom) {
+                        db.collection("chat_rooms")
+                                .document(roomId)
+                                .collection("users")
+                                .document(currentUser.getUid())
+                                .get()
+                                .addOnSuccessListener(userDoc -> {
+                                    if (!userDoc.exists()) {
+                                        Toast.makeText(this, "Access Denied (System Room)", Toast.LENGTH_SHORT).show();
+                                        finish();
+                                    } else {
+                                        onSuccess.run();
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(this, "Failed to verify access", Toast.LENGTH_SHORT).show();
+                                    finish();
+                                });
+
+                    } else {
+                        Object membersObj = doc.get("members");
+                        if (membersObj instanceof List) {
+                            memberUids = (List<String>) membersObj;
+                            if (!memberUids.contains(currentUser.getUid())) {
+                                Toast.makeText(this, "Access Denied", Toast.LENGTH_SHORT).show();
+                                finish();
+                            } else {
+                                onSuccess.run();
+                            }
+                        } else {
+                            Toast.makeText(this, "Invalid members list", Toast.LENGTH_SHORT).show();
+                            finish();
+                        }
                     }
                 })
                 .addOnFailureListener(e -> {

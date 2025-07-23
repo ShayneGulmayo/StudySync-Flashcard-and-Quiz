@@ -137,7 +137,7 @@
             android:textSize="16sp" />
 
         <ImageButton
-            android:id="@+id/sendButton"
+            android:id="@+id/sendMessage"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginLeft="10dp"
@@ -145,6 +145,17 @@
             android:contentDescription="Send"
             android:src="@drawable/send_resized"
             app:tint="@color/primary" />
+
+        <TextView
+            android:id="@+id/systemNoticeText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="This is a system chatroom. You cannot send messages."
+            android:textColor="@android:color/darker_gray"
+            android:textStyle="bold|italic"
+            android:visibility="gone" />
+
     </LinearLayout>
 
 
