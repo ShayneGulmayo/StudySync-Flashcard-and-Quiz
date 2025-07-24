@@ -25,6 +25,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.labactivity.studysync.DownloadedSetsActivity;
 import com.labactivity.studysync.LoginActivity;
+import com.labactivity.studysync.NotificationsActivity;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.UserSettingsActivity;
 import com.yalantis.ucrop.UCrop;
@@ -35,7 +36,7 @@ import java.util.*;
 public class UserProfileFragment extends Fragment {
 
     private TextView userFullName, usernameTxt;
-    private MaterialButton settingsBtn, logoutBtn, downloadedSetBtn;
+    private MaterialButton settingsBtn, logoutBtn, downloadedSetBtn, notifBtn;
     private ImageView profileImage;
 
     private FirebaseAuth mAuth;
@@ -68,8 +69,12 @@ public class UserProfileFragment extends Fragment {
         settingsBtn = view.findViewById(R.id.settingsBtn);
         logoutBtn = view.findViewById(R.id.logoutBtn);
         downloadedSetBtn = view.findViewById(R.id.downloadedSetBtn);
+        notifBtn = view.findViewById(R.id.notifBtn);
 
         loadUserData();
+
+        notifBtn.setOnClickListener(view1 ->
+                startActivity(new Intent(getActivity(), NotificationsActivity.class)));
 
         profileImage.setOnClickListener(v -> openGallery());
 

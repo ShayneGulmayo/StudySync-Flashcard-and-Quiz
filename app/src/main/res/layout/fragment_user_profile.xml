@@ -92,12 +92,29 @@
             app:strokeColor="@color/primary"
             app:strokeWidth="2dp"
             tools:ignore="RtlCompat" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/notifBtn"
+            android:layout_width="300dp"
+            android:layout_height="60dp"
+            android:text="Notifications"
+            android:textAlignment="textStart"
+            android:textColor="@color/primary"
+            android:textSize="16sp"
+            app:backgroundTint="@color/white"
+            app:cornerRadius="15dp"
+            app:icon="@drawable/notifications_resized"
+            app:iconGravity="start"
+            app:iconPadding="20dp"
+            app:iconSize="24dp"
+            app:iconTint="@color/primary"
+            app:strokeColor="@color/primary"
+            app:strokeWidth="2dp"
+            tools:ignore="RtlCompat" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/downloadedSetBtn"
             android:layout_width="300dp"
             android:layout_height="60dp"
-            android:layout_marginTop="10dp"
             android:text="Downloaded Sets"
             android:textAlignment="textStart"
             android:textColor="@color/primary"
@@ -117,7 +134,6 @@
             android:id="@+id/logoutBtn"
             android:layout_width="300dp"
             android:layout_height="60dp"
-            android:layout_marginTop="10dp"
             android:text="Log Out"
             android:textAlignment="textStart"
             android:textColor="@color/warning"
