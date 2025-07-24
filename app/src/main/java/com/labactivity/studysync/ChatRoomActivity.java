@@ -394,7 +394,6 @@
             int distance = levenshteinDistance(correct, userAnswer);
             int maxLen = Math.max(correct.length(), userAnswer.length());
 
-            // Consider it close enough if similarity is 80% or higher
             double similarity = (1.0 - (double) distance / maxLen);
             return similarity >= 0.8;
         }
