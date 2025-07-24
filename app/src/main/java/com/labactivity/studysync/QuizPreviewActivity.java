@@ -105,7 +105,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
     private ImageView ownerProfileImage, backButton, moreButton, saveQuizBtn;
     private boolean isSaved = false;
     private FirebaseFirestore db;
-    private String quizId, photoUrl, currentReminder, accessLevel = "owner", title;
+    private String quizId, photoUrl, currentReminder, accessLevel = "owner", title, ownerUid;
     private ViewPager2 carouselViewPager;
     private SpringDotsIndicator dotsIndicator;
     private List<Quiz.Question> quizQuestions = new ArrayList<>();
@@ -397,7 +397,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
                     loadOwnerProfile(doc.getString("owner_uid"));
 
-                    String ownerUid = doc.getString("owner_uid");
+                    ownerUid = doc.getString("owner_uid");
                     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
                     if (currentUser != null && ownerUid != null) {
@@ -490,7 +490,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     ownerUsernameTxt.setText("Unknown user");
                 });
     }
-
 
     private void showMoreBottomSheet() {
         if (isFinishing() || isDestroyed()) return;
@@ -605,16 +604,91 @@ public class QuizPreviewActivity extends AppCompatActivity {
         });
 
         reqEditBtn.setOnClickListener(v -> {
-            Toast.makeText(this, "Request Edit clicked", Toast.LENGTH_SHORT).show();
+            sendAccessRequest("Editor");
             bottomSheetDialog.dismiss();
         });
 
         reqAccessBtn.setOnClickListener(v -> {
-            Toast.makeText(this, "Request Access clicked", Toast.LENGTH_SHORT).show();
+            sendAccessRequest("Viewer");
             bottomSheetDialog.dismiss();
         });
 
         bottomSheetDialog.show();
+    }
+
+    private void sendAccessRequest(String requestedRole) {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null || quizId == null || ownerUid == null) return;
+
+        String senderUid = currentUser.getUid();
+
+        db.collection("users").document(senderUid)
+                .get()
+                .addOnSuccessListener(userDoc -> {
+                    String firstName = userDoc.getString("firstName");
+                    String lastName = userDoc.getString("lastName");
+                    String senderPhoto = userDoc.getString("photoUrl") != null ? userDoc.getString("photoUrl") : "";
+
+                    String senderName = "";
+                    if (firstName != null) senderName += firstName;
+                    if (lastName != null) senderName += (senderName.isEmpty() ? "" : " ") + lastName;
+                    if (senderName.isEmpty()) senderName = "Unknown User";
+
+                    String finalSenderName = senderName;
+
+                    db.collection("quiz").document(quizId)
+                            .get()
+                            .addOnSuccessListener(setDoc -> {
+                                if (!setDoc.exists()) {
+                                    Toast.makeText(this, "Quiz set not found.", Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+
+                                String setTitle = setDoc.getString("title");
+                                if (setTitle == null || setTitle.isEmpty()) setTitle = "Untitled";
+
+                                String messageText = finalSenderName + " has requested " + requestedRole.toLowerCase() +
+                                        " access to your set \"" + setTitle + "\".";
+
+                                Map<String, Object> requestNotification = new HashMap<>();
+                                requestNotification.put("senderId", senderUid);
+                                requestNotification.put("senderName", finalSenderName);
+                                requestNotification.put("senderPhotoUrl", senderPhoto);
+                                requestNotification.put("setId", quizId);
+                                requestNotification.put("setType", "flashcard");
+                                requestNotification.put("requestedRole", requestedRole);
+                                requestNotification.put("text", messageText);
+                                requestNotification.put("type", "request");
+                                requestNotification.put("status", "pending");
+                                requestNotification.put("timestamp", FieldValue.serverTimestamp());
+
+                                DocumentReference notifRef = db.collection("users")
+                                        .document(ownerUid)
+                                        .collection("notifications")
+                                        .document(); // auto-ID
+
+                                requestNotification.put("notificationId", notifRef.getId());
+
+                                notifRef.set(requestNotification)
+                                        .addOnSuccessListener(unused -> {
+                                            Toast.makeText(this, "Access request sent!", Toast.LENGTH_SHORT).show();
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Toast.makeText(this, "Failed to send request.", Toast.LENGTH_SHORT).show();
+                                            Log.e("AccessRequest", "Firestore error", e);
+                                        });
+
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to fetch quiz set.", Toast.LENGTH_SHORT).show();
+                                Log.e("AccessRequest", "Set fetch error", e);
+                            });
+
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to fetch user info.", Toast.LENGTH_SHORT).show();
+                    Log.e("AccessRequest", "User fetch error", e);
+                });
     }
 
     private void copyQuiz(String originalQuizId) {

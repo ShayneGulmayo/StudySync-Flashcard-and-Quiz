@@ -22,6 +22,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.labactivity.studysync.BrowseActivity;
 import com.labactivity.studysync.MainActivity;
+import com.labactivity.studysync.NotificationsActivity;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.adapters.SetAdapter;
 import com.labactivity.studysync.models.Flashcard;
@@ -33,7 +34,7 @@ import java.util.Map;
 public class HomeFragment extends Fragment {
 
     private TextView userGreetingTxt;
-    private ImageView profileImage;
+    private ImageView profileImage, notifBtn;
     private View flashcardsCard, quizzesCard, chatRoomsCard, browseCard;
 
     private EditText searchView;
@@ -62,6 +63,7 @@ public class HomeFragment extends Fragment {
         browseCard = view.findViewById(R.id.browseCard);
         continueRecyclerView = view.findViewById(R.id.continueRecyclerView);
         searchView = view.findViewById(R.id.searchView);
+        notifBtn = view.findViewById(R.id.notifBtn);
 
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
@@ -74,6 +76,9 @@ public class HomeFragment extends Fragment {
         searchView.setOnClickListener(v -> {
             startActivity(new Intent(requireContext(), BrowseActivity.class));
         });
+        notifBtn.setOnClickListener(v ->{
+            startActivity(new Intent(requireContext(), NotificationsActivity.class));
+        } );
     }
 
     private void setupGreeting() {

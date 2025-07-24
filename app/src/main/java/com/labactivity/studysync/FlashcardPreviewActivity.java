@@ -531,7 +531,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             showDeleteConfirmationDialog();
         });
 
-        // View access request
         reqViewBtn.setOnClickListener(v -> {
             if (!canNavigate()) return;
             sendAccessRequest("Viewer");
@@ -564,8 +563,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     if (lastName != null) senderName += (senderName.isEmpty() ? "" : " ") + lastName;
                     if (senderName.isEmpty()) senderName = "Unknown User";
 
-                    // Get flashcard title (ONLY for flashcards as requested)
                     String finalSenderName = senderName;
+
                     db.collection("flashcards").document(setId)
                             .get()
                             .addOnSuccessListener(setDoc -> {
@@ -580,25 +579,27 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                 String messageText = finalSenderName + " has requested " + requestedRole.toLowerCase() +
                                         " access to your set \"" + setTitle + "\".";
 
-                                Map<String, Object> requestMessage = new HashMap<>();
-                                requestMessage.put("senderId", senderUid);
-                                requestMessage.put("senderName", finalSenderName);
-                                requestMessage.put("senderPhotoUrl", senderPhoto);
-                                requestMessage.put("setId", setId);
-                                requestMessage.put("setType", "flashcard");
-                                requestMessage.put("requestedRole", requestedRole);
-                                requestMessage.put("text", messageText);
-                                requestMessage.put("type", "request");
-                                requestMessage.put("status", "pending");
-                                requestMessage.put("timestamp", FieldValue.serverTimestamp());
+                                Map<String, Object> requestNotification = new HashMap<>();
+                                requestNotification.put("senderId", senderUid);
+                                requestNotification.put("senderName", finalSenderName);
+                                requestNotification.put("senderPhotoUrl", senderPhoto);
+                                requestNotification.put("setId", setId);
+                                requestNotification.put("setType", "flashcard");
+                                requestNotification.put("requestedRole", requestedRole);
+                                requestNotification.put("text", messageText);
+                                requestNotification.put("type", "request");
+                                requestNotification.put("status", "pending");
+                                requestNotification.put("timestamp", FieldValue.serverTimestamp());
 
-                                db.collection("chat_rooms")
-                                        .document("studysync_announcements")
-                                        .collection("users")
+                                DocumentReference notifRef = db.collection("users")
                                         .document(ownerUid)
-                                        .collection("messages")
-                                        .add(requestMessage)
-                                        .addOnSuccessListener(docRef -> {
+                                        .collection("notifications")
+                                        .document(); // auto-ID
+
+                                requestNotification.put("notificationId", notifRef.getId());
+
+                                notifRef.set(requestNotification)
+                                        .addOnSuccessListener(unused -> {
                                             Toast.makeText(this, "Access request sent!", Toast.LENGTH_SHORT).show();
                                             if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) {
                                                 bottomSheetDialog.dismiss();
@@ -621,6 +622,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     Log.e("AccessRequest", "User fetch error", e);
                 });
     }
+
 
 
     private void showDownloadOptionsDialog() {

@@ -325,7 +325,6 @@ public class PrivacyActivity extends AppCompatActivity {
     private void sendAccessNotification(String toUserId, String action, String role) {
         if (toUserId.equals(currentUserId)) return;
 
-        // Fetch full name from Firestore
         db.collection("users")
                 .document(currentUserId)
                 .get()
@@ -341,46 +340,45 @@ public class PrivacyActivity extends AppCompatActivity {
                     String setTitle = titleTxt.getText().toString();
                     String messageText = "";
 
-                    if (action.equals("added")) {
-                        messageText = fullName + " added you as " + role.toLowerCase() + " to the set \"" + setTitle + "\".";
-                    } else if (action.equals("removed")) {
-                        messageText = fullName + " removed your access to the set \"" + setTitle + "\".";
-                    } else if (action.equals("role_changed")) {
-                        messageText = fullName + " changed your role to " + role.toLowerCase() + " in the set \"" + setTitle + "\".";
+                    switch (action) {
+                        case "added":
+                            messageText = fullName + " added you as " + role.toLowerCase() + " to the set \"" + setTitle + "\".";
+                            break;
+                        case "removed":
+                            messageText = fullName + " removed your access to the set \"" + setTitle + "\".";
+                            break;
+                        case "role_changed":
+                            messageText = fullName + " changed your role to " + role.toLowerCase() + " in the set \"" + setTitle + "\".";
+                            break;
                     }
-
 
                     Map<String, Object> notificationData = new HashMap<>();
                     notificationData.put("senderId", currentUserId);
                     notificationData.put("receiverId", toUserId);
                     notificationData.put("text", messageText);
                     notificationData.put("timestamp", FieldValue.serverTimestamp());
-                    notificationData.put("type", "announcements");
+                    notificationData.put("type", "access");
                     notificationData.put("setId", setId);
-                    notificationData.put("action", action);
                     notificationData.put("setType", setType);
+                    notificationData.put("action", action);
 
-                    // Save to Firestore path: chat_rooms/studysync_announcements/users/{uid}/messages/{messageId}
-                    DocumentReference messageDoc = db.collection("chat_rooms")
-                            .document("studysync_announcements")
-                            .collection("users")
+                    DocumentReference notifDoc = db.collection("users")
                             .document(toUserId)
-                            .collection("messages")
+                            .collection("notifications")
                             .document(); // Auto-ID
 
-                    notificationData.put("messageId", messageDoc.getId());
+                    notificationData.put("notificationId", notifDoc.getId());
 
-                    messageDoc.set(notificationData)
+                    notifDoc.set(notificationData)
                             .addOnSuccessListener(unused ->
                                     Toast.makeText(this, "Access notification sent", Toast.LENGTH_SHORT).show()
                             )
                             .addOnFailureListener(e ->
-                                    Toast.makeText(this, "Failed to send: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                             );
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Failed to fetch user info: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
     }
-
 }
