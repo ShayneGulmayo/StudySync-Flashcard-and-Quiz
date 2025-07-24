@@ -9,16 +9,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.*;
 import com.labactivity.studysync.FlashcardPreviewActivity;
 import com.labactivity.studysync.QuizPreviewActivity;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.models.NotificationModel;
-import com.google.firebase.firestore.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -67,20 +67,26 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         holder.denyBtn.setOnClickListener(v -> showConfirmationDialog(model, false));
 
         holder.itemView.setOnClickListener(v -> {
+            Intent intent;
             if ("quiz".equals(model.getSetType())) {
-                Intent intent = new Intent(context, QuizPreviewActivity.class);
+                intent = new Intent(context, QuizPreviewActivity.class);
                 intent.putExtra("quizId", model.getSetId());
-                context.startActivity(intent);
             } else {
-                Intent intent = new Intent(context, FlashcardPreviewActivity.class);
+                intent = new Intent(context, FlashcardPreviewActivity.class);
                 intent.putExtra("setId", model.getSetId());
-                context.startActivity(intent);
             }
+            context.startActivity(intent);
 
-            // mark as read
-            db.collection("users").document(currentUserId)
-                    .collection("notifications").document(model.getNotificationId())
-                    .update("status", model.getStatus() == null ? "read" : model.getStatus());
+            // mark as read if not handled
+            if ("pending".equals(model.getStatus())) {
+                db.collection("users").document(currentUserId)
+                        .collection("notifications").document(model.getNotificationId())
+                        .update("status", "read")
+                        .addOnSuccessListener(unused -> {
+                            model.setStatus("read");
+                            notifyItemChanged(position);
+                        });
+            }
         });
     }
 
@@ -88,52 +94,50 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         new AlertDialog.Builder(context)
                 .setTitle(isAccept ? "Allow access?" : "Deny request?")
                 .setMessage("Are you sure you want to " + (isAccept ? "allow" : "deny") + " this request?")
-                .setPositiveButton("Yes", (dialog, which) -> handleAccessRequest(model, isAccept))
+                .setPositiveButton("Yes", (dialog, which) -> handleAccess(model, isAccept))
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void handleAccessRequest(NotificationModel model, boolean isAccept) {
-        DocumentReference notifRef = db.collection("users").document(currentUserId)
-                .collection("notifications").document(model.getNotificationId());
+    private void handleAccess(NotificationModel notif, boolean isAccept) {
+        String newStatus = isAccept ? "accepted" : "denied";
 
-        String collection = "quiz".equals(model.getSetType()) ? "quiz" : "flashcards";
+        DocumentReference notifRef = db.collection("users")
+                .document(currentUserId)
+                .collection("notifications").document(notif.getNotificationId());
 
-        if (isAccept) {
-            DocumentReference setRef = db.collection(collection).document(model.getSetId());
-            setRef.update("accessUsers." + model.getSenderId(), model.getRequestedRole())
-                    .addOnSuccessListener(unused -> {
-                        notifRef.update("status", "accepted");
-                        Toast.makeText(context, "User granted access", Toast.LENGTH_SHORT).show();
-                        notifyItemChanged(notifications.indexOf(model));
-                    });
-        } else {
-            notifRef.update("status", "denied")
-                    .addOnSuccessListener(unused -> {
-                        Toast.makeText(context, "Request denied", Toast.LENGTH_SHORT).show();
-                        notifyItemChanged(notifications.indexOf(model));
-                    });
-        }
+        notifRef.update("status", newStatus)
+                .addOnSuccessListener(unused -> {
+                    // Update local model
+                    notif.setStatus(newStatus);
+                    notifyDataSetChanged();
 
-        // Notify sender (denied/accepted)
-        Map<String, Object> reply = new HashMap<>();
-        reply.put("senderId", currentUserId);
-        reply.put("receiverId", model.getSenderId());
-        reply.put("setId", model.getSetId());
-        reply.put("setType", model.getSetType());
-        reply.put("text", "Your request to access \"" + model.getSetId() + "\" has been " + (isAccept ? "accepted" : "denied") + ".");
-        reply.put("type", "request_response");
-        reply.put("timestamp", FieldValue.serverTimestamp());
-        reply.put("status", isAccept ? "accepted" : "denied");
+                    // If accepted, update accessUsers in the corresponding set
+                    if (isAccept) {
+                        String collection = "quiz".equals(notif.getSetType()) ? "quiz" : "flashcards";
+                        db.collection(collection).document(notif.getSetId())
+                                .update("accessUsers." + notif.getSenderId(), notif.getRequestedRole());
+                    }
 
-        DocumentReference responseDoc = db.collection("users")
-                .document(model.getSenderId())
-                .collection("notifications")
-                .document();
+                    // Get set title for reply message
+                    String collection = "quiz".equals(notif.getSetType()) ? "quiz" : "flashcards";
+                    db.collection(collection).document(notif.getSetId())
+                            .get()
+                            .addOnSuccessListener(setSnap -> {
+                                String title = setSnap.getString("title");
+                                if (title == null) title = notif.getSetId(); // fallback
 
-        reply.put("notificationId", responseDoc.getId());
+                                Map<String, Object> reply = new HashMap<>();
+                                reply.put("text", "Your request to access \"" + title + "\" has been " + newStatus + ".");
+                                reply.put("timestamp", FieldValue.serverTimestamp());
+                                reply.put("type", "info");
 
-        responseDoc.set(reply);
+                                db.collection("users")
+                                        .document(notif.getSenderId())
+                                        .collection("notifications")
+                                        .add(reply);
+                            });
+                });
     }
 
     @Override
