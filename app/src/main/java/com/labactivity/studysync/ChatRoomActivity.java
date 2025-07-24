@@ -29,6 +29,7 @@
 
     import com.bumptech.glide.Glide;
     import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+    import com.google.firebase.Timestamp;
     import com.google.firebase.auth.FirebaseAuth;
     import com.google.firebase.auth.FirebaseUser;
     import com.google.firebase.firestore.CollectionReference;
@@ -48,6 +49,7 @@
     import java.util.HashMap;
     import java.util.List;
     import java.util.Map;
+    import java.util.Random;
     import java.util.concurrent.atomic.AtomicInteger;
 
     public class ChatRoomActivity extends AppCompatActivity {
@@ -190,16 +192,20 @@
         }
 
         private void runQuizPopup(String title, List<Map<String, Object>> questions, int durationSeconds, String roomId, String quizId) {
-            Map<String, String> leaderboard = new HashMap<>();
+            Map<String, Integer> scores = new HashMap<>();
+            Map<String, String> names = new HashMap<>();
             AtomicInteger currentIndex = new AtomicInteger(0);
+            Handler handler = new Handler();
+            final boolean[] quizStopped = {false};
+
 
             Runnable[] nextQuestion = new Runnable[1];
 
             nextQuestion[0] = new Runnable() {
                 @Override
                 public void run() {
-                    if (currentIndex.get() >= questions.size()) {
-                        saveLeaderboard(roomId, quizId, leaderboard);
+                    if (quizStopped[0] || currentIndex.get() >= questions.size()) {
+                        saveLeaderboard(roomId, quizId, scores, names);
                         return;
                     }
 
@@ -214,12 +220,19 @@
                         quizProgressBar.setProgress(100);
                     });
 
-                    final ListenerRegistration[] answerListener = new ListenerRegistration[1];
+                    FirebaseFirestore db = FirebaseFirestore.getInstance();
+                    CollectionReference messageRef = db.collection("chat_rooms").document(roomId).collection("messages");
 
-                    answerListener[0] = FirebaseFirestore.getInstance()
-                            .collection("chat_rooms")
-                            .document(roomId)
-                            .collection("messages")
+                    ListenerRegistration[] answerListener = new ListenerRegistration[1];
+                    Timestamp quizStartTime = Timestamp.now();
+                    CountDownTimer[] timer = new CountDownTimer[1];
+
+                    final boolean[] answered = {false};
+                    final String[] firstCorrectUserId = {null};
+                    final String[] firstCorrectUserName = {null};
+
+                    answerListener[0] = messageRef
+                            .whereGreaterThan("timestamp", quizStartTime)
                             .orderBy("timestamp", Query.Direction.ASCENDING)
                             .addSnapshotListener((snapshots, e) -> {
                                 if (snapshots == null || snapshots.isEmpty()) return;
@@ -228,21 +241,63 @@
                                     if (change.getType() == DocumentChange.Type.ADDED) {
                                         DocumentSnapshot doc = change.getDocument();
                                         String text = doc.getString("text");
-                                        if (text != null && isAnswerCloseEnough(correctAnswer, text.trim())) {
-                                            String senderId = doc.getString("senderId");
-                                            String senderName = doc.getString("senderName");
-                                            leaderboard.put(senderId, senderName);
+                                        if (text == null) continue;
+
+                                        String senderId = doc.getString("senderId");
+                                        String senderName = doc.getString("senderName");
+
+                                        if (text.trim().equalsIgnoreCase("/stop")) {
                                             if (answerListener[0] != null) answerListener[0].remove();
-                                            if (dialog != null && dialog.isShowing()) dialog.dismiss();
+                                            if (timer[0] != null) timer[0].cancel();
+                                            quizStopped[0] = true;
+                                            runOnUiThread(() -> {
+                                                Toast.makeText(getApplicationContext(), "Live Quiz stopped.", Toast.LENGTH_LONG).show();
+                                                quizContainer.setVisibility(View.GONE);
+                                            });
+                                            return;
+                                        }
+
+                                        if (!answered[0] && isAnswerCloseEnough(correctAnswer, text)) {
+                                            answered[0] = true;
+                                            firstCorrectUserId[0] = senderId;
+                                            firstCorrectUserName[0] = senderName;
+
+                                            scores.put(senderId, scores.getOrDefault(senderId, 0) + 1);
+                                            names.put(senderId, senderName);
+
+                                            if (answerListener[0] != null) answerListener[0].remove();
+                                            if (timer[0] != null) timer[0].cancel();
+
+                                            String[] messages = {
+                                                    "%s crushed it! 💥 The answer to \"%s\" was \"%s\".",
+                                                    "🔥 %s got it right first! \"%s\" was the correct answer to \"%s\".",
+                                                    "%s just scored! 🎯 The correct answer to \"%s\" was \"%s\".",
+                                                    "🏆 %s was the fastest! \"%s\" is the right answer to \"%s\".",
+                                                    "%s earned a point! The answer to \"%s\" was \"%s\"."
+                                            };
+                                            String msg = String.format(messages[new Random().nextInt(messages.length)], senderName, correctAnswer, questionText);
+
+                                            Map<String, Object> messageData = new HashMap<>();
+                                            messageData.put("senderId", "Live Quiz Manager");
+                                            messageData.put("senderName", "Live Quiz Manager");
+                                            messageData.put("senderPhotoUrl", "https://firebasestorage.googleapis.com/v0/b/studysync-cf3ef.firebasestorage.app/o/studysync_logo.png?alt=media&token=ddfbb29d-2682-457e-a700-ebba6b6b79d0");
+                                            messageData.put("text", msg);
+                                            messageData.put("timestamp", Timestamp.now());
+                                            messageData.put("type", "text");
+
+                                            messageRef.add(messageData);
+                                            runOnUiThread(() -> quizContainer.setVisibility(View.GONE));
+
+
                                             currentIndex.incrementAndGet();
-                                            new Handler().postDelayed(nextQuestion[0], 1000);
+                                            handler.postDelayed(nextQuestion[0], 2500);
                                             return;
                                         }
                                     }
                                 }
                             });
 
-                    CountDownTimer timer = new CountDownTimer(durationSeconds * 1000L, 1000) {
+                    timer[0] = new CountDownTimer(durationSeconds * 1000L, 100) {
                         @Override
                         public void onTick(long millisUntilFinished) {
                             int progress = (int) (millisUntilFinished * 100 / (durationSeconds * 1000L));
@@ -251,13 +306,29 @@
 
                         @Override
                         public void onFinish() {
+                            if (!answered[0]) {
+                                String noOneMsg = String.format("⏰ Time's up! No one got it. The correct answer to \"%s\" was \"%s\".", questionText, correctAnswer);
+
+                                Map<String, Object> messageData = new HashMap<>();
+                                messageData.put("senderId", "Live Quiz Manager");
+                                messageData.put("senderName", "Live Quiz Manager");
+                                messageData.put("senderPhotoUrl", "https://firebasestorage.googleapis.com/v0/b/studysync-cf3ef.firebasestorage.app/o/studysync_logo.png?alt=media&token=ddfbb29d-2682-457e-a700-ebba6b6b79d0");
+                                messageData.put("text", noOneMsg);
+                                messageData.put("timestamp", Timestamp.now());
+                                messageData.put("type", "text");
+
+                                messageRef.add(messageData);
+                            }
+
                             if (answerListener[0] != null) answerListener[0].remove();
                             runOnUiThread(() -> quizContainer.setVisibility(View.GONE));
+
                             currentIndex.incrementAndGet();
-                            new Handler().postDelayed(nextQuestion[0], 1000);
+                            handler.postDelayed(nextQuestion[0], 2500);
                         }
                     };
-                    timer.start();
+
+                    timer[0].start();
                 }
             };
 
@@ -265,7 +336,8 @@
         }
 
 
-        private void saveLeaderboard(String roomId, String quizId, Map<String, String> leaderboard) {
+
+        private void saveLeaderboard(String roomId, String quizId, Map<String, Integer> scores, Map<String, String> names) {
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             CollectionReference leaderboardRef = db.collection("chat_rooms")
                     .document(roomId)
@@ -273,25 +345,39 @@
                     .document(quizId)
                     .collection("leaderboards");
 
-            List<Map.Entry<String, String>> entries = new ArrayList<>(leaderboard.entrySet());
+            CollectionReference messageRef = db.collection("chat_rooms")
+                    .document(roomId)
+                    .collection("messages");
 
-            for (Map.Entry<String, String> entry : entries) {
+            List<Map.Entry<String, Integer>> sortedScores = new ArrayList<>(scores.entrySet());
+            sortedScores.sort((a, b) -> Integer.compare(b.getValue(), a.getValue())); // Descending
+
+            StringBuilder sb = new StringBuilder("🏆 **Final Leaderboard** 🏆\n\n");
+            for (int i = 0; i < sortedScores.size(); i++) {
+                Map.Entry<String, Integer> entry = sortedScores.get(i);
+                String userId = entry.getKey();
+                int score = entry.getValue();
+
                 Map<String, Object> data = new HashMap<>();
-                data.put("userId", entry.getKey());
-                data.put("name", entry.getValue());
-                data.put("score", 1); // Static score of 1 per correct
+                data.put("userId", userId);
+                data.put("name", names.get(userId));
+                data.put("score", score);
 
-                leaderboardRef.document(entry.getKey()).set(data);
+                leaderboardRef.document(userId).set(data);
+                sb.append((i + 1)).append(". ").append(names.get(userId)).append(" - ").append(score).append(" point(s)\n");
             }
 
+            Map<String, Object> messageData = new HashMap<>();
+            messageData.put("senderId", "Live Quiz Manager");
+            messageData.put("senderName", "Live Quiz Manager");
+            messageData.put("senderPhotoUrl", "https://firebasestorage.googleapis.com/v0/b/studysync-cf3ef.appspot.com/o/studysync_logo.png?alt=media&token=ddfbb29d-2682-457e-a700-ebba6b6b79d0");
+            messageData.put("text", sb.toString());
+            messageData.put("timestamp", Timestamp.now());
+            messageData.put("type", "text");
+
+            messageRef.add(messageData);
+
             runOnUiThread(() -> {
-                StringBuilder sb = new StringBuilder("🏆 Top Participants 🏆\n\n");
-
-                for (int i = 0; i < Math.min(3, entries.size()); i++) {
-                    Map.Entry<String, String> entry = entries.get(i);
-                    sb.append((i + 1)).append(". ").append(entry.getValue()).append("\n");
-                }
-
                 new AlertDialog.Builder(this)
                         .setTitle("Live Quiz Finished!")
                         .setMessage(sb.toString())
@@ -299,6 +385,8 @@
                         .show();
             });
         }
+
+
 
         private boolean isAnswerCloseEnough(String correct, String userAnswer) {
             correct = correct.toLowerCase().trim();

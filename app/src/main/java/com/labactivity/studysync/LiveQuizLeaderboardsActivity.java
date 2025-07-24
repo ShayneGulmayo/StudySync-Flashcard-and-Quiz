@@ -22,7 +22,6 @@ public class LiveQuizLeaderboardsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_live_quiz_leaderboards);
         roomId = getIntent().getStringExtra("roomId");
         backBtn = findViewById(R.id.backButton);
-
-
+        backBtn.setOnClickListener(view -> finish());
     }
 }
