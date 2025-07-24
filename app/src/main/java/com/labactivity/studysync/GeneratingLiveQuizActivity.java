@@ -207,9 +207,9 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                 .collection("live_quiz")
                 .add(data)
                 .addOnSuccessListener(ref -> {
-                    Intent intent = new Intent(this, ChatRoomActivity.class);
+                    Intent intent = new Intent(this, LiveQuizViewActivity.class);
                     intent.putExtra("roomId", roomId);
-                    intent.putExtra("startLiveQuizId", ref.getId());
+                    intent.putExtra("quizId", ref.getId());
                     startActivity(intent);
                     finish();
                 })

@@ -43,6 +43,7 @@
     import com.labactivity.studysync.adapters.ChatMessageAdapter;
     import com.labactivity.studysync.models.ChatMessage;
 
+    import java.util.ArrayList;
     import java.util.Date;
     import java.util.HashMap;
     import java.util.List;
@@ -272,17 +273,33 @@
                     .document(quizId)
                     .collection("leaderboards");
 
-            for (Map.Entry<String, String> entry : leaderboard.entrySet()) {
+            List<Map.Entry<String, String>> entries = new ArrayList<>(leaderboard.entrySet());
+
+            for (Map.Entry<String, String> entry : entries) {
                 Map<String, Object> data = new HashMap<>();
                 data.put("userId", entry.getKey());
                 data.put("name", entry.getValue());
-                data.put("score", 1);
+                data.put("score", 1); // Static score of 1 per correct
 
                 leaderboardRef.document(entry.getKey()).set(data);
             }
 
-            Toast.makeText(this, "Live quiz ended!", Toast.LENGTH_SHORT).show();
+            runOnUiThread(() -> {
+                StringBuilder sb = new StringBuilder("🏆 Top Participants 🏆\n\n");
+
+                for (int i = 0; i < Math.min(3, entries.size()); i++) {
+                    Map.Entry<String, String> entry = entries.get(i);
+                    sb.append((i + 1)).append(". ").append(entry.getValue()).append("\n");
+                }
+
+                new AlertDialog.Builder(this)
+                        .setTitle("Live Quiz Finished!")
+                        .setMessage(sb.toString())
+                        .setPositiveButton("OK", null)
+                        .show();
+            });
         }
+
         private boolean isAnswerCloseEnough(String correct, String userAnswer) {
             correct = correct.toLowerCase().trim();
             userAnswer = userAnswer.toLowerCase().trim();
@@ -612,7 +629,7 @@
             popup.setOnMenuItemClickListener(item -> {
                 int id = item.getItemId();
                 if (id == R.id.menu_live_quiz) {
-                    Intent intent = new Intent(ChatRoomActivity.this, SelectSetLiveQuizActivity.class);
+                    Intent intent = new Intent(ChatRoomActivity.this, LiveQuizActivity.class);
                     intent.putExtra("roomId", roomId);
                     startActivity(intent);
                     return true;

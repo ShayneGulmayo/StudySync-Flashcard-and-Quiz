@@ -21,6 +21,21 @@
         android:theme="@style/Theme.StudySync"
         tools:targetApi="31">
         <activity
+            android:name=".LiveQuizViewActivity"
+            android:exported="false" />
+        <activity
+            android:name=".LiveQuizLeaderboardsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".LiveQuizzesActivity"
+            android:exported="false" />
+        <activity
+            android:name=".InputLiveQuizActivity"
+            android:exported="false" />
+        <activity
+            android:name=".LiveQuizActivity"
+            android:exported="false" />
+        <activity
             android:name=".GeneratingLiveQuizActivity"
             android:exported="false" />
         <activity
