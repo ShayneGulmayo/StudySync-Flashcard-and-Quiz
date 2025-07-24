@@ -114,6 +114,7 @@
     <string name="info_page_3">3. Answer colors matter:\n🟥 Red = Incorrect\n🟩 Green = Correct</string>
     <string name="info_page_4">4. Enumeration is scored strictly to help reinforce memorization of item lists.\nPartial credit is given only when applicable.</string>
     <string name="info_page_5">5. This is a one-way quiz — you can\'t go back to previous questions once answered.\nYou may restart the quiz anytime, just note that your progress will reset.</string>
+    <string name="select_time_prompt">Select seconds per question</string>
 
 </resources>
 

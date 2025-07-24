@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="time_per_question_options">
+        <item>10s</item>
+        <item>20s</item>
+        <item>30s</item> <!-- Default -->
+        <item>1 minute</item>
+    </string-array>
+</resources>

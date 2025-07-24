@@ -441,9 +441,9 @@ public class ChatRoomActivity extends AppCompatActivity {
         popup.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == R.id.menu_live_quiz) {
-                return true;
-            } else if (id == R.id.menu_reminder) {
-
+                Intent intent = new Intent(ChatRoomActivity.this, SelectSetLiveQuizActivity.class);
+                intent.putExtra("roomId", roomId);
+                startActivity(intent);
                 return true;
             } else if (id == R.id.menu_settings) {
                 openEditChatRoom();

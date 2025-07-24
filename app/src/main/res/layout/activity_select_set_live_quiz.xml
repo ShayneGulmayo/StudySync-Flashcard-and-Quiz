@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".SelectSetLiveQuizActivity"
+    android:background="@color/white">
+
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/navigationView"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:layout_alignParentTop="true"
+        android:background="@color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/back_button"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="left|center_vertical"
+            android:layout_margin="20dp"
+            android:contentDescription="Back"
+            android:src="@drawable/arrow_back" />
+
+        <TextView
+            android:id="@+id/txtView_email"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Select Set for Live Quiz"
+            android:textColor="@color/black"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </com.google.android.material.navigation.NavigationView>
+
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/navigationView"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Seconds per Question"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:layout_marginBottom="10dp"/>
+        <Spinner
+            android:id="@+id/spinnerTimePerQuestion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:entries="@array/time_per_question_options"
+            android:prompt="@string/select_time_prompt"
+            android:layout_marginBottom="20dp"/>
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/search_set"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="@drawable/green_stroke_bg"
+            android:clickable="true"
+            app:defaultQueryHint="Search Shared Set"
+            app:iconifiedByDefault="false"
+            app:searchIcon="@drawable/search_resized" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="If set does not appear, make sure to share it in the chat room first!"
+            android:maxLines="2"
+            android:textColor="@color/text_gray"
+            android:textAlignment="center"
+            android:padding="10dp"
+            android:textSize="10sp"/>
+
+    </LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/linearLayout"/>
+
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
