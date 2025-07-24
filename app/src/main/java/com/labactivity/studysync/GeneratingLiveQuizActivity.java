@@ -30,13 +30,14 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 public class GeneratingLiveQuizActivity extends AppCompatActivity {
-    private static final String TAG = "GeneratingLiveQuizActivity";
+    private static final String TAG = "GeneratingLiveQuiz";
     private final Executor executor = Executors.newSingleThreadExecutor();
 
     private FirebaseFirestore db;
     private FirebaseUser user;
     private String roomId;
     private String durationPerQuestion;
+    private int duration = 30;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -51,14 +52,24 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
         }
 
         roomId = getIntent().getStringExtra("roomId");
-        durationPerQuestion = getIntent().getStringExtra("duration");
+        durationPerQuestion = getIntent().getStringExtra("secondsPerQuestion");
+        String durationPerQuestion = getIntent().getStringExtra("secondsPerQuestion");
+
+        if (durationPerQuestion != null) {
+            try {
+                duration = Integer.parseInt(durationPerQuestion);
+            } catch (NumberFormatException e) {
+                Log.e("GeneratingLiveQuiz", "Invalid duration format: " + durationPerQuestion, e);
+            }
+        }
+
 
         if (getIntent().hasExtra("prompt")) {
             String prompt = getIntent().getStringExtra("prompt");
             runGeminiTextPrompt(prompt);
-        } else if (getIntent().hasExtra("setId") && getIntent().hasExtra("setType")) {
+        } else if (getIntent().hasExtra("setId") && getIntent().hasExtra("type")) {
             String setId = getIntent().getStringExtra("setId");
-            String setType = getIntent().getStringExtra("setType");
+            String setType = getIntent().getStringExtra("type");
             loadSetData(setId, setType);
         } else {
             showError("Missing input data.");
@@ -66,7 +77,9 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
     }
 
     private void loadSetData(String setId, String setType) {
-        db.collection(setType.equals("quiz") ? "quiz" : "flashcards")
+        String collection = setType.equals("flashcard") ? "flashcards" : "quiz";
+
+        db.collection(collection)
                 .document(setId)
                 .get()
                 .addOnSuccessListener(doc -> {
@@ -80,20 +93,24 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
 
                     if (setType.equals("quiz")) {
                         List<Map<String, Object>> questions = (List<Map<String, Object>>) doc.get("questions");
-                        for (Map<String, Object> q : questions) {
-                            input.append("Q: ").append(q.get("question")).append("\n");
-                            Object correct = q.get("correctAnswer");
-                            if (correct instanceof List) {
-                                input.append("A: ").append(((List<?>) correct).get(0)).append("\n");
-                            } else {
-                                input.append("A: ").append(correct).append("\n");
+                        if (questions != null) {
+                            for (Map<String, Object> q : questions) {
+                                input.append("Q: ").append(q.get("question")).append("\n");
+                                Object correct = q.get("correctAnswer");
+                                if (correct instanceof List) {
+                                    input.append("A: ").append(((List<?>) correct).get(0)).append("\n");
+                                } else {
+                                    input.append("A: ").append(correct).append("\n");
+                                }
                             }
                         }
                     } else {
                         Map<String, Map<String, String>> terms = (Map<String, Map<String, String>>) doc.get("terms");
-                        for (Map<String, String> term : terms.values()) {
-                            input.append("Q: ").append(term.get("term")).append("\n");
-                            input.append("A: ").append(term.get("definition")).append("\n");
+                        if (terms != null) {
+                            for (Map<String, String> entry : terms.values()) {
+                                input.append("Q: ").append(entry.get("term")).append("\n");
+                                input.append("A: ").append(entry.get("definition")).append("\n");
+                            }
                         }
                     }
 
@@ -112,21 +129,25 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
 
         GenerativeModelFutures model = GenerativeModelFutures.from(ai);
 
-        String prompt = "From the following source, generate a Firestore-compatible JSON object ONLY in the format:\n" +
+        String prompt = "From the following source content, generate a Firestore-compatible JSON object strictly in the format:\n" +
                 "{\n" +
                 "  \"title\": \"<Descriptive title>\",\n" +
                 "  \"questions\": [\n" +
                 "    {\n" +
-                "      \"question\": \"<Short quiz question>\",\n" +
-                "      \"correctAnswer\": \"<Correct one-line answer>\",\n" +
+                "      \"question\": \"<Short and clear quiz question>\",\n" +
+                "      \"correctAnswer\": \"<One-line accurate answer>\",\n" +
                 "      \"type\": \"text\"\n" +
                 "    }\n" +
                 "  ]\n" +
                 "}\n\n" +
-                "Rules:\n" +
-                "- Do NOT include multiple choice options.\n" +
-                "- Make sure each question has a clearly matching correctAnswer.\n" +
-                "- Return only the JSON object. No extra commentary or explanation.";
+                "Requirements:\n" +
+                "- The number of questions generated must exactly match the number of entries (e.g., terms or facts) from the source.\n" +
+                "- Ensure each question is meaningful and derived from its corresponding source entry.\n" +
+                "- The correctAnswer must be accurate and match the intent of the source.\n" +
+                "- Do not combine multiple facts into one question.\n" +
+                "- Only include the JSON object as the output — no explanations, markdown, or commentary.\n" +
+                "- The JSON must be Firestore-compatible and ready for direct insertion.";
+
 
         Content content = new Content.Builder()
                 .addText(prompt + "\nSource:\n" + inputText)
@@ -179,7 +200,7 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
         data.put("questions", questions);
         data.put("created_by", user.getUid());
         data.put("created_at", Timestamp.now());
-        data.put("duration", durationPerQuestion);
+        data.put("duration", duration);
 
         db.collection("chat_rooms")
                 .document(roomId)

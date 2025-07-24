@@ -75,6 +75,51 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <LinearLayout
+        android:id="@+id/liveQuizContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/light_gray"
+        android:visibility="gone"
+        android:padding="12dp"
+        android:elevation="4dp"
+        android:layout_margin="8dp"
+        android:layout_gravity="top"
+        app:layout_constraintTop_toBottomOf="@id/navigationBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/quizQuestionNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Question 1/5"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:textSize="14sp"/>
+
+        <TextView
+            android:id="@+id/quizQuestionText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Question goes here..."
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:textColor="@color/black"/>
+
+        <ProgressBar
+            android:id="@+id/quizProgressBar"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:max="100"
+            android:progress="100"
+            style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Horizontal"/>
+    </LinearLayout>
+
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="0dp"

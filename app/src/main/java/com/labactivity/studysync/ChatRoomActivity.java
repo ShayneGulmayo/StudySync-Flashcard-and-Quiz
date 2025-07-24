@@ -4,6 +4,7 @@
     import android.database.Cursor;
     import android.net.Uri;
     import android.os.Bundle;
+    import android.os.CountDownTimer;
     import android.os.Handler;
     import android.provider.OpenableColumns;
     import android.view.Gravity;
@@ -12,7 +13,9 @@
     import android.widget.EditText;
     import android.widget.ImageButton;
     import android.widget.ImageView;
+    import android.widget.LinearLayout;
     import android.widget.PopupWindow;
+    import android.widget.ProgressBar;
     import android.widget.TextView;
     import android.widget.Toast;
 
@@ -59,6 +62,10 @@
         private TextView chatRoomNameText;
         private ImageView chatRoomPhoto, sendImg, sendFlashcardsandQuiz;
         private AlertDialog dialog;
+        private LinearLayout quizContainer;
+        private TextView quizQuestionText, quizQuestionNumber;
+        private ProgressBar quizProgressBar;
+
 
 
         private final ActivityResultLauncher<Intent> imagePickerLauncher =
@@ -118,6 +125,11 @@
             chatRoomPhoto = findViewById(R.id.chatroom_photo);
             sendImg = findViewById(R.id.sendImg);
             sendFlashcardsandQuiz = findViewById(R.id.sendFlashcardsandQuiz);
+            quizContainer = findViewById(R.id.liveQuizContainer);
+            quizQuestionText = findViewById(R.id.quizQuestionText);
+            quizQuestionNumber = findViewById(R.id.quizQuestionNumber);
+            quizProgressBar = findViewById(R.id.quizProgressBar);
+
 
             ImageButton sendButton = findViewById(R.id.sendMessage);
             ImageView backBtn = findViewById(R.id.back_button);
@@ -131,17 +143,9 @@
 
             String startLiveQuizId = getIntent().getStringExtra("startLiveQuizId");
             if (startLiveQuizId != null) {
-                db.collection("live_quizzes")
-                        .document(startLiveQuizId)
-                        .addSnapshotListener((snapshot, error) -> {
-                            if (error != null || snapshot == null || !snapshot.exists()) return;
-
-                            Boolean hasStarted = snapshot.getBoolean("started");
-                            if (Boolean.TRUE.equals(hasStarted)) {
-                                launchLiveQuiz(startLiveQuizId);
-                            }
-                        });
+                launchLiveQuiz(startLiveQuizId);
             }
+
 
             fetchChatRoomDetails(this::setUpRecyclerView);
 
@@ -174,15 +178,22 @@
 
                             if (questions != null && durationPerQuestion != null) {
                                 runQuizPopup(title, questions, durationPerQuestion.intValue(), roomId, quizId);
+                            } else {
+                                Toast.makeText(this, "Invalid quiz data.", Toast.LENGTH_SHORT).show();
                             }
                         }
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to load quiz.", Toast.LENGTH_SHORT).show();
                     });
         }
+
         private void runQuizPopup(String title, List<Map<String, Object>> questions, int durationSeconds, String roomId, String quizId) {
             Map<String, String> leaderboard = new HashMap<>();
             AtomicInteger currentIndex = new AtomicInteger(0);
 
-            Runnable[] nextQuestion = new Runnable[1]; // To allow recursive use
+            Runnable[] nextQuestion = new Runnable[1];
+
             nextQuestion[0] = new Runnable() {
                 @Override
                 public void run() {
@@ -195,10 +206,14 @@
                     String questionText = (String) question.get("question");
                     String correctAnswer = ((String) question.get("correctAnswer")).toLowerCase().trim();
 
-                    // Show the quiz popup
-                    showQuizDialog(questionText, durationSeconds);
+                    runOnUiThread(() -> {
+                        quizContainer.setVisibility(View.VISIBLE);
+                        quizQuestionText.setText(questionText);
+                        quizQuestionNumber.setText("Question " + (currentIndex.get() + 1) + "/" + questions.size());
+                        quizProgressBar.setProgress(100);
+                    });
 
-                    final ListenerRegistration[] answerListener = new ListenerRegistration[1]; // Declare as array to modify inside lambda
+                    final ListenerRegistration[] answerListener = new ListenerRegistration[1];
 
                     answerListener[0] = FirebaseFirestore.getInstance()
                             .collection("chat_rooms")
@@ -212,11 +227,11 @@
                                     if (change.getType() == DocumentChange.Type.ADDED) {
                                         DocumentSnapshot doc = change.getDocument();
                                         String text = doc.getString("text");
-                                        if (text != null && text.trim().equalsIgnoreCase(correctAnswer)) {
+                                        if (text != null && isAnswerCloseEnough(correctAnswer, text.trim())) {
                                             String senderId = doc.getString("senderId");
                                             String senderName = doc.getString("senderName");
                                             leaderboard.put(senderId, senderName);
-                                            if (answerListener[0] != null) answerListener[0].remove(); // Remove listener
+                                            if (answerListener[0] != null) answerListener[0].remove();
                                             if (dialog != null && dialog.isShowing()) dialog.dismiss();
                                             currentIndex.incrementAndGet();
                                             new Handler().postDelayed(nextQuestion[0], 1000);
@@ -226,30 +241,29 @@
                                 }
                             });
 
-                    // Timeout: move to next question if no one answers
-                    new Handler().postDelayed(() -> {
-                        if (dialog != null && dialog.isShowing()) {
+                    CountDownTimer timer = new CountDownTimer(durationSeconds * 1000L, 1000) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+                            int progress = (int) (millisUntilFinished * 100 / (durationSeconds * 1000L));
+                            runOnUiThread(() -> quizProgressBar.setProgress(progress));
+                        }
+
+                        @Override
+                        public void onFinish() {
                             if (answerListener[0] != null) answerListener[0].remove();
-                            dialog.dismiss();
+                            runOnUiThread(() -> quizContainer.setVisibility(View.GONE));
                             currentIndex.incrementAndGet();
                             new Handler().postDelayed(nextQuestion[0], 1000);
                         }
-                    }, durationSeconds * 1000L);
+                    };
+                    timer.start();
                 }
             };
 
             nextQuestion[0].run();
         }
 
-        private void showQuizDialog(String question, int duration) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("Live Quiz");
-            builder.setMessage("Question:\n" + question + "\n\nTime: " + duration + "s");
 
-            builder.setCancelable(false);
-            dialog = builder.create();
-            dialog.show();
-        }
         private void saveLeaderboard(String roomId, String quizId, Map<String, String> leaderboard) {
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             CollectionReference leaderboardRef = db.collection("chat_rooms")
@@ -262,12 +276,41 @@
                 Map<String, Object> data = new HashMap<>();
                 data.put("userId", entry.getKey());
                 data.put("name", entry.getValue());
-                data.put("score", 1); // optionally track more
+                data.put("score", 1);
 
                 leaderboardRef.document(entry.getKey()).set(data);
             }
 
             Toast.makeText(this, "Live quiz ended!", Toast.LENGTH_SHORT).show();
+        }
+        private boolean isAnswerCloseEnough(String correct, String userAnswer) {
+            correct = correct.toLowerCase().trim();
+            userAnswer = userAnswer.toLowerCase().trim();
+            int distance = levenshteinDistance(correct, userAnswer);
+            int maxLen = Math.max(correct.length(), userAnswer.length());
+
+            // Consider it close enough if similarity is 80% or higher
+            double similarity = (1.0 - (double) distance / maxLen);
+            return similarity >= 0.8;
+        }
+
+        private int levenshteinDistance(String s1, String s2) {
+            int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+
+            for (int i = 0; i <= s1.length(); i++) {
+                for (int j = 0; j <= s2.length(); j++) {
+                    if (i == 0) {
+                        dp[i][j] = j;
+                    } else if (j == 0) {
+                        dp[i][j] = i;
+                    } else {
+                        dp[i][j] = Math.min(dp[i - 1][j - 1] + (s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1),
+                                1 + Math.min(dp[i - 1][j], dp[i][j - 1]));
+                    }
+                }
+            }
+
+            return dp[s1.length()][s2.length()];
         }
 
 
