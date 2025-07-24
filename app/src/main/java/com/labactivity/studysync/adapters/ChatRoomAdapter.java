@@ -89,6 +89,9 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
             case "image":
                 preview = "Sent an image";
                 break;
+            case "video":
+                preview = "Sent a video";
+                break;
             case "set":
                 preview = "Shared a set";
                 break;
@@ -110,6 +113,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
         if (!type.equals("system") && !type.equals("announcements") && !type.equals("request") && room.getLastMessageSender() != null) {
             preview = room.getLastMessageSender() + ": " + preview;
         }
+
 
         holder.lastMessage.setText(preview);
 
