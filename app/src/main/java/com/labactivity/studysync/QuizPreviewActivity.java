@@ -921,6 +921,12 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     setData.put("id", quizId);
                     List<Map<String, Object>> questions = (List<Map<String, Object>>) setData.get("questions");
 
+                    for (Map<String, Object> question : questions) {
+                        if (!question.containsKey("selectedAnswer")) {
+                            question.put("selectedAnswer", ""); // ← ensure key exists for offline
+                        }
+                    }
+
                     // ✅ Use the correct fields
                     String username = documentSnapshot.getString("owner_username");
 

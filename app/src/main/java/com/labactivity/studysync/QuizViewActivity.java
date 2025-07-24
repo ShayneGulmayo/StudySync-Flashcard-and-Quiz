@@ -686,6 +686,12 @@
                     if (obj instanceof Map) {
                         Map<String, Object> question = (Map<String, Object>) obj;
 
+                        // Ensure selectedAnswer key exists
+                        if (!question.containsKey("selectedAnswer")) {
+                            question.put("selectedAnswer", "");
+                        }
+
+                        // Add based on filter
                         if (incorrectAnswers != null) {
                             for (Map<String, Object> incorrect : incorrectAnswers) {
                                 if (question.equals(incorrect)) {
@@ -719,11 +725,13 @@
             }
         }
 
-
         private void goToOfflineQuizProgressActivity() {
             try {
                 String quizTitle = getIntent().getStringExtra("quizTitle");
                 if (quizTitle == null) quizTitle = "Untitled Quiz";
+
+                String quizId = getIntent().getStringExtra("quizId");
+                if (quizId == null || quizId.isEmpty()) quizId = "unknown";
 
                 JSONObject data = new JSONObject();
                 JSONArray questionsArray = new JSONArray();
@@ -737,30 +745,50 @@
 
                     qObj.put("number", i + 1);
                     qObj.put("question", q.get("question"));
-                    qObj.put("photoUrl", q.get("photoUrl"));
-                    qObj.put("photoPath", q.get("photoPath")); // ✅ ADD THIS
-                    qObj.put("isCorrect", q.get("isCorrect"));
 
-                    // Tally
-                    if (Boolean.TRUE.equals(q.get("isCorrect"))) {
-                        correct++;
+                    // Choices (MCQ)
+                    Object choices = q.get("choices");
+                    if (choices instanceof List) {
+                        qObj.put("choices", new JSONArray((List<?>) choices));
                     } else {
-                        incorrect++;
+                        qObj.put("choices", choices);
                     }
 
+                    // Correct answers
                     Object correctAns = q.get("correctAnswers");
                     if (correctAns instanceof List) {
-                        qObj.put("correctAnswers", new JSONArray((List<?>) correctAns)); // ✅ USE CORRECT KEY
+                        qObj.put("correctAnswers", new JSONArray((List<?>) correctAns));
                     } else {
                         qObj.put("correctAnswers", correctAns);
                     }
 
+                    // User answer(s)
                     Object userAns = q.get("userAnswer");
                     if (userAns instanceof List) {
                         qObj.put("userAnswer", new JSONArray((List<?>) userAns));
                     } else {
                         qObj.put("userAnswer", userAns);
                     }
+
+                    // Selected Answer (MCQ)
+                    qObj.put("selectedAnswer", q.get("selectedAnswer"));
+
+                    // Correctness
+                    boolean isCorrect = Boolean.TRUE.equals(q.get("isCorrect"));
+                    qObj.put("isCorrect", isCorrect);
+
+                    if (isCorrect) {
+                        correct++;
+                    } else {
+                        incorrect++;
+                    }
+
+                    // Image
+                    String photoUrl = q.get("photoUrl") != null ? q.get("photoUrl").toString() : "";
+                    String photoPath = q.get("photoPath") != null ? q.get("photoPath").toString() : "";
+
+                    qObj.put("photoUrl", photoUrl);
+                    qObj.put("photoPath", photoPath);
 
                     questionsArray.put(qObj);
                 }
@@ -769,16 +797,17 @@
                 data.put("answeredQuestions", questionsArray);
                 data.put("correctCount", correct);
                 data.put("incorrectCount", incorrect);
-                data.put("percentage", (int) (((double) correct / originalQuestionCount) * 100));
+                data.put("percentage", originalQuestionCount == 0 ? 0 :
+                        (int) (((double) correct / originalQuestionCount) * 100));
 
-                // Save as temp file
-                File file = new File(getCacheDir(), "quiz_progress_data.json");
+                String fileName = "progress_" + quizId + ".json";
+                File file = new File(getCacheDir(), fileName);
                 FileOutputStream fos = new FileOutputStream(file);
                 fos.write(data.toString().getBytes());
                 fos.close();
 
-                // Launch activity
                 Intent intent = new Intent(this, QuizProgressActivity.class);
+                intent.putExtra("progressFileName", fileName);
                 startActivity(intent);
 
             } catch (Exception e) {
@@ -788,53 +817,6 @@
 
 
 
-
-        private void saveOfflineAttemptTemp() {
-            try {
-                JSONObject data = new JSONObject();
-                JSONArray answersArray = new JSONArray();
-
-                int order = 0;
-                for (Map<String, Object> userAnswer : userAnswersList) {
-                    JSONObject answerJson = new JSONObject();
-
-                    answerJson.put("question", userAnswer.get("question"));
-                    answerJson.put("photoUrl", userAnswer.get("photoUrl")); // Add if available
-                    answerJson.put("isCorrect", userAnswer.get("isCorrect"));
-                    answerJson.put("order", order); // preserve order
-
-                    // Correct answers: could be list or string
-                    Object correctAnswers = userAnswer.get("correctAnswers");
-                    if (correctAnswers instanceof List) {
-                        answerJson.put("correct", new JSONArray((List<?>) correctAnswers));
-                    } else {
-                        answerJson.put("correct", correctAnswers); // string fallback
-                    }
-
-                    // User selected answers: could be list or string
-                    Object userAns = userAnswer.get("userAnswer");
-                    if (userAns instanceof List) {
-                        answerJson.put("selected", new JSONArray((List<?>) userAns));
-                    } else {
-                        answerJson.put("selected", userAns); // string fallback
-                    }
-
-                    answersArray.put(answerJson);
-                    order++;
-                }
-
-                data.put("answeredQuestions", answersArray); // MUST use this exact key
-                data.put("score", score);
-                data.put("originalQuestionCount", originalQuestionCount);
-
-                File file = new File(getCacheDir(), "offline_quiz_attempt.json");
-                FileOutputStream fos = new FileOutputStream(file);
-                fos.write(data.toString().getBytes());
-                fos.close();
-            } catch (Exception e) {
-                Log.e("QuizView", "Error saving temp offline attempt", e);
-            }
-        }
 
         private void showNoQuestionsMessage(String message) {
             quizQuestionTextView.setText(message);
