@@ -19,7 +19,6 @@ import com.google.firebase.ai.type.GenerateContentResponse;
 import com.google.firebase.ai.type.GenerativeBackend;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import org.json.JSONArray;
@@ -113,12 +112,24 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
 
         GenerativeModelFutures model = GenerativeModelFutures.from(ai);
 
-        String prompt = "From this content, generate a JSON object with title and multiple choice questions.\n" +
-                "Each question must have 4 options (1 correct + 3 distractors). Return ONLY this JSON format:\n" +
-                "{\n  \"title\": \"...\",\n  \"questions\": [\n    {\n      \"question\": \"...\",\n      \"type\": \"multiple choice\",\n      \"choices\": [\"...\", \"...\"],\n      \"correctAnswer\": \"...\"\n    }\n  ]\n}";
+        String prompt = "From the following source, generate a Firestore-compatible JSON object ONLY in the format:\n" +
+                "{\n" +
+                "  \"title\": \"<Descriptive title>\",\n" +
+                "  \"questions\": [\n" +
+                "    {\n" +
+                "      \"question\": \"<Short quiz question>\",\n" +
+                "      \"correctAnswer\": \"<Correct one-line answer>\",\n" +
+                "      \"type\": \"text\"\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}\n\n" +
+                "Rules:\n" +
+                "- Do NOT include multiple choice options.\n" +
+                "- Make sure each question has a clearly matching correctAnswer.\n" +
+                "- Return only the JSON object. No extra commentary or explanation.";
 
         Content content = new Content.Builder()
-                .addText(prompt + "\nInput:\n" + inputText)
+                .addText(prompt + "\nSource:\n" + inputText)
                 .build();
 
         Futures.addCallback(model.generateContent(content), new FutureCallback<GenerateContentResponse>() {
@@ -150,16 +161,8 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                 JSONObject q = questionsArray.getJSONObject(i);
                 Map<String, Object> item = new HashMap<>();
                 item.put("question", q.getString("question"));
-                item.put("type", "multiple choice");
-
-                JSONArray choicesJson = q.getJSONArray("choices");
-                List<String> choices = new ArrayList<>();
-                for (int j = 0; j < choicesJson.length(); j++) {
-                    choices.add(choicesJson.getString(j));
-                }
-                item.put("choices", choices);
-                item.put("correctAnswer", q.get("correctAnswer"));
-
+                item.put("correctAnswer", q.getString("correctAnswer"));
+                item.put("type", "text");
                 questions.add(item);
             }
 
@@ -183,11 +186,11 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                 .collection("live_quiz")
                 .add(data)
                 .addOnSuccessListener(ref -> {
-                   /* Intent intent = new Intent(this, LiveQuizPreviewActivity.class);
-                    intent.putExtra("quizId", ref.getId());
+                    Intent intent = new Intent(this, ChatRoomActivity.class);
                     intent.putExtra("roomId", roomId);
+                    intent.putExtra("startLiveQuizId", ref.getId());
                     startActivity(intent);
-                    finish();*/
+                    finish();
                 })
                 .addOnFailureListener(e -> showError("Failed to save live quiz."));
     }
