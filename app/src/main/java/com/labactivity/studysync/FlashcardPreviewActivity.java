@@ -243,7 +243,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
 
         startFlashcardBtn.setOnClickListener(v -> {
-            if ("owner".equals(accessLevel) || "edit".equals(accessLevel) || "view".equals(accessLevel)) {
+            if ("owner".equalsIgnoreCase(accessLevel) || "edit".equalsIgnoreCase(accessLevel) || "view".equalsIgnoreCase(accessLevel)) {
                 Intent intent = new Intent(FlashcardPreviewActivity.this, FlashcardViewerActivity.class);
                 intent.putExtra("setId", setId);
 

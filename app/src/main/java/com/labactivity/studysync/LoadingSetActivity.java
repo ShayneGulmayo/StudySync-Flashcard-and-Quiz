@@ -114,9 +114,11 @@ public class LoadingSetActivity extends AppCompatActivity {
                                 Object correct = q.get("correctAnswer");
                                 if (correct instanceof List) {
                                     List<String> correctAnswers = (List<String>) correct;
-                                    inputBuilder.append("A: ").append(String.join(", ", correctAnswers)).append("\n");
-                                } else {
-                                    inputBuilder.append("A: ").append(correct.toString()).append("\n");
+                                    if (!correctAnswers.isEmpty()) {
+                                        inputBuilder.append("A: ").append(correctAnswers.get(0)).append("\n");
+                                    }
+                                } else if (correct instanceof String) {
+                                    inputBuilder.append("A: ").append(correct).append("\n");
                                 }
                             }
                         }
@@ -245,7 +247,6 @@ public class LoadingSetActivity extends AppCompatActivity {
                         }
                         item.put("choices", choices);
                     }
-
                     Object correct = q.get("correctAnswer");
                     if (correct instanceof JSONArray) {
                         List<String> correctAnswers = new ArrayList<>();
@@ -255,7 +256,7 @@ public class LoadingSetActivity extends AppCompatActivity {
                         }
                         item.put("correctAnswer", correctAnswers);
                     } else {
-                        item.put("correctAnswer", Collections.singletonList(correct.toString()));
+                        item.put("correctAnswer", correct.toString());
                     }
 
                     questions.add(item);
@@ -390,7 +391,7 @@ public class LoadingSetActivity extends AppCompatActivity {
         return buffer.toByteArray();
     }
     private String getConvertQuizPrompt(String source) {
-        return "From the contents of this " + source + ", generate a JSON object ONLY in the following structure:\n" +
+        return "From the contents of this " + source + ", generate a Firestore-compatible JSON object ONLY in the following structure:\n" +
                 "{\n" +
                 "  \"title\": \"<Descriptive title>\",\n" +
                 "  \"questions\": [\n" +
@@ -398,12 +399,19 @@ public class LoadingSetActivity extends AppCompatActivity {
                 "      \"question\": \"<Question text>\",\n" +
                 "      \"type\": \"multiple choice\",\n" +
                 "      \"choices\": [\"Option 1\", \"Option 2\", \"Option 3\", \"Option 4\"],\n" +
-                "      \"correctAnswer\": \"Correct Answer\"\n" +
+                "      \"correctAnswer\": \"Correct Answer\",\n" +
                 "    }\n" +
                 "  ]\n" +
-                "}\n" +
-                "Use ONLY multiple choice format. Do not use enumeration. All incorrect answers must be plausible but incorrect in context.";
+                "}\n\n" +
+                "Important rules:\n" +
+                "- Use ONLY \"multiple choice\" questions. DO NOT use enumeration.\n" +
+                "- The `choices` array must contain 4 plausible but incorrect answers, except for one correct one.\n" +
+                "- The `correctAnswer` string must exactly match one of the values in the `choices` array.\n" +
+                "- `photoPath` must always be set to \"Add Image\".\n" +
+                "- If there's no image, set `photoUrl` to an empty string.\n" +
+                "- Return only the JSON object with no explanation or extra commentary.";
     }
+
 
 
     private String getFlashcardPrompt(String source) {
