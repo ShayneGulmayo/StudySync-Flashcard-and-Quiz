@@ -82,7 +82,7 @@ public class AddMembersActivity extends AppCompatActivity {
                            db.collection("chat_rooms")
                                    .document(chatRoomId)
                                    .update("lastMessage", messageText,
-                                           "lastMessageType", "system",
+                                           "type", "system",
                                            "lastMessageSender", null);
                        });
             }

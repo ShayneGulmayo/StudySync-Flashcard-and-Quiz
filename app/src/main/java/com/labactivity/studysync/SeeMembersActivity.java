@@ -88,9 +88,5 @@ public class SeeMembersActivity extends AppCompatActivity {
                     }
                     adapter.updateData(users, ownerId, admins);
                 });
-
-
     }
-
 }
-

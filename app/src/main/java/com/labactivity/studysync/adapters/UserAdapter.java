@@ -24,7 +24,7 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private List<User> userList;
     private List<User> selectedUsers;
     private OnUserSelectedListener listener;
-    private boolean isSelectionList; // true = list w/ radio buttons, false = selected w/ X
+    private boolean isSelectionList;
 
     public interface OnUserSelectedListener {
         void onUserSelected(User user, boolean selected, int position);
@@ -71,7 +71,6 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 selectedUsers.remove(user);
                 listener.onUserSelected(user, false, position);
             });
-
         } else {
             SelectableViewHolder viewHolder = (SelectableViewHolder) holder;
             viewHolder.fullName.setText(user.getFullName());

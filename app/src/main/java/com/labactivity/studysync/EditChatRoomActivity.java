@@ -99,7 +99,6 @@ public class EditChatRoomActivity extends AppCompatActivity {
         sharedMedia = findViewById(R.id.media_files_btn);
         liveQuizBtn = findViewById(R.id.live_quiz_btn);
 
-
         roomId = getIntent().getStringExtra("roomId");
 
         DocumentReference userRef = db.collection("users").document(userId);
@@ -286,7 +285,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         Uri downloadUri = task.getResult();
                         updateChatRoomPhoto(downloadUri.toString(), filePath);
-                        sendSystemMessage(currentUserModel.getFirstName() + " updated the chat room photo.");
+                        sendSystemMessage(currentUserModel.getFullName() + " updated the chat room photo.");
                     } else {
                         Toast.makeText(this, "Upload failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
@@ -300,7 +299,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
 
     private void updateChatRoomPhoto(String newUrl, String path) {
         db.collection("chat_rooms").document(roomId)
-                .update("photoUrl", newUrl, "photoPath", path)
+                .update("photoUrl", newUrl, "photoPath", path, "type", "system")
                 .addOnSuccessListener(unused -> {
                     Glide.with(this)
                             .load(newUrl)
@@ -443,7 +442,8 @@ public class EditChatRoomActivity extends AppCompatActivity {
                         .update(
                                 "ownerId", newOwnerId,
                                 "members", FieldValue.arrayRemove(uid),
-                                "admins", FieldValue.arrayRemove(uid)
+                                "admins", FieldValue.arrayRemove(uid),
+                                "type", "system"
                         )
                         .addOnSuccessListener(unused -> {
                             sendSystemMessage(displayName + " left the chat room. Ownership transferred.");
@@ -457,7 +457,8 @@ public class EditChatRoomActivity extends AppCompatActivity {
             db.collection("chat_rooms").document(roomId)
                     .update(
                             "members", FieldValue.arrayRemove(uid),
-                            "admins", FieldValue.arrayRemove(uid)
+                            "admins", FieldValue.arrayRemove(uid),
+                            "type", "system"
                     )
                     .addOnSuccessListener(unused -> {
                         sendSystemMessage(displayName + " left the chat room.");

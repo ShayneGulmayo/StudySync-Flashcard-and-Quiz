@@ -113,13 +113,13 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
             remove.setVisibility((isOwner || isAdmin) ? View.VISIBLE : View.GONE);
         }
 
-
         setAdmin.setText(targetIsAdmin ? "Remove from Admin" : "Set as Admin");
 
         setOwner.setOnClickListener(v -> {
             sheet.dismiss();
             confirm("Transfer ownership to " + targetName + "?", () -> {
                 updateChatRoom("ownerId", targetUid);
+                updateChatRoom("type", "system");
                 writeSystemMessage(targetName + " is now the owner.");
             });
         });
@@ -132,7 +132,8 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
                 db.collection("chat_rooms").document(chatRoomId)
                         .update("admins", targetIsAdmin ?
                                 FieldValue.arrayRemove(targetUid) :
-                                FieldValue.arrayUnion(targetUid))
+                                FieldValue.arrayUnion(targetUid),
+                                "type", "system")
                         .addOnSuccessListener(aVoid -> {
                             writeSystemMessage(targetName + " was " + action + ".");
                             refreshView();
@@ -146,7 +147,9 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
                 FirebaseFirestore db = FirebaseFirestore.getInstance();
                 db.collection("chat_rooms").document(chatRoomId)
                         .update("members", FieldValue.arrayRemove(targetUid),
-                                "admins", FieldValue.arrayRemove(targetUid))
+                                "admins", FieldValue.arrayRemove(targetUid),
+                                "type", "system")
+
                         .addOnSuccessListener(aVoid -> {
                             writeSystemMessage(targetName + " was removed from the chat.");
                             refreshView();

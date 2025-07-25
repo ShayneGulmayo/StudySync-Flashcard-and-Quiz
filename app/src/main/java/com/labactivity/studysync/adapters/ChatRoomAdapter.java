@@ -132,8 +132,12 @@
             }
 
             holder.groupName.setTypeface(null, isUnread ? Typeface.BOLD : Typeface.NORMAL);
-            holder.lastMessage.setTypeface(null,
-                    type.equals("system") ? Typeface.ITALIC : (isUnread ? Typeface.BOLD : Typeface.NORMAL));
+
+            if (type.equals("system")) {
+                holder.lastMessage.setTypeface(null, isUnread ? (Typeface.BOLD_ITALIC) : Typeface.ITALIC);
+            } else {
+                holder.lastMessage.setTypeface(null, isUnread ? Typeface.BOLD : Typeface.NORMAL);
+            }
 
             holder.itemView.setOnClickListener(v -> {
                 Map<String, Object> update = new HashMap<>();
