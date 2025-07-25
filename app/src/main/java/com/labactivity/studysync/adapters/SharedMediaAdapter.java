@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.text.format.Formatter;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,11 +13,16 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
+import com.bumptech.glide.request.RequestOptions;
 import com.labactivity.studysync.ImageViewerActivity;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.models.ChatMessage;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.List;
 
 public class SharedMediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -65,17 +71,57 @@ public class SharedMediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         if (holder instanceof ImageViewHolder) {
             ImageViewHolder vh = (ImageViewHolder) holder;
             vh.textDescription.setText(meta);
-            Glide.with(context).load(msg.getImageUrl()).into(vh.image);
+
+            if (msg.getImageUrl() != null) {
+                try {
+                    String decodedUrl = URLDecoder.decode(msg.getImageUrl(), "UTF-8");
+                    int lastSlashIndex = decodedUrl.lastIndexOf('/');
+                    int questionMarkIndex = decodedUrl.indexOf('?', lastSlashIndex);
+                    String filename = questionMarkIndex != -1
+                            ? decodedUrl.substring(lastSlashIndex + 1, questionMarkIndex)
+                            : decodedUrl.substring(lastSlashIndex + 1);
+
+                    vh.filename.setText(filename);
+                } catch (UnsupportedEncodingException e) {
+                    vh.filename.setText("Image");
+                }
+            }
+
+            int radiusInPx = (int) TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, 15, context.getResources().getDisplayMetrics());
+
+            RequestOptions options = new RequestOptions()
+                    .transform(new RoundedCorners(radiusInPx));
+
+            Glide.with(context)
+                    .load(msg.getImageUrl())
+                    .apply(options)
+                    .into(vh.image);
+
             vh.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(context, ImageViewerActivity.class);
                 intent.putExtra("imageUrl", msg.getImageUrl());
                 context.startActivity(intent);
             });
-
         } else if (holder instanceof VideoViewHolder) {
             VideoViewHolder vh = (VideoViewHolder) holder;
             vh.textDescription.setText(meta);
-            vh.fileName.setText("Video");
+
+            if (msg.getVideoUrl() != null) {
+                try {
+                    String decodedUrl = URLDecoder.decode(msg.getVideoUrl(), "UTF-8");
+                    int lastSlashIndex = decodedUrl.lastIndexOf('/');
+                    int questionMarkIndex = decodedUrl.indexOf('?', lastSlashIndex);
+                    String filename = questionMarkIndex != -1
+                            ? decodedUrl.substring(lastSlashIndex + 1, questionMarkIndex)
+                            : decodedUrl.substring(lastSlashIndex + 1);
+
+                    vh.fileName.setText(filename);
+                } catch (UnsupportedEncodingException e) {
+                    vh.fileName.setText("Video");
+                }
+            }
+
             vh.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(msg.getVideoUrl()));
                 intent.setDataAndType(Uri.parse(msg.getVideoUrl()), "video/*");
@@ -100,12 +146,13 @@ public class SharedMediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     static class ImageViewHolder extends RecyclerView.ViewHolder {
         ImageView image;
-        TextView textDescription;
+        TextView textDescription, filename;
 
         public ImageViewHolder(@NonNull View itemView) {
             super(itemView);
             image = itemView.findViewById(R.id.imageType);
             textDescription = itemView.findViewById(R.id.textDescription);
+            filename = itemView.findViewById(R.id.fileName);
         }
     }
 
