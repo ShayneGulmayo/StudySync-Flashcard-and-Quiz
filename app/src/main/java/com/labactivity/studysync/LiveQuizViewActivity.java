@@ -48,11 +48,9 @@ public class LiveQuizViewActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_live_quiz_view);
 
-        // Get intent extras
         roomId = getIntent().getStringExtra("roomId");
         quizId = getIntent().getStringExtra("quizId");
 
-        // Initialize views
         backButton = findViewById(R.id.backButton);
         liveQuizTitleTxt = findViewById(R.id.liveQuizTitleTxt);
         spinnerTimePerQuestion = findViewById(R.id.spinnerTimePerQuestion);
@@ -61,13 +59,10 @@ public class LiveQuizViewActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerView);
         toggleHideAnswers = findViewById(R.id.toggleHideAnswers);
 
-        // Back
         backButton.setOnClickListener(v -> finish());
 
-        // Firestore
         db = FirebaseFirestore.getInstance();
 
-        // Load quiz
         db.collection("chat_rooms")
                 .document(roomId)
                 .collection("live_quiz")
@@ -92,20 +87,41 @@ public class LiveQuizViewActivity extends AppCompatActivity {
         startLiveQuizBtn.setOnClickListener(v -> {
             String selected = spinnerTimePerQuestion.getSelectedItem().toString();
             int duration = selected.equals("1 minute") ? 60 : Integer.parseInt(selected.replace("s", ""));
+
             db.collection("chat_rooms")
                     .document(roomId)
                     .collection("live_quiz")
                     .document(quizId)
-                    .update("duration", duration)
-                    .addOnSuccessListener(unused -> {
-                        Intent intent = new Intent(this, ChatRoomActivity.class);
-                        intent.putExtra("roomId", roomId);
-                        intent.putExtra("startLiveQuizId", quizId); // Trigger
-                        startActivity(intent);
-                        finish();
+                    .get()
+                    .addOnSuccessListener(snapshot -> {
+                        if (snapshot.exists() && Boolean.TRUE.equals(snapshot.getBoolean("isStarted"))) {
+                            Toast.makeText(this, "Quiz already started.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        Map<String, Object> updateData = new HashMap<>();
+                        updateData.put("duration", duration);
+                        updateData.put("isStarted", true);
+                        updateData.put("startTime", Timestamp.now());
+
+                        db.collection("chat_rooms")
+                                .document(roomId)
+                                .collection("live_quiz")
+                                .document(quizId)
+                                .update(updateData)
+                                .addOnSuccessListener(unused -> {
+                                    // Optional: Also write to a "start trigger" collection if needed by listener logic
+                                    Intent intent = new Intent(this, ChatRoomActivity.class);
+                                    intent.putExtra("roomId", roomId);
+                                    intent.putExtra("startLiveQuizId", quizId);
+                                    startActivity(intent);
+                                    finish();
+                                })
+                                .addOnFailureListener(e -> Toast.makeText(this, "Failed to start quiz", Toast.LENGTH_SHORT).show());
                     })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to start quiz", Toast.LENGTH_SHORT).show());
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to check quiz status", Toast.LENGTH_SHORT).show());
         });
+
 
         leaderboardsBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, LiveQuizLeaderboardsActivity.class);

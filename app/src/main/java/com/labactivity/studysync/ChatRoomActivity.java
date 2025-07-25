@@ -47,9 +47,11 @@
     import java.util.ArrayList;
     import java.util.Date;
     import java.util.HashMap;
+    import java.util.HashSet;
     import java.util.List;
     import java.util.Map;
     import java.util.Random;
+    import java.util.Set;
     import java.util.concurrent.atomic.AtomicInteger;
 
     public class ChatRoomActivity extends AppCompatActivity {
@@ -68,6 +70,8 @@
         private LinearLayout quizContainer;
         private TextView quizQuestionText, quizQuestionNumber;
         private ProgressBar quizProgressBar;
+        private final Set<String> triggeredQuizIds = new HashSet<>();
+
 
 
 
@@ -145,9 +149,10 @@
             messagesRef = db.collection("chat_rooms").document(roomId).collection("messages");
 
             String startLiveQuizId = getIntent().getStringExtra("startLiveQuizId");
-            if (startLiveQuizId != null) {
+            if (startLiveQuizId != null && !triggeredQuizIds.contains(startLiveQuizId)) {
                 launchLiveQuiz(startLiveQuizId);
             }
+
 
 
             fetchChatRoomDetails(this::setUpRecyclerView);
@@ -167,7 +172,12 @@
         private void launchLiveQuiz(String quizId) {
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             String roomId = getIntent().getStringExtra("roomId");
+            CollectionReference messageRef = db.collection("chat_rooms").document(roomId).collection("messages");
 
+            if (triggeredQuizIds.contains(quizId)) {
+                return;
+            }
+            triggeredQuizIds.add(quizId);
             db.collection("chat_rooms")
                     .document(roomId)
                     .collection("live_quiz")
@@ -180,6 +190,16 @@
                             Long durationPerQuestion = documentSnapshot.getLong("duration");
 
                             if (questions != null && durationPerQuestion != null) {
+                                Map<String, Object> startMessage = new HashMap<>();
+                                startMessage.put("senderId", "Live Quiz Manager");
+                                startMessage.put("senderName", "Live Quiz Manager");
+                                startMessage.put("senderPhotoUrl", "https://firebasestorage.googleapis.com/v0/b/studysync-cf3ef.appspot.com/o/studysync_logo.png?alt=media&token=ddfbb29d-2682-457e-a700-ebba6b6b79d0");
+                                startMessage.put("text", "🚨 A Live Quiz has just started! Get ready to answer quickly.");
+                                startMessage.put("timestamp", Timestamp.now());
+                                startMessage.put("type", "text");
+
+                                messageRef.add(startMessage);
+
                                 runQuizPopup(title, questions, durationPerQuestion.intValue(), roomId, quizId);
                             } else {
                                 Toast.makeText(this, "Invalid quiz data.", Toast.LENGTH_SHORT).show();
@@ -212,10 +232,22 @@
                     Map<String, Object> question = questions.get(currentIndex.get());
                     String questionText = (String) question.get("question");
                     String correctAnswer = ((String) question.get("correctAnswer")).toLowerCase().trim();
+                    CollectionReference message = db.collection("chat_rooms").document(roomId).collection("messages");
 
                     runOnUiThread(() -> {
                         quizContainer.setVisibility(View.VISIBLE);
                         quizQuestionText.setText(questionText);
+                        String questionAnnouncement = String.format("📢 Question %d: %s", currentIndex.get() + 1, questionText);
+                        Map<String, Object> questionMessage = new HashMap<>();
+                        questionMessage.put("senderId", "Live Quiz Manager");
+                        questionMessage.put("senderName", "Live Quiz Manager");
+                        questionMessage.put("senderPhotoUrl", "https://firebasestorage.googleapis.com/v0/b/studysync-cf3ef.appspot.com/o/studysync_logo.png?alt=media&token=ddfbb29d-2682-457e-a700-ebba6b6b79d0");
+                        questionMessage.put("text", questionAnnouncement);
+                        questionMessage.put("timestamp", Timestamp.now());
+                        questionMessage.put("type", "text");
+
+                        message.add(questionMessage);
+
                         quizQuestionNumber.setText("Question " + (currentIndex.get() + 1) + "/" + questions.size());
                         quizProgressBar.setProgress(100);
                     });
@@ -606,6 +638,7 @@
         }
 
         private void fetchChatRoomDetails(Runnable onSuccess) {
+            listenForLiveQuizTriggers();
             db.collection("chat_rooms").document(roomId)
                     .get()
                     .addOnSuccessListener(doc -> {
@@ -655,6 +688,25 @@
                         finish();
                     });
         }
+        private void listenForLiveQuizTriggers() {
+            db.collection("chat_rooms")
+                    .document(roomId)
+                    .collection("live_quiz")
+                    .addSnapshotListener((snapshots, error) -> {
+                        if (error != null || snapshots == null) return;
+
+                        for (DocumentChange dc : snapshots.getDocumentChanges()) {
+                            DocumentSnapshot doc = dc.getDocument();
+                            String quizId = doc.getId();
+                            Boolean isStarted = doc.getBoolean("isStarted");
+
+                            if (Boolean.TRUE.equals(isStarted) && !triggeredQuizIds.contains(quizId)) {
+                                launchLiveQuiz(quizId);
+                            }
+                        }
+                    });
+        }
+
 
         private void setUpRecyclerView() {
             Query query = messagesRef.orderBy("timestamp", Query.Direction.ASCENDING);
