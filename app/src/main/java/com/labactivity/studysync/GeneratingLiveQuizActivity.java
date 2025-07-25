@@ -201,6 +201,8 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
         data.put("created_by", user.getUid());
         data.put("created_at", Timestamp.now());
         data.put("duration", duration);
+        data.put("isStarted", false);
+
 
         db.collection("chat_rooms")
                 .document(roomId)

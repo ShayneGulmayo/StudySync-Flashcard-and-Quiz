@@ -7,6 +7,7 @@
     import android.os.CountDownTimer;
     import android.os.Handler;
     import android.provider.OpenableColumns;
+    import android.util.Log;
     import android.view.Gravity;
     import android.view.LayoutInflater;
     import android.view.View;
@@ -34,6 +35,7 @@
     import com.google.firebase.auth.FirebaseUser;
     import com.google.firebase.firestore.CollectionReference;
     import com.google.firebase.firestore.DocumentChange;
+    import com.google.firebase.firestore.DocumentReference;
     import com.google.firebase.firestore.DocumentSnapshot;
     import com.google.firebase.firestore.FirebaseFirestore;
     import com.google.firebase.firestore.ListenerRegistration;
@@ -416,6 +418,39 @@
                         .setPositiveButton("OK", null)
                         .show();
             });
+            DocumentReference quizDoc = db.collection("chat_rooms")
+                    .document(roomId)
+                    .collection("live_quiz")
+                    .document(quizId);
+
+            Map<String, Object> quizEndUpdate = new HashMap<>();
+            quizEndUpdate.put("isStarted", false);
+            quizDoc.update(quizEndUpdate)
+                    .addOnSuccessListener(unused -> Log.d("LiveQuiz", "Quiz marked as finished."))
+                    .addOnFailureListener(e -> Log.e("LiveQuiz", "Failed to mark quiz as finished", e));
+        }
+
+        private void listenForLiveQuizTriggers() {
+            db.collection("chat_rooms")
+                    .document(roomId)
+                    .collection("live_quiz")
+                    .addSnapshotListener((snapshots, error) -> {
+                        if (error != null || snapshots == null) return;
+
+                        for (DocumentChange dc : snapshots.getDocumentChanges()) {
+                            DocumentSnapshot doc = dc.getDocument();
+                            String quizId = doc.getId();
+                            Boolean isStarted = doc.getBoolean("isStarted");
+
+                            if ((dc.getType() == DocumentChange.Type.MODIFIED || dc.getType() == DocumentChange.Type.ADDED)
+                                    && Boolean.TRUE.equals(isStarted)
+                                    && !triggeredQuizIds.contains(quizId)) {
+
+                                triggeredQuizIds.add(quizId);
+                                launchLiveQuiz(quizId);
+                            }
+                        }
+                    });
         }
 
 
@@ -686,28 +721,6 @@
                     .addOnFailureListener(e -> {
                         Toast.makeText(this, "Failed to load chat room", Toast.LENGTH_SHORT).show();
                         finish();
-                    });
-        }
-        private void listenForLiveQuizTriggers() {
-            db.collection("chat_rooms")
-                    .document(roomId)
-                    .collection("live_quiz")
-                    .addSnapshotListener((snapshots, error) -> {
-                        if (error != null || snapshots == null) return;
-
-                        for (DocumentChange dc : snapshots.getDocumentChanges()) {
-                            DocumentSnapshot doc = dc.getDocument();
-                            String quizId = doc.getId();
-                            Boolean isStarted = doc.getBoolean("isStarted");
-
-                            if ((dc.getType() == DocumentChange.Type.MODIFIED || dc.getType() == DocumentChange.Type.ADDED)
-                                    && Boolean.TRUE.equals(isStarted)
-                                    && !triggeredQuizIds.contains(quizId)) {
-
-                                triggeredQuizIds.add(quizId);
-                                launchLiveQuiz(quizId);
-                            }
-                        }
                     });
         }
 
