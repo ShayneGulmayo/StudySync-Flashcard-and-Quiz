@@ -104,6 +104,11 @@ public class AddMembersActivity extends AppCompatActivity {
         fetchExistingMembersAndUsers();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
     private void fetchExistingMembersAndUsers() {
         db.collection("chat_rooms").document(chatRoomId)
                 .get()
