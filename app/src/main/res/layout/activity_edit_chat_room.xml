@@ -80,26 +80,26 @@
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/see_members_btn"
-                android:layout_width="300dp"
-                android:layout_height="60dp"
-                android:layout_gravity="center"
-                android:layout_marginTop="10dp"
-                android:text="@string/see_members"
-                android:textAlignment="textStart"
-                android:textColor="@color/primary"
-                android:textSize="16sp"
-                app:backgroundTint="@color/white"
-                app:cornerRadius="15dp"
-                app:icon="@drawable/members"
-                app:iconGravity="start"
-                app:iconPadding="20dp"
-                app:iconSize="24dp"
-                app:iconTint="@color/primary"
-                app:strokeColor="@color/primary"
-                app:strokeWidth="2dp"
-                tools:ignore="RtlCompat" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/see_members_btn"
+                        android:layout_width="300dp"
+                        android:layout_height="60dp"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="20dp"
+                        android:text="@string/see_members"
+                        android:textAlignment="textStart"
+                        android:textColor="@color/primary"
+                        android:textSize="16sp"
+                        app:backgroundTint="@color/white"
+                        app:cornerRadius="15dp"
+                        app:icon="@drawable/members"
+                        app:iconGravity="start"
+                        app:iconPadding="20dp"
+                        app:iconSize="24dp"
+                        app:iconTint="@color/primary"
+                        app:strokeColor="@color/primary"
+                        app:strokeWidth="2dp"
+                        tools:ignore="RtlCompat" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/live_quiz_btn"
