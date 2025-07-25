@@ -62,6 +62,7 @@
                 android:visibility="gone" />
 
             <LinearLayout
+                android:id="@+id/messageHolder"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_message_other_user"

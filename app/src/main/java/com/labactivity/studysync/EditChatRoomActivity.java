@@ -5,6 +5,7 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -19,6 +20,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -27,10 +29,14 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+
 import com.labactivity.studysync.models.ChatMessage;
 import com.labactivity.studysync.models.ChatRoom;
 import com.labactivity.studysync.models.User;
-import com.labactivity.studysync.utils.SupabaseUploader;
+
 import com.yalantis.ucrop.UCrop;
 
 import java.io.File;
@@ -50,6 +56,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
     private FirebaseUser currentUser;
+    private FirebaseStorage firebaseStorage = FirebaseStorage.getInstance();
 
     private String roomId;
     private ChatRoom currentRoom;
@@ -253,9 +260,10 @@ public class EditChatRoomActivity extends AppCompatActivity {
 
         if (requestCode == UCrop.REQUEST_CROP && resultCode == RESULT_OK && data != null) {
             Uri resultUri = UCrop.getOutput(data);
+
             if (resultUri != null) {
-                File file = new File(resultUri.getPath());
-                String filename = "chat-room-profile/" + UUID.randomUUID().toString() + ".jpg";
+                String uniqueFilename = UUID.randomUUID().toString() + ".jpg";
+                String filePath = "chat-room-profile/" + roomId + "/" + uniqueFilename;
 
                 ProgressDialog progressDialog = new ProgressDialog(this);
                 progressDialog.setMessage("Uploading...");
@@ -263,27 +271,30 @@ public class EditChatRoomActivity extends AppCompatActivity {
                 progressDialog.show();
 
                 if (previousFilePath != null && !previousFilePath.isEmpty()) {
-                    SupabaseUploader.deleteFile("chat-room-photos", previousFilePath, (deleted, msg, ignored) -> {
-                        if (deleted) {
-                            System.out.println("Old photo deleted.");
-                        }
-                    });
+                    firebaseStorage.getReference().child(previousFilePath).delete()
+                            .addOnFailureListener(e -> Log.w("ChatProfile", "Previous file deletion failed", e));
                 }
 
-                SupabaseUploader.uploadFile(file, "chat-room-photos", filename, (success, message, publicUrl) -> {
-                    runOnUiThread(() -> {
-                        progressDialog.dismiss();
-                        if (success) {
-                            updateChatRoomPhoto(publicUrl, filename);
-                            sendSystemMessage(currentUserModel.getFirstName() + " updated the chat room photo.");
-                        } else {
-                            Toast.makeText(this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                StorageReference storageRef = firebaseStorage.getReference().child(filePath);
+                UploadTask uploadTask = storageRef.putFile(resultUri);
+
+                uploadTask.continueWithTask(task -> {
+                    if (!task.isSuccessful()) throw task.getException();
+                    return storageRef.getDownloadUrl();
+                }).addOnCompleteListener(task -> {
+                    progressDialog.dismiss();
+                    if (task.isSuccessful()) {
+                        Uri downloadUri = task.getResult();
+                        updateChatRoomPhoto(downloadUri.toString(), filePath);
+                        sendSystemMessage(currentUserModel.getFirstName() + " updated the chat room photo.");
+                    } else {
+                        Toast.makeText(this, "Upload failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
         } else if (resultCode == UCrop.RESULT_ERROR) {
-            Toast.makeText(this, "Crop error", Toast.LENGTH_SHORT).show();
+            Throwable cropError = UCrop.getError(data);
+            Toast.makeText(this, "Crop error: " + cropError.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -361,15 +372,27 @@ public class EditChatRoomActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to fetch messages.", Toast.LENGTH_SHORT).show();
                 });
     }
+    private void deleteFolderContents(String folderPath) {
+        StorageReference folderRef = firebaseStorage.getReference().child(folderPath);
+        folderRef.listAll()
+                .addOnSuccessListener(listResult -> {
+                    for (StorageReference item : listResult.getItems()) {
+                        item.delete().addOnFailureListener(e -> {
+                        });
+                    }
+                });
+    }
 
     private void proceedToDeleteRoomDoc(ProgressDialog progressDialog) {
         if (previousFilePath != null && !previousFilePath.isEmpty()) {
-            SupabaseUploader.deleteFile("chat-room-photos", previousFilePath, (deleted, msg, ignored) -> {
-                if (!deleted) {
-                    runOnUiThread(() -> Toast.makeText(this, "Warning: Failed to delete group photo", Toast.LENGTH_SHORT).show());
-                }
-            });
+            firebaseStorage.getReference().child(previousFilePath).delete()
+                    .addOnFailureListener(e -> Toast.makeText(this, "Warning: Failed to delete group photo", Toast.LENGTH_SHORT).show());
         }
+
+        deleteFolderContents("chat-room-files/" + roomId);
+        deleteFolderContents("chat_room_images/" + roomId);
+        deleteFolderContents("chat_room_videos/" + roomId);
+        deleteFolderContents("chat-room-profile/" + roomId);
 
         db.collection("chat_rooms").document(roomId)
                 .delete()

@@ -74,9 +74,6 @@
         private ProgressBar quizProgressBar;
         private final Set<String> triggeredQuizIds = new HashSet<>();
 
-
-
-
         private final ActivityResultLauncher<Intent> imagePickerLauncher =
                 registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
@@ -155,10 +152,7 @@
                 launchLiveQuiz(startLiveQuizId);
             }
 
-
-
             fetchChatRoomDetails(this::setUpRecyclerView);
-
 
             sendButton.setOnClickListener(v -> sendMessage());
             sendImg.setOnClickListener(v -> openImagePicker());
@@ -168,7 +162,6 @@
 
             chatRoomPhoto.setOnClickListener(v -> openEditChatRoom());
             chatRoomNameText.setOnClickListener(v -> openEditChatRoom());
-
         }
 
         private void launchLiveQuiz(String quizId) {
@@ -179,6 +172,7 @@
             if (triggeredQuizIds.contains(quizId)) {
                 return;
             }
+
             triggeredQuizIds.add(quizId);
             db.collection("chat_rooms")
                     .document(roomId)
@@ -219,7 +213,6 @@
             AtomicInteger currentIndex = new AtomicInteger(0);
             Handler handler = new Handler();
             final boolean[] quizStopped = {false};
-
 
             Runnable[] nextQuestion = new Runnable[1];
 
@@ -369,8 +362,6 @@
             nextQuestion[0].run();
         }
 
-
-
         private void saveLeaderboard(String roomId, String quizId, Map<String, Integer> scores, Map<String, String> names) {
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             CollectionReference leaderboardRef = db.collection("chat_rooms")
@@ -453,8 +444,6 @@
                     });
         }
 
-
-
         private boolean isAnswerCloseEnough(String correct, String userAnswer) {
             correct = correct.toLowerCase().trim();
             userAnswer = userAnswer.toLowerCase().trim();
@@ -483,9 +472,6 @@
 
             return dp[s1.length()][s2.length()];
         }
-
-
-
 
         private void updateChatRoomLastMessage(String message, String type, String senderName) {
             Map<String, Object> update = new HashMap<>();
@@ -546,6 +532,7 @@
                         recyclerView.scrollToPosition(adapter.getItemCount() - 1);
                     });
         }
+
         private void openImagePicker() {
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
@@ -554,7 +541,6 @@
             intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
             imagePickerLauncher.launch(Intent.createChooser(intent, "Select Media"));
         }
-
 
         private void uploadImageAndSendMessage(Uri imageUri) {
             FirebaseStorage storage = FirebaseStorage.getInstance();
@@ -583,7 +569,6 @@
                     }))
                     .addOnFailureListener(e -> Toast.makeText(this, "Image upload failed", Toast.LENGTH_SHORT).show());
         }
-
 
         private void uploadFileAndSendMessage(Uri fileUri) {
             if (fileUri == null) {
@@ -723,8 +708,6 @@
                         finish();
                     });
         }
-
-
 
         private void setUpRecyclerView() {
             Query query = messagesRef.orderBy("timestamp", Query.Direction.ASCENDING);

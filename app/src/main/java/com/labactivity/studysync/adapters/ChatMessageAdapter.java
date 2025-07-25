@@ -54,6 +54,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
+
 
 public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, RecyclerView.ViewHolder> {
 
@@ -629,6 +631,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     static class OtherUserViewHolder extends RecyclerView.ViewHolder {
         TextView messageText, senderName, timestampText;
         ImageView senderImage, imageView, videoPreview;
+        LinearLayout messageHolder;
         boolean timestampVisible = false;
 
         public OtherUserViewHolder(@NonNull View itemView) {
@@ -639,6 +642,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             timestampText = itemView.findViewById(R.id.timestampText);
             imageView = itemView.findViewById(R.id.imageView);
             videoPreview = itemView.findViewById(R.id.videoPreview);
+            messageHolder = itemView.findViewById(R.id.messageHolder);
         }
 
         public void bind(ChatMessage message, boolean isSameSender) {
@@ -648,17 +652,24 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             if ("image".equals(message.getType())) {
                 messageText.setVisibility(GONE);
                 imageView.setVisibility(VISIBLE);
-                Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
+                messageHolder.setVisibility(GONE);
+
+                int radiusInPx = (int) (15 * itemView.getContext().getResources().getDisplayMetrics().density);
+
+                Glide.with(itemView.getContext())
+                        .load(message.getImageUrl())
+                        .transform(new RoundedCorners(radiusInPx))
+                        .into(imageView);
 
                 imageView.setOnClickListener(v -> {
                     Intent intent = new Intent(itemView.getContext(), ImageViewerActivity.class);
                     intent.putExtra("imageUrl", message.getImageUrl());
                     itemView.getContext().startActivity(intent);
                 });
-
             } else if ("video".equals(message.getType())) {
                 messageText.setVisibility(GONE);
                 videoPreview.setVisibility(VISIBLE);
+                messageHolder.setVisibility(GONE);
                 Glide.with(itemView.getContext())
                         .load(message.getVideoUrl())
                         .thumbnail(0.1f)
