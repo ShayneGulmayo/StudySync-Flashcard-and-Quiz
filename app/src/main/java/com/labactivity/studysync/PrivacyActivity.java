@@ -74,9 +74,14 @@ public class PrivacyActivity extends AppCompatActivity {
         if (setId == null) setId = getIntent().getStringExtra("quizId");
 
         setType = getIntent().getStringExtra("setType");
-        if (setType == null) setType = "flashcards";
+        if (setType == null) setType = "flashcard";
 
+        String notificationId = getIntent().getStringExtra("notificationId");
+        if (notificationId != null) {
+            markNotificationAsRead();
+        }
     }
+
 
     private void initAdapters() {
         selectedRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -160,15 +165,25 @@ public class PrivacyActivity extends AppCompatActivity {
             }
         });
     }
-
-    private void loadSetTitle() {
-        db.collection(setType).document(setId)
-                .get()
-                .addOnSuccessListener(doc -> titleTxt.setText(doc.getString("title") != null ? doc.getString("title") : "Untitled"));
+    private String getCollectionName() {
+        return "quiz".equals(setType) ? "quiz" : "flashcards";
     }
 
+    private void loadSetTitle() {
+        if (setId == null || setType == null) return;
+
+        db.collection(getCollectionName()).document(setId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    String title = doc.getString("title");
+                    titleTxt.setText(title != null ? title : "Untitled");
+                })
+                .addOnFailureListener(e -> titleTxt.setText("Untitled"));
+    }
+
+
     private void loadSetPrivacy() {
-        db.collection(setType).document(setId)
+        db.collection(getCollectionName()).document(setId)
                 .get()
                 .addOnSuccessListener(doc -> {
                     String privacy = doc.getString("privacy");
@@ -200,7 +215,7 @@ public class PrivacyActivity extends AppCompatActivity {
     }
 
     private void loadAccessUsers() {
-        db.collection(setType).document(setId).get().addOnSuccessListener(doc -> {
+        db.collection(getCollectionName()).document(setId).get().addOnSuccessListener(doc -> {
             if (doc.contains("accessUsers")) {
                 Map<String, String> accessMap = (Map<String, String>) doc.get("accessUsers");
                 for (String uid : accessMap.keySet()) {
@@ -254,7 +269,7 @@ public class PrivacyActivity extends AppCompatActivity {
     }
 
     private void savePrivacySettings() {
-        db.collection(setType).document(setId).get().addOnSuccessListener(doc -> {
+        db.collection(getCollectionName()).document(setId).get().addOnSuccessListener(doc -> {
             Map<String, String> oldAccessMap = new HashMap<>();
             if (doc.contains("accessUsers")) {
                 oldAccessMap.putAll((Map<String, String>) doc.get("accessUsers"));
@@ -271,7 +286,7 @@ public class PrivacyActivity extends AppCompatActivity {
             }
             data.put("accessUsers", newAccessMap);
 
-            db.collection(setType).document(setId).update(data)
+            db.collection(getCollectionName()).document(setId).update(data)
                     .addOnSuccessListener(aVoid -> {
                         for (String uid : newAccessMap.keySet()) {
                             String newRole = newAccessMap.get(uid);
@@ -363,6 +378,7 @@ public class PrivacyActivity extends AppCompatActivity {
                     notificationData.put("setId", setId);
                     notificationData.put("setType", setType);
                     notificationData.put("action", action);
+                    notificationData.put("read", false);
 
                     DocumentReference notifDoc = db.collection("users")
                             .document(toUserId)
@@ -383,4 +399,23 @@ public class PrivacyActivity extends AppCompatActivity {
                         Toast.makeText(this, "Failed to fetch user info: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
     }
+
+    private void markNotificationAsRead() {
+        String notificationId = getIntent().getStringExtra("notificationId");
+        if (notificationId == null || currentUserId == null) return;
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("notifications")
+                .document(notificationId)
+                .update("read", true)
+                .addOnSuccessListener(aVoid -> {
+                    // Optional: Notification marked as read
+                })
+                .addOnFailureListener(e -> {
+                    // Optional: Handle error
+                });
+    }
+
+
 }

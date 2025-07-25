@@ -92,6 +92,11 @@ public class HomeFragment extends Fragment {
             startActivity(new Intent(requireContext(), NotificationsActivity.class));
         } );
     }
+    @Override
+    public void onResume() {
+        super.onResume();
+        checkUnreadNotifications();  // 🔁 Refresh every time fragment resumes
+    }
 
     private void checkUnreadNotifications() {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();

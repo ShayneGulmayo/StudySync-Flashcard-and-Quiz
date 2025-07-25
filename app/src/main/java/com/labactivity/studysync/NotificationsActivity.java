@@ -1,12 +1,9 @@
 package com.labactivity.studysync;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,7 +29,7 @@ public class NotificationsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_notifications); // Make sure this layout has a RecyclerView with id recyclerView
+        setContentView(R.layout.activity_notifications);
 
         recyclerView = findViewById(R.id.recyclerView);
         db = FirebaseFirestore.getInstance();

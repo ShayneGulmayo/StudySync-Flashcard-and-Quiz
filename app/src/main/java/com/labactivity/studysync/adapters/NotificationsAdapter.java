@@ -149,12 +149,12 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
                     notifyDataSetChanged();
 
                     if (isAccept) {
-                        String collection = "quiz".equals(notif.getSetType()) ? "quiz" : "flashcards";
+                        String collection = "flashcard".equals(notif.getSetType()) ? "flashcards" : "quiz";
                         db.collection(collection).document(notif.getSetId())
                                 .update("accessUsers." + notif.getSenderId(), notif.getRequestedRole());
                     }
 
-                    String collection = "quiz".equals(notif.getSetType()) ? "quiz" : "flashcards";
+                    String collection = "flashcard".equals(notif.getSetType()) ? "flashcards" : "quiz";
                     db.collection(collection).document(notif.getSetId())
                             .get()
                             .addOnSuccessListener(setSnap -> {
