@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -69,6 +70,13 @@ public class HomeFragment extends Fragment {
         searchView = view.findViewById(R.id.searchView);
         notifBtn = view.findViewById(R.id.notifBtn);
         notifIndicator = view.findViewById(R.id.notifIndicator);
+
+        applyClickShrinkAnimation(flashcardsCard);
+        applyClickShrinkAnimation(quizzesCard);
+        applyClickShrinkAnimation(chatRoomsCard);
+        applyClickShrinkAnimation(browseCard);
+
+
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
             Log.e("HomeFragment", "User not logged in");
@@ -92,10 +100,26 @@ public class HomeFragment extends Fragment {
             startActivity(new Intent(requireContext(), NotificationsActivity.class));
         } );
     }
+
     @Override
     public void onResume() {
         super.onResume();
         checkUnreadNotifications();  // 🔁 Refresh every time fragment resumes
+    }
+
+    private void applyClickShrinkAnimation(View card) {
+        card.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(120).start();
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start();
+                    break;
+            }
+            return false; // Important: lets the onClick still fire
+        });
     }
 
     private void checkUnreadNotifications() {
