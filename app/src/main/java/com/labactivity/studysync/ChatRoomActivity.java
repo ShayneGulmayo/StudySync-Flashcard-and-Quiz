@@ -700,12 +700,17 @@
                             String quizId = doc.getId();
                             Boolean isStarted = doc.getBoolean("isStarted");
 
-                            if (Boolean.TRUE.equals(isStarted) && !triggeredQuizIds.contains(quizId)) {
+                            if ((dc.getType() == DocumentChange.Type.MODIFIED || dc.getType() == DocumentChange.Type.ADDED)
+                                    && Boolean.TRUE.equals(isStarted)
+                                    && !triggeredQuizIds.contains(quizId)) {
+
+                                triggeredQuizIds.add(quizId);
                                 launchLiveQuiz(quizId);
                             }
                         }
                     });
         }
+
 
 
         private void setUpRecyclerView() {
