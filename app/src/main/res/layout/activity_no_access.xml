@@ -34,15 +34,6 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <ImageView
-                android:id="@+id/more_button"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/more_vert" />
-
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.navigation.NavigationView>
 
@@ -53,7 +44,6 @@
         android:layout_marginStart="20dp"
         android:layout_marginEnd="20dp"
         android:gravity="center"
-        android:padding="20dp"
         android:text="You do not have access to this set"
         android:textColor="@color/black"
         android:textSize="18sp"
@@ -64,5 +54,26 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/navigationView"
         app:layout_constraintVertical_bias="0.216" />
+
+    <Button
+        android:id="@+id/reqAccessBtn"
+        android:layout_width="300dp"
+        android:layout_height="60dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginEnd="20dp"
+        android:backgroundTint="@color/white"
+        android:drawableLeft="@drawable/lock_resized"
+        android:drawableTint="@color/primary"
+        android:gravity="center"
+        android:text="Request Access"
+        android:textColor="@color/primary"
+        android:textSize="16sp"
+        app:cornerRadius="15dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/no_access_text"
+        app:strokeColor="@color/primary"
+        app:strokeWidth="2dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

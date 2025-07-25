@@ -3,14 +3,19 @@ package com.labactivity.studysync.adapters;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -50,6 +55,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         NotificationModel model = notifications.get(position);
 
         holder.notificationBodyTxt.setText(model.getText());
+
         if (model.getTimestamp() != null) {
             CharSequence timeAgo = DateUtils.getRelativeTimeSpanString(model.getTimestamp().toDate().getTime());
             holder.timeStampAgo.setText(timeAgo);
@@ -66,32 +72,62 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         holder.acceptBtn.setOnClickListener(v -> showConfirmationDialog(model, true));
         holder.denyBtn.setOnClickListener(v -> showConfirmationDialog(model, false));
 
+        // Handle item click
         holder.itemView.setOnClickListener(v -> {
-            Intent intent;
-            if ("quiz".equals(model.getSetType())) {
-                intent = new Intent(context, QuizPreviewActivity.class);
-                intent.putExtra("quizId", model.getSetId());
-            } else {
-                intent = new Intent(context, FlashcardPreviewActivity.class);
-                intent.putExtra("setId", model.getSetId());
-            }
-            context.startActivity(intent);
-
-            // mark as read if not handled
-            if ("pending".equals(model.getStatus())) {
-                db.collection("users").document(currentUserId)
-                        .collection("notifications").document(model.getNotificationId())
-                        .update("status", "read")
-                        .addOnSuccessListener(unused -> {
-                            model.setStatus("read");
-                            notifyItemChanged(position);
-                        });
+            if (model.getSetId() != null) {
+                if (!model.isRead()) {
+                    db.collection("users")
+                            .document(currentUserId)
+                            .collection("notifications")
+                            .document(model.getNotificationId())
+                            .update("read", true)
+                            .addOnSuccessListener(unused -> {
+                                model.setRead(true);
+                                notifyItemChanged(holder.getAdapterPosition());
+                            });
+                }
+                openSet(model);
             }
         });
+
+        // Highlight unread notifications
+        if (!model.isRead()) {
+            holder.itemView.setBackgroundColor(ContextCompat.getColor(context, R.color.light_gray)); // Define in colors.xml
+            holder.notificationBodyTxt.setTypeface(null, Typeface.BOLD);
+        } else {
+            holder.itemView.setBackgroundColor(Color.TRANSPARENT);
+            holder.notificationBodyTxt.setTypeface(null, Typeface.NORMAL);
+        }
+    }
+
+    private void openSet(NotificationModel model) {
+        if (model.getSetType() == null || model.getSetId() == null) {
+            Toast.makeText(context, "Invalid set data", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent;
+        if ("quiz".equalsIgnoreCase(model.getSetType())) {
+            intent = new Intent(context, QuizPreviewActivity.class);
+            intent.putExtra("quizId", model.getSetId());
+        } else if ("flashcard".equalsIgnoreCase(model.getSetType())) {
+            intent = new Intent(context, FlashcardPreviewActivity.class);
+            intent.putExtra("setId", model.getSetId());
+        } else {
+            Toast.makeText(context, "Unknown set type", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        context.startActivity(intent);
     }
 
     private void showConfirmationDialog(NotificationModel model, boolean isAccept) {
-        new AlertDialog.Builder(context)
+        if (!(context instanceof android.app.Activity)) return;
+
+        android.app.Activity activity = (android.app.Activity) context;
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+
+        new AlertDialog.Builder(activity)
                 .setTitle(isAccept ? "Allow access?" : "Deny request?")
                 .setMessage("Are you sure you want to " + (isAccept ? "allow" : "deny") + " this request?")
                 .setPositiveButton("Yes", (dialog, which) -> handleAccess(model, isAccept))
@@ -104,33 +140,34 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
 
         DocumentReference notifRef = db.collection("users")
                 .document(currentUserId)
-                .collection("notifications").document(notif.getNotificationId());
+                .collection("notifications")
+                .document(notif.getNotificationId());
 
         notifRef.update("status", newStatus)
                 .addOnSuccessListener(unused -> {
-                    // Update local model
                     notif.setStatus(newStatus);
                     notifyDataSetChanged();
 
-                    // If accepted, update accessUsers in the corresponding set
                     if (isAccept) {
                         String collection = "quiz".equals(notif.getSetType()) ? "quiz" : "flashcards";
                         db.collection(collection).document(notif.getSetId())
                                 .update("accessUsers." + notif.getSenderId(), notif.getRequestedRole());
                     }
 
-                    // Get set title for reply message
                     String collection = "quiz".equals(notif.getSetType()) ? "quiz" : "flashcards";
                     db.collection(collection).document(notif.getSetId())
                             .get()
                             .addOnSuccessListener(setSnap -> {
                                 String title = setSnap.getString("title");
-                                if (title == null) title = notif.getSetId(); // fallback
+                                if (title == null) title = notif.getSetTitle();
 
                                 Map<String, Object> reply = new HashMap<>();
-                                reply.put("text", "Your request to access \"" + title + "\" has been " + newStatus + ".");
+                                reply.put("setId", notif.getSetId());
+                                reply.put("setType", notif.getSetType());
+                                reply.put("text", "Your request to have access as \"" + notif.getRequestedRole() + " in " + title + "\" has been " + newStatus + ".");
                                 reply.put("timestamp", FieldValue.serverTimestamp());
                                 reply.put("type", "info");
+                                reply.put("read", false); // Mark reply as unread
 
                                 db.collection("users")
                                         .document(notif.getSenderId())

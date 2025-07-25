@@ -1,5 +1,7 @@
 package com.labactivity.studysync;
 
+import static android.content.ContentValues.TAG;
+
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.TimePickerDialog;
@@ -35,10 +37,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
+
 import com.bumptech.glide.Glide;
+
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.Timestamp;
@@ -52,10 +57,13 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+
 import com.labactivity.studysync.adapters.FlashcardCarouselAdapter;
 import com.labactivity.studysync.helpers.AlarmHelper;
 import com.labactivity.studysync.models.Flashcard;
+
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -243,7 +251,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
 
         startFlashcardBtn.setOnClickListener(v -> {
-            if ("owner".equalsIgnoreCase(accessLevel) || "edit".equalsIgnoreCase(accessLevel) || "view".equalsIgnoreCase(accessLevel)) {
+            if ("Owner".equalsIgnoreCase(accessLevel) || "Editor".equalsIgnoreCase(accessLevel) || "Viewer".equalsIgnoreCase(accessLevel)) {
                 Intent intent = new Intent(FlashcardPreviewActivity.this, FlashcardViewerActivity.class);
                 intent.putExtra("setId", setId);
 
@@ -266,19 +274,18 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         Intent intent = new Intent(FlashcardPreviewActivity.this, LoadingSetActivity.class);
                         intent.putExtra("convertFromId", setId);
                         intent.putExtra("originalType", "flashcard");
-                        intent.putExtra("flashToQuizQuestionIsDefinition", true); // Definition as question
+                        intent.putExtra("flashToQuizQuestionIsDefinition", true);
                         startActivity(intent);
                     })
                     .setNegativeButton("Term", (dialog, which) -> {
                         Intent intent = new Intent(FlashcardPreviewActivity.this, LoadingSetActivity.class);
                         intent.putExtra("convertFromId", setId);
                         intent.putExtra("originalType", "flashcard");
-                        intent.putExtra("flashToQuizQuestionIsDefinition", false); // Term as question
+                        intent.putExtra("flashToQuizQuestionIsDefinition", false);
                         startActivity(intent);
                     })
                     .show();
         });
-
 
         cancelReminderBtn.setOnClickListener(v -> {
             AlarmHelper.cancelAlarm(this, setId);
@@ -427,7 +434,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         TextView sendToChatBtn = view.findViewById(R.id.sendToChat);
         TextView editBtn = view.findViewById(R.id.edit);
         TextView deleteBtn = view.findViewById(R.id.delete);
-        TextView reqViewBtn = view.findViewById(R.id.reqAccess);
         TextView reqEditBtn = view.findViewById(R.id.reqEdit);
 
         switch (accessLevel) {
@@ -439,7 +445,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 reminderBtn.setVisibility(View.GONE);
                 sendToChatBtn.setVisibility(View.GONE);
                 deleteBtn.setVisibility(View.GONE);
-                reqViewBtn.setVisibility(View.GONE);
                 copyBtn.setVisibility(View.VISIBLE);
                 downloadBtn.setVisibility(View.VISIBLE);
                 editBtn.setVisibility(View.VISIBLE);
@@ -452,7 +457,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 deleteBtn.setVisibility(View.GONE);
                 editBtn.setVisibility(View.GONE);
                 downloadBtn.setVisibility(View.VISIBLE);
-                reqViewBtn.setVisibility(View.GONE);
                 copyBtn.setVisibility(View.VISIBLE);
                 reqEditBtn.setVisibility(View.VISIBLE);
                 break;
@@ -465,7 +469,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 deleteBtn.setVisibility(View.GONE);
                 downloadBtn.setVisibility(View.GONE);
                 copyBtn.setVisibility(View.GONE);
-                reqViewBtn.setVisibility(View.VISIBLE);
                 reqEditBtn.setVisibility(View.VISIBLE);
                 break;
         }
@@ -531,11 +534,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             showDeleteConfirmationDialog();
         });
 
-        reqViewBtn.setOnClickListener(v -> {
-            if (!canNavigate()) return;
-            sendAccessRequest("Viewer");
-        });
-
         reqEditBtn.setOnClickListener(v -> {
             if (!canNavigate()) return;
             sendAccessRequest("Editor");
@@ -545,85 +543,118 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         bottomSheetDialog.show();
     }
 
+    private void showToast(String msg) {
+        if (canNavigate()) {
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void sendAccessRequest(String requestedRole) {
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null || setId == null || ownerUid == null) return;
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null || setId == null || ownerUid == null || !canNavigate()) return;
 
         String senderUid = currentUser.getUid();
 
-        db.collection("users").document(senderUid)
+        // First, check if a pending request already exists
+        db.collection("users")
+                .document(ownerUid)
+                .collection("notifications")
+                .whereEqualTo("senderId", senderUid)
+                .whereEqualTo("setId", setId)
+                .whereEqualTo("setType", "flashcard")
+                .whereEqualTo("type", "request")
+                .whereEqualTo("status", "pending")
+                .limit(1)
                 .get()
-                .addOnSuccessListener(userDoc -> {
-                    String firstName = userDoc.getString("firstName");
-                    String lastName = userDoc.getString("lastName");
-                    String senderPhoto = userDoc.getString("photoUrl") != null ? userDoc.getString("photoUrl") : "";
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!canNavigate()) return;
 
-                    String senderName = "";
-                    if (firstName != null) senderName += firstName;
-                    if (lastName != null) senderName += (senderName.isEmpty() ? "" : " ") + lastName;
-                    if (senderName.isEmpty()) senderName = "Unknown User";
+                    if (!querySnapshot.isEmpty()) {
+                        showToast("You already sent a request. Please wait for a response.");
+                        return;
+                    }
 
-                    String finalSenderName = senderName;
-
-                    db.collection("flashcards").document(setId)
+                    // Fetch sender info
+                    db.collection("users").document(senderUid)
                             .get()
-                            .addOnSuccessListener(setDoc -> {
-                                if (!setDoc.exists()) {
-                                    Toast.makeText(this, "Flashcard set not found.", Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
+                            .addOnSuccessListener(userDoc -> {
+                                if (!canNavigate()) return;
 
-                                String setTitle = setDoc.getString("title");
-                                if (setTitle == null || setTitle.isEmpty()) setTitle = "Untitled";
+                                String firstName = userDoc.getString("firstName");
+                                String lastName = userDoc.getString("lastName");
+                                String senderPhoto = userDoc.getString("photoUrl") != null ? userDoc.getString("photoUrl") : "";
 
-                                String messageText = finalSenderName + " has requested " + requestedRole.toLowerCase() +
-                                        " access to your set \"" + setTitle + "\".";
+                                String senderName = "";
+                                if (firstName != null) senderName += firstName;
+                                if (lastName != null) senderName += (senderName.isEmpty() ? "" : " ") + lastName;
+                                if (senderName.isEmpty()) senderName = "Unknown User";
 
-                                Map<String, Object> requestNotification = new HashMap<>();
-                                requestNotification.put("senderId", senderUid);
-                                requestNotification.put("senderName", finalSenderName);
-                                requestNotification.put("senderPhotoUrl", senderPhoto);
-                                requestNotification.put("setId", setId);
-                                requestNotification.put("setType", "flashcard");
-                                requestNotification.put("requestedRole", requestedRole);
-                                requestNotification.put("text", messageText);
-                                requestNotification.put("type", "request");
-                                requestNotification.put("status", "pending");
-                                requestNotification.put("timestamp", FieldValue.serverTimestamp());
+                                String finalSenderName = senderName;
 
-                                DocumentReference notifRef = db.collection("users")
-                                        .document(ownerUid)
-                                        .collection("notifications")
-                                        .document(); // auto-ID
+                                // Fetch flashcard set title
+                                db.collection("flashcards").document(setId)
+                                        .get()
+                                        .addOnSuccessListener(setDoc -> {
+                                            if (!canNavigate()) return;
 
-                                requestNotification.put("notificationId", notifRef.getId());
-
-                                notifRef.set(requestNotification)
-                                        .addOnSuccessListener(unused -> {
-                                            Toast.makeText(this, "Access request sent!", Toast.LENGTH_SHORT).show();
-                                            if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) {
-                                                bottomSheetDialog.dismiss();
+                                            if (!setDoc.exists()) {
+                                                showToast("Flashcard set not found.");
+                                                return;
                                             }
+
+                                            String setTitle = setDoc.getString("title");
+                                            if (setTitle == null || setTitle.isEmpty()) setTitle = "Untitled";
+
+                                            String messageText = finalSenderName + " has requested access to your flashcard set \"" + setTitle + "\".";
+
+                                            Map<String, Object> requestNotification = new HashMap<>();
+                                            requestNotification.put("senderId", senderUid);
+                                            requestNotification.put("senderName", finalSenderName);
+                                            requestNotification.put("senderPhotoUrl", senderPhoto);
+                                            requestNotification.put("setId", setId);
+                                            requestNotification.put("setType", "flashcard");
+                                            requestNotification.put("requestedRole", requestedRole);
+                                            requestNotification.put("text", messageText);
+                                            requestNotification.put("type", "request");
+                                            requestNotification.put("status", "pending");
+                                            requestNotification.put("timestamp", FieldValue.serverTimestamp());
+                                            requestNotification.put("read", false);
+
+                                            DocumentReference notifRef = db.collection("users")
+                                                    .document(ownerUid)
+                                                    .collection("notifications")
+                                                    .document();
+
+                                            requestNotification.put("notificationId", notifRef.getId());
+
+                                            notifRef.set(requestNotification)
+                                                    .addOnSuccessListener(unused -> {
+                                                        showToast("Access request sent!");
+                                                        if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) {
+                                                            bottomSheetDialog.dismiss();
+                                                        }
+                                                        finish();
+                                                    })
+                                                    .addOnFailureListener(e -> {
+                                                        showToast("Failed to send request.");
+                                                        Log.e(TAG, "Request send failed", e);
+                                                    });
                                         })
                                         .addOnFailureListener(e -> {
-                                            Toast.makeText(this, "Failed to send request.", Toast.LENGTH_SHORT).show();
-                                            Log.e("AccessRequest", "Firestore error", e);
+                                            showToast("Failed to fetch flashcard set.");
+                                            Log.e(TAG, "Set fetch error", e);
                                         });
-
                             })
                             .addOnFailureListener(e -> {
-                                Toast.makeText(this, "Failed to fetch flashcard set.", Toast.LENGTH_SHORT).show();
-                                Log.e("AccessRequest", "Set fetch error", e);
+                                showToast("Failed to fetch user info.");
+                                Log.e(TAG, "User fetch error", e);
                             });
-
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to fetch user info.", Toast.LENGTH_SHORT).show();
-                    Log.e("AccessRequest", "User fetch error", e);
+                    showToast("Failed to check existing requests.");
+                    Log.e(TAG, "Query error", e);
                 });
     }
-
-
 
     private void showDownloadOptionsDialog() {
         String[] options = {"Download as PDF", "Download for Offline Use"};
@@ -1170,16 +1201,13 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         db.collection("flashcards").add(copyData)
                 .addOnSuccessListener(newDocRef -> {
                     long timestamp = System.currentTimeMillis();
-                    int progress = 0; // Default value, adjust if you track specific progress
+                    int progress = 0;
 
                     Map<String, Object> ownedSetData = new HashMap<>();
                     ownedSetData.put("id", newDocRef.getId());
                     ownedSetData.put("type", "flashcard");
                     ownedSetData.put("progress", progress);
                     ownedSetData.put("lastAccessed", timestamp);
-
-                    // Optional: track where it was copied from
-                    // ownedSetData.put("copiedFrom", originalSetId); // only if you store the original ID
 
                     db.collection("users").document(userId)
                             .update("owned_sets", FieldValue.arrayUnion(ownedSetData))
@@ -1306,7 +1334,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 ownerPhotoImageView.setImageResource(R.drawable.user_profile);
             }
 
-            // Hide buttons for offline mode
             moreButton.setVisibility(View.GONE);
             saveSetBtn.setVisibility(View.GONE);
             convertBtn.setVisibility(View.GONE);
@@ -1389,7 +1416,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
                         loadOwnerProfile(ownerUid);
 
-                        // Redirect if access is not granted
                         if ("none".equalsIgnoreCase(accessLevel)) {
                             if (isRedirecting) return;
                             isRedirecting = true;

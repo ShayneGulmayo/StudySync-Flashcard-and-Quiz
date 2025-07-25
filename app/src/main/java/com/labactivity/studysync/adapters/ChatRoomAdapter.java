@@ -95,12 +95,6 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatRo
             case "set":
                 preview = "Shared a set";
                 break;
-            case "announcements":
-                preview = room.getLastMessage() != null ? room.getLastMessage() : "Welcome to StudySync!";
-                break;
-            case "request":
-                preview = room.getLastMessage() != null ? room.getLastMessage() : "Sent a request";
-                break;
             case "system":
                 preview = room.getLastMessage() != null ? room.getLastMessage() : "System update";
                 break;

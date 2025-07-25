@@ -113,7 +113,6 @@
                 android:layout_marginTop="10dp"
                 android:backgroundTint="@color/light_gray"
                 android:drawableLeft="@drawable/google_resized"
-                android:drawablePadding="20dp"
                 android:text="Login with Google"
                 android:textColor="@color/black"
                 android:textSize="16sp"

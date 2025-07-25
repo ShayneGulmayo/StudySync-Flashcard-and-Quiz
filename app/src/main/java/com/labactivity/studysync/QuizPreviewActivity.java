@@ -1,5 +1,7 @@
 package com.labactivity.studysync;
 
+import static android.content.ContentValues.TAG;
+
 import android.app.AlarmManager;
 import android.app.TimePickerDialog;
 import android.content.Context;
@@ -104,14 +106,18 @@ public class QuizPreviewActivity extends AppCompatActivity {
     private TextView quizTitleTxt, ownerUsernameTxt, itemTxt, setReminderTxt;
     private ImageView ownerProfileImage, backButton, moreButton, saveQuizBtn;
     private boolean isSaved = false;
+    private FirebaseAuth auth;
+    private BottomSheetDialog bottomSheetDialog;
+
     private FirebaseFirestore db;
-    private String quizId, photoUrl, currentReminder, accessLevel = "owner", title, ownerUid;
+    private String quizId, photoUrl, accessLevel = "owner", title, ownerUid;
     private ViewPager2 carouselViewPager;
     private SpringDotsIndicator dotsIndicator;
     private List<Quiz.Question> quizQuestions = new ArrayList<>();
     private Switch shuffleSwitch, shuffleOptionsSwitch;
     private Button startQuizBtn, cancelReminderBtn;
     private MaterialButton downloadBtn, setReminderBtn, convertBtn, shareToChatBtn;
+    private boolean isRedirecting = false;
 
 
 
@@ -145,6 +151,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
         shareToChatBtn = findViewById(R.id.shareToChat);
         setReminderTxt = findViewById(R.id.setRemindersTxt);
         cancelReminderBtn = findViewById(R.id.cancelReminderBtn);
+        auth = FirebaseAuth.getInstance();
 
         db = FirebaseFirestore.getInstance();
         photoUrl = getIntent().getStringExtra("photoUrl");
@@ -249,7 +256,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         startQuizBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, QuizViewActivity.class);
-            intent.putExtra("quizId", quizId); // required in both modes
+            intent.putExtra("quizId", quizId);
             intent.putExtra("quizTitle", title);
             intent.putExtra("photoUrl", photoUrl);
             intent.putExtra("shuffle", shuffleSwitch.isChecked());
@@ -259,9 +266,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
         });
 
     }
-
-
-
 
     @Override
     protected void onResume() {
@@ -391,27 +395,42 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
                     quizTitleTxt.setText(doc.getString("title"));
                     ownerUsernameTxt.setText(doc.getString("owner_username"));
+
                     Long items = doc.getLong("number_of_items");
                     itemTxt.setText("|  " + (items != null ? items : 0) + ((items != null && items == 1) ? " item" : " items"));
-
 
                     loadOwnerProfile(doc.getString("owner_uid"));
 
                     ownerUid = doc.getString("owner_uid");
                     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                    String currentUserId = currentUser != null ? currentUser.getUid() : null;
+                    String currentPrivacy = doc.getString("privacy") != null ? doc.getString("privacy") : "Public";
 
-                    if (currentUser != null && ownerUid != null) {
-                        if (ownerUid.equals(currentUser.getUid())) {
-                            accessLevel = "owner";
-                            saveQuizBtn.setVisibility(View.GONE);
-                            saveQuizBtn.setVisibility(View.GONE);
+                    if (ownerUid != null && currentUserId != null && ownerUid.equals(currentUserId)) {
+                        accessLevel = "Owner";
+                        saveQuizBtn.setVisibility(View.GONE);
+                    } else if ("public".equalsIgnoreCase(currentPrivacy)) {
+                        String privacyRole = doc.getString("privacyRole");
+                        if ("Editor".equalsIgnoreCase(privacyRole)) {
+                            accessLevel = "Editor";
                         } else {
-                            accessLevel = "view";
-                            saveQuizBtn.setVisibility(View.VISIBLE); // show save button for non-owner
-                            saveQuizBtn.setVisibility(View.VISIBLE);
+                            accessLevel = "Viewer";
                         }
+                        saveQuizBtn.setVisibility(View.VISIBLE);
                     } else {
-                        accessLevel = "view";
+                        Map<String, String> accessUsers = (Map<String, String>) doc.get("accessUsers");
+                        if (accessUsers != null && currentUserId != null && accessUsers.containsKey(currentUserId)) {
+                            String userRole = accessUsers.get(currentUserId);
+                            if ("Editor".equalsIgnoreCase(userRole)) {
+                                accessLevel = "Editor";
+                            } else if ("Viewer".equalsIgnoreCase(userRole)) {
+                                accessLevel = "Viewer";
+                            } else {
+                                accessLevel = "none";
+                            }
+                        } else {
+                            accessLevel = "none";
+                        }
                         saveQuizBtn.setVisibility(View.VISIBLE);
                     }
 
@@ -425,7 +444,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                             question.setChoices((List<String>) q.get("choices"));
                             question.setPhotoUrl((String) q.get("photoUrl"));
 
-
                             Object correctAnsRaw = q.get("correctAnswer");
                             if (correctAnsRaw instanceof String) {
                                 question.setCorrectAnswer((String) correctAnsRaw);
@@ -436,6 +454,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                 }
                                 question.setCorrectAnswer(String.join(", ", answerList));
                             }
+
                             quizQuestions.add(question);
                         }
 
@@ -443,8 +462,21 @@ public class QuizPreviewActivity extends AppCompatActivity {
                         carouselViewPager.setAdapter(adapter);
                         dotsIndicator.setViewPager2(carouselViewPager);
                     }
+
+                    if ("none".equalsIgnoreCase(accessLevel)) {
+                        if (isRedirecting) return;
+                        isRedirecting = true;
+                        Intent intent = new Intent(this, NoAccessActivity.class);
+                        intent.putExtra("setId", quizId);
+                        intent.putExtra("setType", "quiz");  // ✅ FIXED: Required so NoAccessActivity uses the right collection
+                        startActivity(intent);
+                        finish();
+                        return;
+                    }
+
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to load quiz data", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Failed to load quiz data", Toast.LENGTH_SHORT).show());
     }
 
     private void loadOwnerProfile(String ownerUid) {
@@ -505,31 +537,28 @@ public class QuizPreviewActivity extends AppCompatActivity {
         TextView sendToChatBtn = view.findViewById(R.id.sendToChat);
         TextView editBtn = view.findViewById(R.id.edit);
         TextView deleteBtn = view.findViewById(R.id.delete);
-        TextView reqAccessBtn = view.findViewById(R.id.reqAccess);
         TextView reqEditBtn = view.findViewById(R.id.reqEdit);
 
         switch (accessLevel) {
-            case "owner":
+            case "Owner":
                 break;
 
-            case "edit":
+            case "Editor":
                 privacyBtn.setVisibility(View.GONE);
                 reminderBtn.setVisibility(View.GONE);
                 sendToChatBtn.setVisibility(View.GONE);
                 deleteBtn.setVisibility(View.GONE);
-                reqAccessBtn.setVisibility(View.GONE);
                 copyBtn.setVisibility(View.VISIBLE);
                 downloadBtn.setVisibility(View.VISIBLE);
                 editBtn.setVisibility(View.VISIBLE);
                 break;
 
-            case "view":
+            case "Viewer":
                 privacyBtn.setVisibility(View.GONE);
                 reminderBtn.setVisibility(View.GONE);
                 sendToChatBtn.setVisibility(View.GONE);
                 deleteBtn.setVisibility(View.GONE);
                 editBtn.setVisibility(View.GONE);
-                reqAccessBtn.setVisibility(View.GONE);
                 downloadBtn.setVisibility(View.VISIBLE);
                 copyBtn.setVisibility(View.VISIBLE);
                 reqEditBtn.setVisibility(View.VISIBLE);
@@ -543,7 +572,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 deleteBtn.setVisibility(View.GONE);
                 downloadBtn.setVisibility(View.GONE);
                 copyBtn.setVisibility(View.GONE);
-                reqAccessBtn.setVisibility(View.VISIBLE);
+                reqEditBtn.setVisibility(View.VISIBLE);
                 break;
         }
 
@@ -608,86 +637,118 @@ public class QuizPreviewActivity extends AppCompatActivity {
             bottomSheetDialog.dismiss();
         });
 
-        reqAccessBtn.setOnClickListener(v -> {
-            sendAccessRequest("Viewer");
-            bottomSheetDialog.dismiss();
-        });
-
         bottomSheetDialog.show();
+    }
+    private boolean canNavigate() {
+        return !isRedirecting && !isFinishing() && !isDestroyed();
+    }
+
+    private void showToast(String msg) {
+        if (canNavigate()) {
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void sendAccessRequest(String requestedRole) {
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null || quizId == null || ownerUid == null) return;
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null || quizId == null || ownerUid == null || !canNavigate()) return;
 
         String senderUid = currentUser.getUid();
 
-        db.collection("users").document(senderUid)
+        db.collection("users")
+                .document(ownerUid)
+                .collection("notifications")
+                .whereEqualTo("senderId", senderUid)
+                .whereEqualTo("setId", quizId)
+                .whereEqualTo("setType", "quiz") // ✅ Fix this to match the quiz
+                .whereEqualTo("type", "request")
+                .whereEqualTo("status", "pending")
+                .limit(1) // ✅ Limit to 1 result for efficiency
                 .get()
-                .addOnSuccessListener(userDoc -> {
-                    String firstName = userDoc.getString("firstName");
-                    String lastName = userDoc.getString("lastName");
-                    String senderPhoto = userDoc.getString("photoUrl") != null ? userDoc.getString("photoUrl") : "";
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!canNavigate()) return;
 
-                    String senderName = "";
-                    if (firstName != null) senderName += firstName;
-                    if (lastName != null) senderName += (senderName.isEmpty() ? "" : " ") + lastName;
-                    if (senderName.isEmpty()) senderName = "Unknown User";
+                    if (!querySnapshot.isEmpty()) {
+                        showToast("You already sent a request. Please wait for a response.");
+                        return;
+                    }
 
-                    String finalSenderName = senderName;
-
-                    db.collection("quiz").document(quizId)
+                    db.collection("users").document(senderUid)
                             .get()
-                            .addOnSuccessListener(setDoc -> {
-                                if (!setDoc.exists()) {
-                                    Toast.makeText(this, "Quiz set not found.", Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
+                            .addOnSuccessListener(userDoc -> {
+                                if (!canNavigate()) return;
 
-                                String setTitle = setDoc.getString("title");
-                                if (setTitle == null || setTitle.isEmpty()) setTitle = "Untitled";
+                                String firstName = userDoc.getString("firstName");
+                                String lastName = userDoc.getString("lastName");
+                                String senderPhoto = userDoc.getString("photoUrl") != null ? userDoc.getString("photoUrl") : "";
 
-                                String messageText = finalSenderName + " has requested " + requestedRole.toLowerCase() +
-                                        " access to your set \"" + setTitle + "\".";
+                                String senderName = "";
+                                if (firstName != null) senderName += firstName;
+                                if (lastName != null) senderName += (senderName.isEmpty() ? "" : " ") + lastName;
+                                if (senderName.isEmpty()) senderName = "Unknown User";
 
-                                Map<String, Object> requestNotification = new HashMap<>();
-                                requestNotification.put("senderId", senderUid);
-                                requestNotification.put("senderName", finalSenderName);
-                                requestNotification.put("senderPhotoUrl", senderPhoto);
-                                requestNotification.put("setId", quizId);
-                                requestNotification.put("setType", "flashcard");
-                                requestNotification.put("requestedRole", requestedRole);
-                                requestNotification.put("text", messageText);
-                                requestNotification.put("type", "request");
-                                requestNotification.put("status", "pending");
-                                requestNotification.put("timestamp", FieldValue.serverTimestamp());
+                                String finalSenderName = senderName;
 
-                                DocumentReference notifRef = db.collection("users")
-                                        .document(ownerUid)
-                                        .collection("notifications")
-                                        .document(); // auto-ID
+                                db.collection("quiz").document(quizId)
+                                        .get()
+                                        .addOnSuccessListener(setDoc -> {
+                                            if (!canNavigate()) return;
 
-                                requestNotification.put("notificationId", notifRef.getId());
+                                            if (!setDoc.exists()) {
+                                                showToast("Set not found.");
+                                                return;
+                                            }
 
-                                notifRef.set(requestNotification)
-                                        .addOnSuccessListener(unused -> {
-                                            Toast.makeText(this, "Access request sent!", Toast.LENGTH_SHORT).show();
+                                            String setTitle = setDoc.getString("title");
+                                            if (setTitle == null || setTitle.isEmpty()) setTitle = "Untitled";
+
+                                            String messageText = finalSenderName + " has requested access to your set \"" + setTitle + "\".";
+
+                                            Map<String, Object> requestNotification = new HashMap<>();
+                                            requestNotification.put("senderId", senderUid);
+                                            requestNotification.put("senderName", finalSenderName);
+                                            requestNotification.put("senderPhotoUrl", senderPhoto);
+                                            requestNotification.put("setId", quizId);
+                                            requestNotification.put("setType", "quiz"); // ✅ Correct setType
+                                            requestNotification.put("requestedRole", requestedRole);
+                                            requestNotification.put("text", messageText);
+                                            requestNotification.put("type", "request");
+                                            requestNotification.put("status", "pending");
+                                            requestNotification.put("timestamp", FieldValue.serverTimestamp());
+                                            requestNotification.put("read", false);
+
+                                            DocumentReference notifRef = db.collection("users")
+                                                    .document(ownerUid)
+                                                    .collection("notifications")
+                                                    .document();
+
+                                            requestNotification.put("notificationId", notifRef.getId());
+
+                                            notifRef.set(requestNotification)
+                                                    .addOnSuccessListener(unused -> {
+                                                        showToast("Access request sent!");
+                                                        if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) {
+                                                            bottomSheetDialog.dismiss();
+                                                        }
+                                                    })
+                                                    .addOnFailureListener(e -> {
+                                                        showToast("Failed to send request.");
+                                                        Log.e(TAG, "Request send failed", e);
+                                                    });
                                         })
                                         .addOnFailureListener(e -> {
-                                            Toast.makeText(this, "Failed to send request.", Toast.LENGTH_SHORT).show();
-                                            Log.e("AccessRequest", "Firestore error", e);
+                                            showToast("Failed to fetch set.");
+                                            Log.e(TAG, "Set fetch error", e);
                                         });
-
                             })
                             .addOnFailureListener(e -> {
-                                Toast.makeText(this, "Failed to fetch quiz set.", Toast.LENGTH_SHORT).show();
-                                Log.e("AccessRequest", "Set fetch error", e);
+                                showToast("Failed to fetch user info.");
+                                Log.e(TAG, "User fetch error", e);
                             });
-
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to fetch user info.", Toast.LENGTH_SHORT).show();
-                    Log.e("AccessRequest", "User fetch error", e);
+                    showToast("Failed to check existing requests.");
+                    Log.e(TAG, "Query error", e);
                 });
     }
 
@@ -715,7 +776,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                 quizCopy.put("owner_username", username);
                                 quizCopy.put("created_at", Timestamp.now());
                                 quizCopy.put("privacy", "private");
-                                quizCopy.put("privacyRole", "view");
+                                quizCopy.put("privacyRole", "Viewer");
                                 quizCopy.put("progress", 0);
                                 quizCopy.put("number_of_items", originalData.get("number_of_items"));
                                 quizCopy.put("accessUsers", Collections.singletonMap(userId, "Owner"));

@@ -2,6 +2,7 @@ package com.labactivity.studysync.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -35,7 +37,7 @@ public class HomeFragment extends Fragment {
 
     private TextView userGreetingTxt;
     private ImageView profileImage, notifBtn;
-    private View flashcardsCard, quizzesCard, chatRoomsCard, browseCard;
+    private View flashcardsCard, quizzesCard, chatRoomsCard, browseCard, notifIndicator;
 
     private EditText searchView;
     private RecyclerView continueRecyclerView;
@@ -44,6 +46,8 @@ public class HomeFragment extends Fragment {
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private String currentUserId;
+
+
 
     @Nullable
     @Override
@@ -64,8 +68,16 @@ public class HomeFragment extends Fragment {
         continueRecyclerView = view.findViewById(R.id.continueRecyclerView);
         searchView = view.findViewById(R.id.searchView);
         notifBtn = view.findViewById(R.id.notifBtn);
+        notifIndicator = view.findViewById(R.id.notifIndicator);
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Log.e("HomeFragment", "User not logged in");
+            return;
+        }
 
-        currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        currentUserId = currentUser.getUid();
+        checkUnreadNotifications(); // Safe to call after user check
+
 
         setupGreeting();
         setupProfileImage();
@@ -80,6 +92,35 @@ public class HomeFragment extends Fragment {
             startActivity(new Intent(requireContext(), NotificationsActivity.class));
         } );
     }
+
+    private void checkUnreadNotifications() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Log.e("HomeFragment", "User is not logged in.");
+            return;
+        }
+
+        String uid = currentUser.getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("users").document(uid)
+                .collection("notifications")
+                .whereEqualTo("read", false)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    int unreadCount = queryDocumentSnapshots.size();
+                    if (isAdded()) {
+                        if (unreadCount > 0) {
+                            notifIndicator.setVisibility(View.VISIBLE); // 👈 Show the indicator
+                        } else {
+                            notifIndicator.setVisibility(View.GONE); // 👈 Hide it if all are read
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> Log.e("HomeFragment", "Error checking notifications", e));
+    }
+
+
 
     private void setupGreeting() {
         db.collection("users").document(currentUserId)

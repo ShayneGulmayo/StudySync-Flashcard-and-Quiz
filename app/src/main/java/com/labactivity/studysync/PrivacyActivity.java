@@ -72,8 +72,10 @@ public class PrivacyActivity extends AppCompatActivity {
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         setId = getIntent().getStringExtra("setId");
         if (setId == null) setId = getIntent().getStringExtra("quizId");
+
         setType = getIntent().getStringExtra("setType");
         if (setType == null) setType = "flashcards";
+
     }
 
     private void initAdapters() {

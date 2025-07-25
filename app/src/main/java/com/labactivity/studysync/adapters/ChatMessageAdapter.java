@@ -64,8 +64,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     private static final int VIEW_TYPE_FILE_CURRENT_USER = 5;
     private static final int VIEW_TYPE_FILE_OTHER_USER = 6;
     private static final int VIEW_TYPE_SHARED_SET_CURRENT_USER = 7;
-    private static final int VIEW_TYPE_ANNOUNCEMENTS = 8;
-    private static final int VIEW_TYPE_REQUEST_MESSAGE = 9;
+
 
     private final String currentUserId;
 
@@ -78,8 +77,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     public int getItemViewType(int position) {
         ChatMessage message = getItem(position);
         if ("system".equals(message.getType())) return VIEW_TYPE_SYSTEM_MESSAGE;
-        if ("announcements".equals(message.getType())) return VIEW_TYPE_ANNOUNCEMENTS;
-        if ("request".equals(message.getType())) return VIEW_TYPE_REQUEST_MESSAGE;
         if ("set".equals(message.getType())) {
             return message.getSenderId().equals(currentUserId) ? VIEW_TYPE_SHARED_SET_CURRENT_USER : VIEW_TYPE_SHARED_SET;
         }
@@ -108,10 +105,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 return new FileCurrentUserViewHolder(inflater.inflate(R.layout.item_file_message_current_user, parent, false));
             case VIEW_TYPE_FILE_OTHER_USER:
                 return new FileOtherUserViewHolder(inflater.inflate(R.layout.item_file_message_other_user, parent, false));
-            case VIEW_TYPE_ANNOUNCEMENTS:
-                return new AnnouncementViewHolder(inflater.inflate(R.layout.item_chat_message_other_user, parent, false));
-            case VIEW_TYPE_REQUEST_MESSAGE:
-                return new RequestMessageViewHolder(inflater.inflate(R.layout.item_chat_message_other_user, parent, false));
             default:
                 throw new IllegalArgumentException("Invalid view type");
         }
@@ -134,10 +127,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             ((FileCurrentUserViewHolder) holder).bind(message);
         } else if (holder instanceof FileOtherUserViewHolder) {
             ((FileOtherUserViewHolder) holder).bind(message);
-        } else if (holder instanceof AnnouncementViewHolder) {
-            ((AnnouncementViewHolder) holder).bind(message);
-        } else if (holder instanceof RequestMessageViewHolder) {
-            ((RequestMessageViewHolder) holder).bind(message);
         }
     }
 
@@ -733,310 +722,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
         public void bind(ChatMessage message) {
             systemMessageText.setText(message.getText());
-        }
-    }
-
-    static class AnnouncementViewHolder extends RecyclerView.ViewHolder {
-        TextView messageText, senderName, timestampText;
-        ImageView senderImage, imageView, videoPreview;
-        Button viewSetButton;
-        boolean timestampVisible = false;
-
-        private final FirebaseFirestore db = FirebaseFirestore.getInstance();
-        private final FirebaseAuth auth = FirebaseAuth.getInstance();
-
-        public AnnouncementViewHolder(@NonNull View itemView) {
-            super(itemView);
-            messageText = itemView.findViewById(R.id.messageText);
-            senderName = itemView.findViewById(R.id.senderName);
-            senderImage = itemView.findViewById(R.id.senderImage);
-            timestampText = itemView.findViewById(R.id.timestampText);
-            imageView = itemView.findViewById(R.id.imageView);
-            videoPreview = itemView.findViewById(R.id.videoPreview);
-            viewSetButton = itemView.findViewById(R.id.viewSetButton);
-
-            messageText.setOnClickListener(v -> {
-                timestampVisible = !timestampVisible;
-                timestampText.setVisibility(timestampVisible ? View.VISIBLE : View.GONE);
-            });
-        }
-
-        public void bind(ChatMessage message) {
-            messageText.setText(message.getText());
-
-            if (message.getTimestamp() != null) {
-                timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
-            } else {
-                timestampText.setText("");
-            }
-            timestampText.setVisibility(View.GONE);
-            senderName.setVisibility(View.GONE);
-
-            if (message.getSenderPhotoUrl() != null && !message.getSenderPhotoUrl().isEmpty()) {
-                Glide.with(itemView.getContext())
-                        .load(message.getSenderPhotoUrl())
-                        .placeholder(R.drawable.studysync_logo)
-                        .into(senderImage);
-            } else {
-                senderImage.setImageResource(R.drawable.studysync_logo);
-            }
-
-            if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
-                imageView.setVisibility(View.VISIBLE);
-                Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
-            } else {
-                imageView.setVisibility(View.GONE);
-            }
-
-            videoPreview.setVisibility(View.GONE);
-
-            // 🌟 View Set Button Logic
-            String setId = message.getSetId();
-            String setType = message.getSetType();
-            String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
-
-            if (setId != null && setType != null && currentUid != null
-                    && ("added".equals(message.getAction()) || "role_changed".equals(message.getAction()))) {
-
-                db.collection(setType.equals("quiz") ? "quiz" : "flashcards")
-                        .document(setId)
-                        .addSnapshotListener((snapshot, error) -> {
-                            if (error != null || snapshot == null || !snapshot.exists()) {
-                                viewSetButton.setVisibility(View.GONE);
-                                return;
-                            }
-
-                            Map<String, Object> accessUsers = (Map<String, Object>) snapshot.get("accessUsers");
-                            if (accessUsers != null && accessUsers.containsKey(currentUid)) {
-                                viewSetButton.setVisibility(View.VISIBLE);
-
-                                viewSetButton.setOnClickListener(v -> {
-                                    Context context = itemView.getContext();
-                                    Intent intent;
-                                    if (setType.equals("quiz")) {
-                                        intent = new Intent(context, QuizPreviewActivity.class);
-                                        intent.putExtra("quizId", setId);
-                                    } else {
-                                        intent = new Intent(context, FlashcardPreviewActivity.class);
-                                        intent.putExtra("setId", setId);
-                                    }
-                                    context.startActivity(intent);
-                                });
-                            } else {
-                                viewSetButton.setVisibility(View.GONE);
-                            }
-                        });
-            }
-
-        }
-    }
-
-    static class RequestMessageViewHolder extends RecyclerView.ViewHolder {
-        TextView messageText, senderName, timestampText;
-        ImageView senderImage, imageView, videoPreview;
-        LinearLayout buttonHolder;
-        Button viewSetButton, acceptButton, deniedButton;
-        boolean timestampVisible = false;
-
-        private final FirebaseFirestore db = FirebaseFirestore.getInstance();
-        private final FirebaseAuth auth = FirebaseAuth.getInstance();
-
-        public RequestMessageViewHolder(@NonNull View itemView) {
-            super(itemView);
-            messageText = itemView.findViewById(R.id.messageText);
-            senderName = itemView.findViewById(R.id.senderName);
-            senderImage = itemView.findViewById(R.id.senderImage);
-            timestampText = itemView.findViewById(R.id.timestampText);
-            imageView = itemView.findViewById(R.id.imageView);
-            videoPreview = itemView.findViewById(R.id.videoPreview);
-            viewSetButton = itemView.findViewById(R.id.viewSetButton);
-            buttonHolder = itemView.findViewById(R.id.button_holder);
-            acceptButton = itemView.findViewById(R.id.accept_btn);
-            deniedButton = itemView.findViewById(R.id.denied_btn);
-
-            messageText.setOnClickListener(v -> {
-                timestampVisible = !timestampVisible;
-                timestampText.setVisibility(timestampVisible ? View.VISIBLE : View.GONE);
-            });
-        }
-
-        public void bind(ChatMessage message) {
-            messageText.setText(message.getText());
-
-            if (message.getTimestamp() != null) {
-                timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
-            } else {
-                timestampText.setText("");
-            }
-            timestampText.setVisibility(View.GONE);
-            senderName.setVisibility(View.GONE);
-
-            if (message.getSenderPhotoUrl() != null && !message.getSenderPhotoUrl().isEmpty()) {
-                Glide.with(itemView.getContext())
-                        .load(message.getSenderPhotoUrl())
-                        .placeholder(R.drawable.studysync_logo)
-                        .into(senderImage);
-            } else {
-                senderImage.setImageResource(R.drawable.studysync_logo);
-            }
-
-            if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
-                imageView.setVisibility(View.VISIBLE);
-                Glide.with(itemView.getContext()).load(message.getImageUrl()).into(imageView);
-            } else {
-                imageView.setVisibility(View.GONE);
-            }
-
-            videoPreview.setVisibility(View.GONE);
-
-            if ("request".equalsIgnoreCase(message.getType())) {
-                buttonHolder.setVisibility(View.VISIBLE);
-
-                if ("accepted".equalsIgnoreCase(message.getStatus())) {
-                    viewSetButton.setVisibility(View.VISIBLE);
-                    acceptButton.setVisibility(View.GONE);
-                    deniedButton.setVisibility(View.GONE);
-
-                    viewSetButton.setOnClickListener(v -> {
-                        Intent intent;
-                        if ("flashcard".equalsIgnoreCase(message.getSetType())) {
-                            intent = new Intent(itemView.getContext(), FlashcardPreviewActivity.class);
-                        } else if ("quiz".equalsIgnoreCase(message.getSetType())) {
-                            intent = new Intent(itemView.getContext(), QuizPreviewActivity.class);
-                        } else {
-                            Toast.makeText(itemView.getContext(), "Unknown set type", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                        intent.putExtra("setId", message.getSetId());
-                        itemView.getContext().startActivity(intent);
-                    });
-
-                } else {
-                    viewSetButton.setVisibility(View.GONE);
-                    acceptButton.setVisibility(View.VISIBLE);
-                    deniedButton.setVisibility(View.VISIBLE);
-
-                    acceptButton.setOnClickListener(v -> {
-                        acceptButton.setEnabled(false);
-                        deniedButton.setVisibility(View.GONE);
-
-                        String currentUserUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
-                        if (currentUserUid == null || message.getSetId() == null || message.getSenderId() == null) return;
-
-                        String collection = message.getSetType().equals("flashcard") ? "flashcards" : "quiz";
-                        DocumentReference setRef = db.collection(collection).document(message.getSetId());
-
-                        setRef.update("accessUsers." + message.getSenderId(), message.getRequestedRole())
-                                .addOnSuccessListener(unused -> setRef.get().addOnSuccessListener(snapshot -> {
-                                    String setTitle = snapshot.contains("title") ? snapshot.getString("title") : "Untitled";
-                                    String responseText = "Your request to have " + message.getRequestedRole() +
-                                            " access to the set \"" + setTitle + "\" has been accepted by the owner.";
-
-                                    sendSystemMessageToUser(
-                                            message.getSenderId(),
-                                            responseText,
-                                            message.getSetId(),
-                                            message.getSetType(),
-                                            message.getRequestedRole()
-                                    );
-
-                                    if (message.getMessageId() != null) {
-                                        db.collection("chat_rooms")
-                                                .document("studysync_announcements")
-                                                .collection("users")
-                                                .document(currentUserUid)
-                                                .collection("messages")
-                                                .document(message.getMessageId())
-                                                .update("status", "accepted")
-                                                .addOnSuccessListener(aVoid -> {
-                                                    acceptButton.setText("Accepted");
-                                                    acceptButton.setEnabled(false);
-                                                    deniedButton.setVisibility(View.GONE);
-                                                    viewSetButton.setVisibility(View.VISIBLE);
-                                                });
-                                    }
-                                }));
-                    });
-
-                    deniedButton.setOnClickListener(v -> {
-                        deniedButton.setEnabled(false);
-                        acceptButton.setVisibility(View.GONE);
-                        viewSetButton.setVisibility(View.GONE);
-
-                        String currentUserUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
-                        if (currentUserUid == null || message.getSetId() == null || message.getSenderId() == null) return;
-
-                        String collection = message.getSetType().equals("flashcard") ? "flashcards" : "quiz";
-                        DocumentReference setRef = db.collection(collection).document(message.getSetId());
-
-                        setRef.get().addOnSuccessListener(snapshot -> {
-                            if (!snapshot.exists()) return;
-
-                            Map<String, Object> updates = new HashMap<>();
-                            updates.put("accessUsers." + message.getSenderId(), FieldValue.delete());
-
-                            setRef.update(updates).addOnSuccessListener(unused -> {
-                                String setTitle = snapshot.contains("title") ? snapshot.getString("title") : "Untitled";
-                                String denialText = "Your request to have " + message.getRequestedRole() +
-                                        " access to the set \"" + setTitle + "\" has been denied by the owner.";
-
-                                sendSystemMessageToUser(
-                                        message.getSenderId(),
-                                        denialText,
-                                        message.getSetId(),
-                                        message.getSetType(),
-                                        message.getRequestedRole()
-                                );
-
-                                if (message.getMessageId() != null) {
-                                    db.collection("chat_rooms")
-                                            .document("studysync_announcements")
-                                            .collection("users")
-                                            .document(currentUserUid)
-                                            .collection("messages")
-                                            .document(message.getMessageId())
-                                            .update("status", "denied")
-                                            .addOnSuccessListener(aVoid -> {
-                                                deniedButton.setText("Denied");
-                                                deniedButton.setEnabled(false);
-                                                acceptButton.setVisibility(View.GONE);
-                                                viewSetButton.setVisibility(View.GONE);
-                                            });
-                                }
-                            });
-                        });
-                    });
-
-                }
-
-            } else {
-                buttonHolder.setVisibility(View.GONE);
-            }
-        }
-
-        private void sendSystemMessageToUser(String recipientUid, String text, String setId, String setType, String requestedRole) {
-            if (recipientUid == null || recipientUid.isEmpty()) return;
-
-            Map<String, Object> systemMessage = new HashMap<>();
-            systemMessage.put("type", "text");
-            systemMessage.put("text", text);
-            systemMessage.put("senderId", "system");
-            systemMessage.put("senderName", "StudySync System");
-            systemMessage.put("senderPhotoUrl", "");
-            systemMessage.put("timestamp", new Timestamp(new Date()));
-            systemMessage.put("setId", setId);
-            systemMessage.put("setType", setType);
-            systemMessage.put("requestedRole", requestedRole);
-
-            db.collection("chat_rooms")
-                    .document("studysync_announcements")
-                    .collection("users")
-                    .document(recipientUid)
-                    .collection("messages")
-                    .add(systemMessage)
-                    .addOnSuccessListener(unused -> Log.d("SystemMessage", "Message sent to requester"))
-                    .addOnFailureListener(e -> Log.e("SystemMessage", "Failed: " + e.getMessage()));
         }
     }
 

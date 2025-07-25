@@ -13,6 +13,8 @@ public class NotificationModel {
     private String requestedRole;
     private String status; // "pending", "accepted", "denied", "read"
     private Timestamp timestamp;
+    private String setTitle;
+    private boolean read;
 
     public NotificationModel() {}
 
@@ -47,4 +49,11 @@ public class NotificationModel {
 
     public Timestamp getTimestamp() { return timestamp; }
     public void setTimestamp(Timestamp timestamp) { this.timestamp = timestamp; }
+
+    public String getSetTitle() { return setTitle; }
+    public void setSetTitle(String setTitle) { this.setTitle = setTitle;}
+
+    public boolean isRead() { return read; }
+    public void setRead(boolean read) { this.read = read; }
+
 }

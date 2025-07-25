@@ -89,83 +89,8 @@ public class ChatFragment extends Fragment {
             }
         });
 
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-        db.collection("chat_rooms")
-                .document("studysync_announcements")
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (!documentSnapshot.exists()) {
-                        // Create system chat room only if it doesn't exist
-                        Map<String, Object> chatRoomData = new HashMap<>();
-                        chatRoomData.put("id", "studysync_announcements");
-                        chatRoomData.put("chatRoomName", "StudySync System");
-                        chatRoomData.put("type", "announcements");
-                        chatRoomData.put("createdAt", Timestamp.now());
-                        chatRoomData.put("access", "public");
-                        chatRoomData.put("allowReplies", false);
-                        chatRoomData.put("photoUrl", ""); // replace with your logo URL
-                        chatRoomData.put("description", "Official StudySync Announcements");
-
-                        db.collection("chat_rooms")
-                                .document("studysync_announcements")
-                                .set(chatRoomData)
-                                .addOnSuccessListener(aVoid -> {
-                                    Log.d("ChatRoom", "System room created");
-                                    sendSystemWelcomeMessage();
-                                })
-                                .addOnFailureListener(e -> Log.e("ChatRoom", "Failed to create system room: " + e.getMessage()));
-                    } else {
-                        // Even if room exists, ensure current user gets the welcome message
-                        sendSystemWelcomeMessage();
-                    }
-                })
-                .addOnFailureListener(e -> Log.e("ChatRoom", "Error checking system room: " + e.getMessage()));
-
         return view;
     }
-
-    private void sendSystemWelcomeMessage() {
-        String userId = getCurrentUserId();
-        if (userId == null) return;
-
-        DocumentReference userDocRef = db.collection("chat_rooms")
-                .document("studysync_announcements")
-                .collection("users")
-                .document(userId);
-
-        userDocRef.set(Collections.singletonMap("joinedAt", Timestamp.now()), SetOptions.merge())
-                .addOnSuccessListener(aVoid -> {
-                    DocumentReference messageRef = db.collection("chat_rooms")
-                            .document("studysync_announcements")
-                            .collection("users")
-                            .document(userId)
-                            .collection("messages")
-                            .document("welcome_notes");
-
-
-                    messageRef.get().addOnSuccessListener(doc -> {
-                        if (!doc.exists()) {
-                            Map<String, Object> messageData = new HashMap<>();
-                            messageData.put("senderId", "system");
-                            messageData.put("senderName", "StudySync System");
-                            messageData.put("text", "🎉 Welcome to StudySync! Stay tuned for announcements here.");
-                            messageData.put("timestamp", Timestamp.now());
-                            messageData.put("type", "announcements");
-
-                            messageRef.set(messageData)
-                                    .addOnSuccessListener(aVoid2 ->
-                                            Log.d("SystemMsg", "Welcome message sent"))
-                                    .addOnFailureListener(e ->
-                                            Log.e("SystemMsg", "Failed to send: " + e.getMessage()));
-                        } else {
-                            Log.d("SystemMsg", "Message already exists");
-                        }
-                    });
-                })
-                .addOnFailureListener(e -> Log.e("SystemMsg", "Failed to create user doc: " + e.getMessage()));
-    }
-
 
     @Override
     public void onResume() {
@@ -207,13 +132,11 @@ public class ChatFragment extends Fragment {
                 .whereArrayContains("members", getCurrentUserId())
                 .get());
 
-        tasks.add(db.collection("chat_rooms")
-                .whereEqualTo("access", "public")
-                .get());
-
         Tasks.whenAllSuccess(tasks)
                 .addOnSuccessListener(results -> {
                     Set<String> seenRoomIds = new HashSet<>();
+                    List<ChatRoom> tempRooms = new ArrayList<>();
+                    List<Task<QuerySnapshot>> messageTasks = new ArrayList<>();
 
                     for (Object result : results) {
                         if (result instanceof QuerySnapshot) {
@@ -222,81 +145,49 @@ public class ChatFragment extends Fragment {
                                 if (room == null) continue;
 
                                 room.setId(doc.getId());
-
                                 if (seenRoomIds.contains(room.getId())) continue;
                                 seenRoomIds.add(room.getId());
 
-                                if ("studysync_announcements".equals(room.getId())) {
-                                    db.collection("chat_rooms")
-                                            .document("studysync_announcements")
-                                            .collection("users")
-                                            .document(getCurrentUserId())
-                                            .collection("messages")
-                                            .whereIn("type", Arrays.asList("request", "announcements"))
-                                            .orderBy("timestamp", Query.Direction.DESCENDING)
-                                            .limit(1)
-                                            .get()
-                                            .addOnSuccessListener(snapshot -> {
-                                                Log.d("SystemRoomLoad", "Fetched message count: " + snapshot.size());
+                                tempRooms.add(room);
 
-                                                if (!snapshot.isEmpty()) {
-                                                    DocumentSnapshot msg = snapshot.getDocuments().get(0);
-                                                    room.setLastMessage(msg.getString("text"));
-                                                    room.setLastMessageSender(msg.getString("senderName"));
-                                                    room.setLastMessageSenderId(msg.getString("senderId"));
-                                                    Timestamp ts = msg.getTimestamp("timestamp");
-                                                    if (ts != null) room.setLastMessageTimestamp(ts.toDate());
+                                Task<QuerySnapshot> messageTask = doc.getReference()
+                                        .collection("messages")
+                                        .orderBy("timestamp", Query.Direction.DESCENDING)
+                                        .limit(1)
+                                        .get()
+                                        .addOnSuccessListener(msgSnap -> {
+                                            if (!msgSnap.isEmpty()) {
+                                                DocumentSnapshot msg = msgSnap.getDocuments().get(0);
+                                                room.setLastMessage(msg.getString("text"));
+                                                room.setLastMessageSender(msg.getString("senderName"));
+                                                room.setLastMessageSenderId(msg.getString("senderId"));
+                                                Timestamp ts = msg.getTimestamp("timestamp");
+                                                if (ts != null) room.setLastMessageTimestamp(ts.toDate());
+                                            }
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e("ChatFragment", "Failed to load message: " + e.getMessage());
+                                        });
 
-                                                    // Optional: store message type for adapter
-                                                    room.setLastMessageType(msg.getString("type"));
-                                                }
-
-                                                updateChatRoom(room);
-                                                sortAndDisplay();
-                                            })
-                                            .addOnFailureListener(e -> {
-                                                Log.e("ChatFragment", "Failed to load system message: " + e.getMessage());
-                                                updateChatRoom(room);
-                                                sortAndDisplay();
-                                            });
-
-                                } else {
-                                    doc.getReference()
-                                            .collection("messages")
-                                            .orderBy("timestamp", Query.Direction.DESCENDING)
-                                            .limit(1)
-                                            .get()
-                                            .addOnSuccessListener(msgSnap -> {
-                                                if (!msgSnap.isEmpty()) {
-                                                    DocumentSnapshot msg = msgSnap.getDocuments().get(0);
-                                                    room.setLastMessage(msg.getString("text"));
-                                                    room.setLastMessageSender(msg.getString("senderName"));
-                                                    room.setLastMessageSenderId(msg.getString("senderId"));
-                                                    Timestamp ts = msg.getTimestamp("timestamp");
-                                                    if (ts != null) room.setLastMessageTimestamp(ts.toDate());
-                                                }
-
-                                                updateChatRoom(room);
-                                                sortAndDisplay();
-                                            })
-                                            .addOnFailureListener(e -> {
-                                                Log.e("ChatFragment", "Failed to load message: " + e.getMessage());
-                                                updateChatRoom(room);
-                                                sortAndDisplay();
-                                            });
-                                }
+                                messageTasks.add(messageTask);
                             }
                         }
                     }
 
-                    progressBar.setVisibility(View.GONE);
+                    Tasks.whenAllComplete(messageTasks)
+                            .addOnCompleteListener(task -> {
+                                for (ChatRoom room : tempRooms) {
+                                    updateChatRoom(room);
+                                }
+                                sortAndDisplay();
+                                progressBar.setVisibility(View.GONE);
+                            });
                 })
                 .addOnFailureListener(e -> {
                     Log.e("ChatFragment", "Failed to load chat rooms: " + e.getMessage());
                     progressBar.setVisibility(View.GONE);
                 });
     }
-
 
     private void checkIfAllRoomsProcessed(int processed, int total) {
         if (processed >= total) {

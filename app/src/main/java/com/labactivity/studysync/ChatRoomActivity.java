@@ -636,53 +636,18 @@
                                     .into(chatRoomPhoto);
                         }
 
-                        String roomType = doc.getString("type");
-                        boolean isSystemRoom = "announcements".equalsIgnoreCase(roomType);
-
-                        TextView systemNoticeText = findViewById(R.id.systemNoticeText);
-                        ImageButton sendButton = findViewById(R.id.sendMessage);
-                        ImageView moreBtn = findViewById(R.id.chatRoomSettings);
-
-                        messageEditText.setVisibility(isSystemRoom ? View.GONE : View.VISIBLE);
-                        sendFlashcardsandQuiz.setVisibility(isSystemRoom ? View.GONE : View.VISIBLE);
-                        sendImg.setVisibility(isSystemRoom ? View.GONE : View.VISIBLE);
-                        moreBtn.setVisibility(isSystemRoom ? View.GONE : View.VISIBLE);
-                        sendButton.setVisibility(isSystemRoom ? View.GONE : View.VISIBLE);
-                        systemNoticeText.setVisibility(isSystemRoom ? View.VISIBLE : View.GONE);
-
-                        if (isSystemRoom) {
-                            db.collection("chat_rooms")
-                                    .document(roomId)
-                                    .collection("users")
-                                    .document(currentUser.getUid())
-                                    .get()
-                                    .addOnSuccessListener(userDoc -> {
-                                        if (!userDoc.exists()) {
-                                            Toast.makeText(this, "Access Denied (System Room)", Toast.LENGTH_SHORT).show();
-                                            finish();
-                                        } else {
-                                            onSuccess.run();
-                                        }
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        Toast.makeText(this, "Failed to verify access", Toast.LENGTH_SHORT).show();
-                                        finish();
-                                    });
-
-                        } else {
-                            Object membersObj = doc.get("members");
-                            if (membersObj instanceof List) {
-                                memberUids = (List<String>) membersObj;
-                                if (!memberUids.contains(currentUser.getUid())) {
-                                    Toast.makeText(this, "Access Denied", Toast.LENGTH_SHORT).show();
-                                    finish();
-                                } else {
-                                    onSuccess.run();
-                                }
-                            } else {
-                                Toast.makeText(this, "Invalid members list", Toast.LENGTH_SHORT).show();
+                        Object membersObj = doc.get("members");
+                        if (membersObj instanceof List) {
+                            memberUids = (List<String>) membersObj;
+                            if (!memberUids.contains(currentUser.getUid())) {
+                                Toast.makeText(this, "Access Denied", Toast.LENGTH_SHORT).show();
                                 finish();
+                            } else {
+                                onSuccess.run();
                             }
+                        } else {
+                            Toast.makeText(this, "Invalid members list", Toast.LENGTH_SHORT).show();
+                            finish();
                         }
                     })
                     .addOnFailureListener(e -> {
