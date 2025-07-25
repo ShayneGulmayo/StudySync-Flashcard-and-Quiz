@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Filter;
@@ -129,6 +130,19 @@ public class SetAdapter extends RecyclerView.Adapter<SetAdapter.ViewHolder> impl
         }
 
         holder.privacyIcon.setImageResource("Private".equalsIgnoreCase(set.getPrivacy()) ? R.drawable.lock : R.drawable.public_icon);
+
+        holder.itemView.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(120).start();
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start();
+                    break;
+            }
+            return false; // allows click to still work
+        });
 
         holder.itemView.setOnClickListener(v -> listener.onFlashcardSetClick(set));
 
