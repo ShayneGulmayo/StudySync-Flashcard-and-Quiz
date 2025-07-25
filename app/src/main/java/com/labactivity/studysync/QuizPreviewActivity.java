@@ -5,7 +5,7 @@ import static android.content.ContentValues.TAG;
 import android.app.AlarmManager;
 import android.app.TimePickerDialog;
 import android.content.Context;
-
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -16,24 +16,9 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.drawable.Drawable;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Environment;
-
-import com.bumptech.glide.request.FutureTarget;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.transition.Transition;
-import com.google.android.gms.tasks.Task;
-import com.google.android.gms.tasks.Tasks;
-import com.google.common.reflect.TypeToken;
-import com.google.firebase.firestore.FieldValue;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
-import com.google.gson.Gson;
-
-import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
@@ -54,72 +39,85 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.FutureTarget;
+
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
+
+import com.google.common.reflect.TypeToken;
+
+import com.google.gson.Gson;
+
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.DocumentReference;
+
 import com.labactivity.studysync.adapters.QuizCarouselAdapter;
 import com.labactivity.studysync.helpers.AlarmHelper;
 import com.labactivity.studysync.models.Quiz;
+
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
-import com.google.firebase.firestore.DocumentReference;
 
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Calendar;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 import java.lang.reflect.Type;
+
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-
-
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.viewpager2.widget.ViewPager2;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class QuizPreviewActivity extends AppCompatActivity {
 
     private TextView quizTitleTxt, ownerUsernameTxt, itemTxt, setReminderTxt;
     private ImageView ownerProfileImage, backButton, moreButton, saveQuizBtn;
-    private boolean isSaved = false;
-    private FirebaseAuth auth;
-    private BottomSheetDialog bottomSheetDialog;
-
-    private FirebaseFirestore db;
-    private String quizId, photoUrl, accessLevel = "owner", title, ownerUid;
-    private ViewPager2 carouselViewPager;
-    private SpringDotsIndicator dotsIndicator;
-    private List<Quiz.Question> quizQuestions = new ArrayList<>();
-    private Switch shuffleSwitch, shuffleOptionsSwitch;
     private Button startQuizBtn, cancelReminderBtn;
     private MaterialButton downloadBtn, setReminderBtn, convertBtn, shareToChatBtn;
+    private Switch shuffleSwitch, shuffleOptionsSwitch;
+    private SpringDotsIndicator dotsIndicator;
+
+    private ViewPager2 carouselViewPager;
+    private BottomSheetDialog bottomSheetDialog;
+
+    private String currentUserId, quizId, photoUrl, title, ownerUid;
+    private String accessLevel = "owner";
+
     private boolean isRedirecting = false;
+    private boolean isSaved = false;
+    private boolean isPublic = false;
 
+    private FirebaseAuth auth;
+    private FirebaseFirestore db;
 
+    private List<Quiz.Question> quizQuestions = new ArrayList<>();
+    private Map<String, String> accessUsers = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,11 +150,13 @@ public class QuizPreviewActivity extends AppCompatActivity {
         setReminderTxt = findViewById(R.id.setRemindersTxt);
         cancelReminderBtn = findViewById(R.id.cancelReminderBtn);
         auth = FirebaseAuth.getInstance();
+        currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         db = FirebaseFirestore.getInstance();
         photoUrl = getIntent().getStringExtra("photoUrl");
         title = "Review set";
         quizId = getIntent().getStringExtra("quizId");
+        accessUsers = new HashMap<>();
 
         boolean isOffline = getIntent().getBooleanExtra("isOffline", false);
         String fileName = getIntent().getStringExtra("offlineFileName");
@@ -198,8 +198,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to fetch set title.", Toast.LENGTH_SHORT).show();
                 });
-
-
 
         saveQuizBtn.setOnClickListener(v -> toggleSaveState());
 
@@ -381,9 +379,10 @@ public class QuizPreviewActivity extends AppCompatActivity {
         }
     }
 
-
-
     private void loadQuizData(String quizId) {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        String currentUserId = currentUser != null ? currentUser.getUid() : null;
+
         db.collection("quiz").document(quizId)
                 .get()
                 .addOnSuccessListener(doc -> {
@@ -399,39 +398,43 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     Long items = doc.getLong("number_of_items");
                     itemTxt.setText("|  " + (items != null ? items : 0) + ((items != null && items == 1) ? " item" : " items"));
 
-                    loadOwnerProfile(doc.getString("owner_uid"));
-
                     ownerUid = doc.getString("owner_uid");
-                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-                    String currentUserId = currentUser != null ? currentUser.getUid() : null;
+                    loadOwnerProfile(ownerUid);
+
                     String currentPrivacy = doc.getString("privacy") != null ? doc.getString("privacy") : "Public";
+                    String privacyRole = doc.getString("privacyRole");
+
+                    Map<String, String> accessUsers = (Map<String, String>) doc.get("accessUsers");
+                    String userRole = (accessUsers != null && currentUserId != null) ? accessUsers.get(currentUserId) : null;
 
                     if (ownerUid != null && currentUserId != null && ownerUid.equals(currentUserId)) {
                         accessLevel = "Owner";
                         saveQuizBtn.setVisibility(View.GONE);
-                    } else if ("public".equalsIgnoreCase(currentPrivacy)) {
-                        String privacyRole = doc.getString("privacyRole");
-                        if ("Editor".equalsIgnoreCase(privacyRole)) {
-                            accessLevel = "Editor";
-                        } else {
-                            accessLevel = "Viewer";
-                        }
-                        saveQuizBtn.setVisibility(View.VISIBLE);
                     } else {
-                        Map<String, String> accessUsers = (Map<String, String>) doc.get("accessUsers");
-                        if (accessUsers != null && currentUserId != null && accessUsers.containsKey(currentUserId)) {
-                            String userRole = accessUsers.get(currentUserId);
+
+                        if ("Public".equalsIgnoreCase(currentPrivacy)) {
                             if ("Editor".equalsIgnoreCase(userRole)) {
                                 accessLevel = "Editor";
                             } else if ("Viewer".equalsIgnoreCase(userRole)) {
                                 accessLevel = "Viewer";
                             } else {
+                                accessLevel = "Editor".equalsIgnoreCase(privacyRole) ? "Editor" : "Viewer";
+                            }
+                            saveQuizBtn.setVisibility(View.VISIBLE);
+                        } else {
+                            if (userRole != null) {
+                                if ("Editor".equalsIgnoreCase(userRole)) {
+                                    accessLevel = "Editor";
+                                } else if ("Viewer".equalsIgnoreCase(userRole)) {
+                                    accessLevel = "Viewer";
+                                } else {
+                                    accessLevel = "none";
+                                }
+                            } else {
                                 accessLevel = "none";
                             }
-                        } else {
-                            accessLevel = "none";
+                            saveQuizBtn.setVisibility(View.VISIBLE);
                         }
-                        saveQuizBtn.setVisibility(View.VISIBLE);
                     }
 
                     List<Map<String, Object>> questionList = (List<Map<String, Object>>) doc.get("questions");
@@ -468,10 +471,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
                         isRedirecting = true;
                         Intent intent = new Intent(this, NoAccessActivity.class);
                         intent.putExtra("setId", quizId);
-                        intent.putExtra("setType", "quiz");  // ✅ FIXED: Required so NoAccessActivity uses the right collection
+                        intent.putExtra("setType", "quiz");
                         startActivity(intent);
                         finish();
-                        return;
                     }
 
                 })
@@ -539,6 +541,13 @@ public class QuizPreviewActivity extends AppCompatActivity {
         TextView deleteBtn = view.findViewById(R.id.delete);
         TextView reqEditBtn = view.findViewById(R.id.reqEdit);
 
+        if ("Viewer".equals(accessLevel) && isPublic && accessUsers != null && currentUserId != null) {
+            String roleInMap = accessUsers.get(currentUserId);
+            if ("Editor".equals(roleInMap)) {
+                accessLevel = "Editor";
+            }
+        }
+
         switch (accessLevel) {
             case "Owner":
                 break;
@@ -551,6 +560,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 copyBtn.setVisibility(View.VISIBLE);
                 downloadBtn.setVisibility(View.VISIBLE);
                 editBtn.setVisibility(View.VISIBLE);
+                reqEditBtn.setVisibility(View.GONE);
                 break;
 
             case "Viewer":
@@ -660,10 +670,10 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 .collection("notifications")
                 .whereEqualTo("senderId", senderUid)
                 .whereEqualTo("setId", quizId)
-                .whereEqualTo("setType", "quiz") // ✅ Fix this to match the quiz
+                .whereEqualTo("setType", "quiz")
                 .whereEqualTo("type", "request")
                 .whereEqualTo("status", "pending")
-                .limit(1) // ✅ Limit to 1 result for efficiency
+                .limit(1)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     if (!canNavigate()) return;
@@ -709,7 +719,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                             requestNotification.put("senderName", finalSenderName);
                                             requestNotification.put("senderPhotoUrl", senderPhoto);
                                             requestNotification.put("setId", quizId);
-                                            requestNotification.put("setType", "quiz"); // ✅ Correct setType
+                                            requestNotification.put("setType", "quiz");
                                             requestNotification.put("requestedRole", requestedRole);
                                             requestNotification.put("text", messageText);
                                             requestNotification.put("type", "request");
@@ -769,7 +779,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                 Map<String, Object> originalData = originalSnapshot.getData();
                                 if (originalData == null) return;
 
-                                // Prepare base copy data
                                 Map<String, Object> quizCopy = new HashMap<>();
                                 quizCopy.put("title", originalData.get("title") + " (Copy)");
                                 quizCopy.put("owner_uid", userId);
@@ -830,7 +839,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                                 }
                                             }
 
-                                            // Add to owned_sets
                                             Map<String, Object> ownedSetEntry = new HashMap<>();
                                             ownedSetEntry.put("id", newQuizId);
                                             ownedSetEntry.put("type", "quiz");
@@ -882,16 +890,13 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 .collection("quiz_attempt")
                 .get()
                 .addOnSuccessListener(userAttempts -> {
-                    // Delete all user attempts under quiz_attempt
                     for (DocumentSnapshot userAttempt : userAttempts.getDocuments()) {
                         userAttempt.getReference().delete();
                     }
 
-                    // Delete the quiz document itself
                     db.collection("quiz").document(quizId)
                             .delete()
                             .addOnSuccessListener(aVoid -> {
-                                // 🔄 Remove from owned_sets under user document
                                 DocumentReference userRef = db.collection("users").document(userId);
 
                                 userRef.get().addOnSuccessListener(userDoc -> {
@@ -901,7 +906,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                         while (iterator.hasNext()) {
                                             Map<String, Object> item = iterator.next();
                                             if (quizId.equals(item.get("id"))) {
-                                                iterator.remove(); // delete match
+                                                iterator.remove();
                                                 break;
                                             }
                                         }
@@ -916,7 +921,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                                     finish();
                                                 });
                                     } else {
-                                        // No owned_sets field found, just finish
                                         Toast.makeText(this, "Quiz deleted.", Toast.LENGTH_SHORT).show();
                                         finish();
                                     }
@@ -958,9 +962,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 .setTitle("Download Options")
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
-                        downloadOfflinePdf(quizId);  // Implement this method
+                        downloadOfflinePdf(quizId);
                     } else if (which == 1) {
-                        downloadQuiz();              // Implement this method
+                        downloadQuiz();
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -984,15 +988,14 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
                     for (Map<String, Object> question : questions) {
                         if (!question.containsKey("selectedAnswer")) {
-                            question.put("selectedAnswer", ""); // ← ensure key exists for offline
+                            question.put("selectedAnswer", "");
                         }
                     }
 
-                    // ✅ Use the correct fields
                     String username = documentSnapshot.getString("owner_username");
 
                     if (username != null) {
-                        setData.put("username", username); // Save for offline display
+                        setData.put("username", username);
                     }
 
                     List<Task<Void>> imageTasks = new ArrayList<>();
@@ -1038,8 +1041,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     e.printStackTrace();
                 });
     }
-
-
 
     private void saveSetOffline(Map<String, Object> setData, String id) {
         File dir = getFilesDir();
@@ -1106,9 +1107,8 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     question.setChoices((List<String>) q.get("choices"));
                     question.setCorrectAnswer(q.get("correctAnswers"));
 
-                    // 👇 Include image info
-                    question.setPhotoUrl((String) q.get("photoUrl"));             // online URL
-                    question.setLocalPhotoPath((String) q.get("localPhotoPath")); // offline local file path
+                    question.setPhotoUrl((String) q.get("photoUrl"));
+                    question.setLocalPhotoPath((String) q.get("localPhotoPath"));
 
                     questionList.add(question);
                 }
@@ -1136,7 +1136,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
 
     private void downloadOfflinePdf(String quizId) {
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
@@ -1196,7 +1195,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
             for (int i = 0; i < questions.size(); i++) {
                 Quiz.Question q = questions.get(i);
 
-                // Image (First)
                 if (!TextUtils.isEmpty(q.getPhotoUrl())) {
                     try {
                         URL url = new URL(q.getPhotoUrl());
@@ -1224,7 +1222,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     }
                 }
 
-                // Question Text
                 String questionTypeRaw = q.getType();
                 String questionType = questionTypeRaw.substring(0, 1).toUpperCase() + questionTypeRaw.substring(1).toLowerCase();
                 String questionLine = "Q" + (i + 1) + ": " + q.getQuestion();
@@ -1238,7 +1235,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 drawWrappedText(canvas, questionLine, 40, 500, yPosition, paint);
                 yPosition += 30;
 
-                // Choices (if not enumeration)
                 if (!"enumeration".equalsIgnoreCase(questionType) && q.getChoices() != null) {
                     drawWrappedText(canvas, "Options:", 40, 500, yPosition, paint);
                     yPosition += 25;
@@ -1252,7 +1248,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
                 yPosition += 15;
 
-                // Correct Answer
                 if ("enumeration".equalsIgnoreCase(questionType)) {
                     drawWrappedText(canvas, "✔️ Answer:", 40, 500, yPosition, paint);
                     yPosition += 25;
@@ -1265,7 +1260,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     yPosition += 25;
                 }
 
-                // Extra spacing before next question
                 yPosition += 30;
 
                 if (yPosition > 750) {
@@ -1301,7 +1295,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
         });
     }
 
-
     public static Bitmap getRoundedCornerBitmap(Bitmap bitmap, int cornerRadius) {
         Bitmap output = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(output);
@@ -1318,7 +1311,6 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         return output;
     }
-
 
     private void drawWrappedText(Canvas canvas, String text, float x, int maxWidth, int startY, Paint paint) {
         TextPaint textPaint = new TextPaint(paint);
@@ -1403,7 +1395,4 @@ public class QuizPreviewActivity extends AppCompatActivity {
             saveQuizBtn.setImageResource(R.drawable.bookmark);
         }
     }
-
-
 }
-

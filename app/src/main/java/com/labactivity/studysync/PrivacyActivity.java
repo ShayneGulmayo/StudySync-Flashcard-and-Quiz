@@ -1,7 +1,6 @@
 package com.labactivity.studysync;
 
 import android.annotation.SuppressLint;
-import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -9,16 +8,21 @@ import android.widget.ImageView;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.*;
+
 import com.labactivity.studysync.adapters.PrivacyUserAdapter;
 import com.labactivity.studysync.models.User;
 import com.labactivity.studysync.models.UserWithRole;
+
 import java.util.*;
 
 @SuppressLint("MissingInflatedId")
@@ -27,17 +31,18 @@ public class PrivacyActivity extends AppCompatActivity {
     private ImageView backButton, checkButton, privacyIcon;
     private TextView privacyTxt, roleTxt, titleTxt;
     private SearchView searchView;
-    private RecyclerView selectedRecyclerView, searchResultsRecycler;
 
-    private boolean accessChecked = false;
+    private RecyclerView selectedRecyclerView, searchResultsRecycler;
+    private PrivacyUserAdapter selectedAdapter, searchAdapter;
+
+    private String setId, currentUserId, setType;
     private boolean isPublic = true;
+
     private final List<UserWithRole> selectedUserList = new ArrayList<>();
     private final List<User> allUsers = new ArrayList<>();
     private final List<User> searchResults = new ArrayList<>();
 
-    private PrivacyUserAdapter selectedAdapter, searchAdapter;
     private FirebaseFirestore db;
-    private String setId, currentUserId, setType;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,7 +86,6 @@ public class PrivacyActivity extends AppCompatActivity {
             markNotificationAsRead();
         }
     }
-
 
     private void initAdapters() {
         selectedRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -165,6 +169,7 @@ public class PrivacyActivity extends AppCompatActivity {
             }
         });
     }
+
     private String getCollectionName() {
         return "quiz".equals(setType) ? "quiz" : "flashcards";
     }
@@ -181,7 +186,6 @@ public class PrivacyActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> titleTxt.setText("Untitled"));
     }
 
-
     private void loadSetPrivacy() {
         db.collection(getCollectionName()).document(setId)
                 .get()
@@ -189,7 +193,7 @@ public class PrivacyActivity extends AppCompatActivity {
                     String privacy = doc.getString("privacy");
                     String privacyRole = doc.getString("privacyRole");
 
-                    isPublic = "public".equals(privacy);
+                    isPublic = "Public".equals(privacy);
                     if (isPublic) {
                         roleTxt.setText(!TextUtils.isEmpty(privacyRole) ? capitalize(privacyRole) : "Viewer");
                     } else {
@@ -258,6 +262,7 @@ public class PrivacyActivity extends AppCompatActivity {
                 }
             }
         }
+
         searchAdapter.notifyDataSetChanged();
         searchResultsRecycler.setVisibility(searchResults.isEmpty() ? View.GONE : View.VISIBLE);
     }
@@ -276,7 +281,7 @@ public class PrivacyActivity extends AppCompatActivity {
             }
 
             Map<String, Object> data = new HashMap<>();
-            data.put("privacy", isPublic ? "public" : "private");
+            data.put("privacy", isPublic ? "Public" : "Private");
             data.put("privacyRole", isPublic ? roleTxt.getText().toString().toLowerCase() : null);
 
             Map<String, String> newAccessMap = new HashMap<>();
@@ -293,10 +298,8 @@ public class PrivacyActivity extends AppCompatActivity {
                             String oldRole = oldAccessMap.get(uid);
 
                             if (!oldAccessMap.containsKey(uid)) {
-                                // Newly added user
                                 sendAccessNotification(uid, "added", newRole);
                             } else if (!newRole.equals(oldRole)) {
-                                // Role changed
                                 sendAccessNotification(uid, "role_changed", newRole);
                             }
                         }
@@ -307,14 +310,12 @@ public class PrivacyActivity extends AppCompatActivity {
                             }
                         }
 
-
                         Toast.makeText(this, "Privacy settings saved.", Toast.LENGTH_SHORT).show();
                         finish();
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show());
         });
     }
-
 
     private boolean containsUser(User user) {
         for (UserWithRole u : selectedUserList)
@@ -383,7 +384,7 @@ public class PrivacyActivity extends AppCompatActivity {
                     DocumentReference notifDoc = db.collection("users")
                             .document(toUserId)
                             .collection("notifications")
-                            .document(); // Auto-ID
+                            .document();
 
                     notificationData.put("notificationId", notifDoc.getId());
 
@@ -408,14 +409,6 @@ public class PrivacyActivity extends AppCompatActivity {
                 .document(currentUserId)
                 .collection("notifications")
                 .document(notificationId)
-                .update("read", true)
-                .addOnSuccessListener(aVoid -> {
-                    // Optional: Notification marked as read
-                })
-                .addOnFailureListener(e -> {
-                    // Optional: Handle error
-                });
+                .update("read", true);
     }
-
-
 }

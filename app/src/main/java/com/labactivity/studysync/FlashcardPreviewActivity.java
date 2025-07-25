@@ -88,19 +88,24 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private ImageView ownerPhotoImageView, backButton, moreButton, saveSetBtn;
     private Button startFlashcardBtn, cancelReminderBtn, convertBtn;
     private MaterialButton downloadBtn, setReminderBtn, shareToChatBtn;
+    private SpringDotsIndicator dotsIndicator;
+
     private LinearLayout linearLayout;
     private ViewPager2 carouselViewPager;
+
     private String currentPrivacy, setId, offlineFileName, ownerUid, userId, title;
     private String accessLevel = "none";
-    private SpringDotsIndicator dotsIndicator;
-    private FirebaseFirestore db;
-    private FirebaseAuth auth;
-    private BottomSheetDialog bottomSheetDialog;
-    private AlertDialog deleteConfirmationDialog;
+
     private boolean isSaved = false;
     private boolean isDownloaded = false;
     private boolean isRedirecting = false;
     private boolean isOffline;
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
+
+    private BottomSheetDialog bottomSheetDialog;
+    private AlertDialog deleteConfirmationDialog;
+
     private final ArrayList<Flashcard> flashcards = new ArrayList<>();
     private Map<String, Object> setData;
 
@@ -243,11 +248,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         ownerTextView.setOnClickListener(v -> openUserProfile());
         ownerPhotoImageView.setOnClickListener(v -> openUserProfile());
-
         backButton.setOnClickListener(v -> { finish(); });
-
         saveSetBtn.setOnClickListener(view -> toggleSaveState());
-
         moreButton.setOnClickListener(v -> showMoreBottomSheet());
 
         startFlashcardBtn.setOnClickListener(v -> {
@@ -448,6 +450,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 copyBtn.setVisibility(View.VISIBLE);
                 downloadBtn.setVisibility(View.VISIBLE);
                 editBtn.setVisibility(View.VISIBLE);
+                reqEditBtn.setVisibility(View.GONE);
                 break;
 
             case "Viewer":
@@ -555,7 +558,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         String senderUid = currentUser.getUid();
 
-        // First, check if a pending request already exists
         db.collection("users")
                 .document(ownerUid)
                 .collection("notifications")
@@ -574,7 +576,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // Fetch sender info
                     db.collection("users").document(senderUid)
                             .get()
                             .addOnSuccessListener(userDoc -> {
@@ -591,7 +592,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
                                 String finalSenderName = senderName;
 
-                                // Fetch flashcard set title
                                 db.collection("flashcards").document(setId)
                                         .get()
                                         .addOnSuccessListener(setDoc -> {
@@ -1368,29 +1368,34 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                         if (ownerUid != null && currentUserId != null && ownerUid.equals(currentUserId)) {
                             accessLevel = "Owner";
                             saveSetBtn.setVisibility(View.GONE);
-                        } else if ("public".equalsIgnoreCase(currentPrivacy)) {
-                            String privacyRole = documentSnapshot.getString("privacyRole");
-                            if ("Editor".equalsIgnoreCase(privacyRole)) {
-                                accessLevel = "Editor";
-                            } else {
-                                accessLevel = "Viewer";
-                            }
-                            saveSetBtn.setVisibility(View.VISIBLE);
                         } else {
                             Map<String, String> accessUsers = (Map<String, String>) documentSnapshot.get("accessUsers");
-                            if (accessUsers != null && currentUserId != null && accessUsers.containsKey(currentUserId)) {
-                                String userRole = accessUsers.get(currentUserId);
+                            String userRole = (accessUsers != null && currentUserId != null) ? accessUsers.get(currentUserId) : null;
+
+                            if ("Public".equalsIgnoreCase(currentPrivacy)) {
                                 if ("Editor".equalsIgnoreCase(userRole)) {
                                     accessLevel = "Editor";
                                 } else if ("Viewer".equalsIgnoreCase(userRole)) {
                                     accessLevel = "Viewer";
                                 } else {
+                                    String privacyRole = documentSnapshot.getString("privacyRole");
+                                    accessLevel = "Editor".equalsIgnoreCase(privacyRole) ? "Editor" : "Viewer";
+                                }
+                                saveSetBtn.setVisibility(View.VISIBLE);
+                            } else {
+                                if (userRole != null) {
+                                    if ("Editor".equalsIgnoreCase(userRole)) {
+                                        accessLevel = "Editor";
+                                    } else if ("Viewer".equalsIgnoreCase(userRole)) {
+                                        accessLevel = "Viewer";
+                                    } else {
+                                        accessLevel = "none";
+                                    }
+                                } else {
                                     accessLevel = "none";
                                 }
-                            } else {
-                                accessLevel = "none";
+                                saveSetBtn.setVisibility(View.VISIBLE);
                             }
-                            saveSetBtn.setVisibility(View.VISIBLE);
                         }
 
                         if (numberOfItems != null) {
