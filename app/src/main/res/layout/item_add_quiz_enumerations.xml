@@ -11,7 +11,7 @@
         android:id="@+id/enumeration_number"
         android:layout_width="30dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="10dp"
+        android:layout_marginEnd="18dp"
         android:gravity="center"
         android:text="1"
         android:textColor="@color/black"
@@ -35,11 +35,13 @@
         <EditText
             android:id="@+id/edit_option_text"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="wrap_content"
             android:layout_marginBottom="5dp"
             android:gravity="top|start"
             android:inputType="textMultiLine"
             android:maxLines="6"
+            android:minHeight="50dp"
+            android:minLines="1"
             android:paddingStart="20dp"
             android:paddingEnd="20dp"
             android:textColor="@color/black"
@@ -52,8 +54,9 @@
         android:layout_width="30dp"
         android:layout_height="30dp"
         android:layout_marginStart="10dp"
+        android:backgroundTint="#00FFFFFF"
         android:contentDescription="Delete Option"
         android:rotation="45"
         android:src="@drawable/add_circle_resized"
-        android:tint="@color/warning" />
+        app:tint="@color/warning" />
 </LinearLayout>

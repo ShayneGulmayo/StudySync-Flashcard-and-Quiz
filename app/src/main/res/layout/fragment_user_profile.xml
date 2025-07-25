@@ -78,6 +78,7 @@
             android:layout_width="300dp"
             android:layout_height="60dp"
             android:layout_marginTop="20dp"
+            android:layout_marginBottom="5dp"
             android:text="Your Settings"
             android:textAlignment="textStart"
             android:textColor="@color/primary"
@@ -92,10 +93,12 @@
             app:strokeColor="@color/primary"
             app:strokeWidth="2dp"
             tools:ignore="RtlCompat" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/notifBtn"
             android:layout_width="300dp"
             android:layout_height="60dp"
+            android:layout_marginBottom="5dp"
             android:text="Notifications"
             android:textAlignment="textStart"
             android:textColor="@color/primary"
@@ -115,6 +118,7 @@
             android:id="@+id/downloadedSetBtn"
             android:layout_width="300dp"
             android:layout_height="60dp"
+            android:layout_marginBottom="5dp"
             android:text="Downloaded Sets"
             android:textAlignment="textStart"
             android:textColor="@color/primary"

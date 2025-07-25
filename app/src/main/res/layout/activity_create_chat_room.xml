@@ -50,6 +50,7 @@
         android:background="@drawable/custom_edittxt"
         android:hint="Chat Room Name"
         android:padding="10dp"
+        android:paddingStart="20dp"
         android:textColor="@color/black"
         android:textColorHint="@color/text_gray"
         app:layout_constraintEnd_toEndOf="parent"

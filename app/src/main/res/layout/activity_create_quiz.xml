@@ -133,7 +133,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="top|start"
                     android:inputType="textMultiLine|textCapSentences"
-                    android:maxLines="4"
+                    android:maxLines="2"
                     android:minLines="1"
                     android:padding="12dp"
                     android:scrollHorizontally="false"

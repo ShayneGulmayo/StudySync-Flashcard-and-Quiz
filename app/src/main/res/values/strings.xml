@@ -108,13 +108,15 @@
     <string name="flashcards">Flashcards</string>
     <string name="show_filter">Show Filters</string>
     <string name="hide_filter">Hide Filters</string>
-    <string name="search_hint">Search users, flashcards, or quizzes...</string>
+    <string name="search_hint">Search users, cards, or quizzes...</string>
     <string name="info_page_1">1. There are two types of questions:\n🟩 Multiple Choice – Select one correct answer\n🟨 Enumeration – Fill in one or more correct answers</string>
     <string name="info_page_2">2. Answers are checked instantly. To proceed, you must submit an answer, even if you\'re unsure.\nCorrect answers will be shown right after submission.</string>
     <string name="info_page_3">3. Answer colors matter:\n🟥 Red = Incorrect\n🟩 Green = Correct</string>
     <string name="info_page_4">4. Enumeration is scored strictly to help reinforce memorization of item lists.\nPartial credit is given only when applicable.</string>
     <string name="info_page_5">5. This is a one-way quiz — you can\'t go back to previous questions once answered.\nYou may restart the quiz anytime, just note that your progress will reset.</string>
     <string name="select_time_prompt">Select seconds per question</string>
+    <string name="no_notifs">No New Notifications</string>
+
 
 </resources>
 
