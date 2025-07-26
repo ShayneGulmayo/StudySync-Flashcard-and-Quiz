@@ -65,7 +65,7 @@
         android:layout_marginBottom="10dp"
         android:gravity="center"
         android:orientation="horizontal"
-        android:visibility="visible"
+        android:visibility="gone"
         android:weightSum="3">
 
         <com.google.android.material.button.MaterialButton
@@ -79,8 +79,8 @@
             android:maxLines="1"
             android:text="@string/people"
             android:textAllCaps="false"
-            app:autoSizeMinTextSize="10sp"
             android:textSize="14sp"
+            app:autoSizeMinTextSize="10sp"
             app:cornerRadius="15dp" />
 
         <com.google.android.material.button.MaterialButton
@@ -95,8 +95,8 @@
             android:maxLines="1"
             android:text="@string/quizzes"
             android:textAllCaps="false"
-            app:autoSizeMinTextSize="10sp"
             android:textSize="14sp"
+            app:autoSizeMinTextSize="10sp"
             app:cornerRadius="15dp" />
 
         <com.google.android.material.button.MaterialButton
@@ -111,8 +111,8 @@
             android:maxLines="1"
             android:text="@string/flashcards"
             android:textAllCaps="false"
-            app:autoSizeMinTextSize="10sp"
             android:textSize="14sp"
+            app:autoSizeMinTextSize="10sp"
             app:autoSizeTextType="uniform"
             app:cornerRadius="15dp" />
     </LinearLayout>
