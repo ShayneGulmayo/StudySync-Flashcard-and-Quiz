@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.format.DateUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,13 +62,14 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             holder.timeStampAgo.setText(timeAgo);
         }
 
-        boolean isRequest = "request".equals(model.getType());
+        boolean isInviteOrRequest = "request".equals(model.getType()) || "invite".equals(model.getType());
         boolean isHandled = !"pending".equals(model.getStatus());
 
-        holder.acceptBtn.setVisibility(isRequest && !isHandled ? View.VISIBLE : View.GONE);
-        holder.denyBtn.setVisibility(isRequest && !isHandled ? View.VISIBLE : View.GONE);
+        holder.acceptBtn.setVisibility(isInviteOrRequest && !isHandled ? View.VISIBLE : View.GONE);
+        holder.denyBtn.setVisibility(isInviteOrRequest && !isHandled ? View.VISIBLE : View.GONE);
         holder.allowedIndicator.setVisibility("accepted".equals(model.getStatus()) ? View.VISIBLE : View.GONE);
         holder.deniedIndicator.setVisibility("denied".equals(model.getStatus()) ? View.VISIBLE : View.GONE);
+
 
         holder.acceptBtn.setOnClickListener(v -> showConfirmationDialog(model, true));
         holder.denyBtn.setOnClickListener(v -> showConfirmationDialog(model, false));
@@ -137,7 +139,9 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
 
     private void handleAccess(NotificationModel notif, boolean isAccept) {
         String newStatus = isAccept ? "accepted" : "denied";
+        String collection = "flashcard".equals(notif.getSetType()) ? "flashcards" : "quiz";
 
+        // Update the current user's notification status
         DocumentReference notifRef = db.collection("users")
                 .document(currentUserId)
                 .collection("notifications")
@@ -148,34 +152,80 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
                     notif.setStatus(newStatus);
                     notifyDataSetChanged();
 
-                    if (isAccept) {
-                        String collection = "flashcard".equals(notif.getSetType()) ? "flashcards" : "quiz";
-                        db.collection(collection).document(notif.getSetId())
-                                .update("accessUsers." + notif.getSenderId(), notif.getRequestedRole());
+                    DocumentReference setRef = db.collection(collection).document(notif.getSetId());
+
+                    if (isAccept && notif.getRequestedRole() != null) {
+                        // Change role from Temporary View to Editor
+                        setRef.update("accessUsers." + currentUserId, "Editor")
+                                .addOnSuccessListener(unused2 -> Log.d("handleAccess", "Role updated to Editor"))
+                                .addOnFailureListener(e -> Log.e("handleAccess", "Failed to promote to Editor", e));
+
+                        DocumentReference userRef = db.collection("users").document(currentUserId);
+                        Map<String, Object> savedSet = new HashMap<>();
+                        savedSet.put("id", notif.getSetId());
+                        savedSet.put("type", notif.getSetType());
+
+                        userRef.update("saved_sets", FieldValue.arrayUnion(savedSet))
+                                .addOnSuccessListener(unused3 -> Log.d("handleAccess", "Set added to saved_sets"))
+                                .addOnFailureListener(e -> Log.e("handleAccess", "Failed to add set to saved_sets", e));
+
+                    } else if (!isAccept) {
+                        // Remove user from accessUsers
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("accessUsers." + currentUserId, FieldValue.delete());
+
+                        setRef.update(updates)
+                                .addOnSuccessListener(unused2 -> Log.d("handleAccess", "User removed from accessUsers"))
+                                .addOnFailureListener(e -> Log.e("handleAccess", "Failed to remove user from accessUsers", e));
                     }
 
-                    String collection = "flashcard".equals(notif.getSetType()) ? "flashcards" : "quiz";
+
+                    // Fetch the set title to use in the response message
                     db.collection(collection).document(notif.getSetId())
                             .get()
                             .addOnSuccessListener(setSnap -> {
                                 String title = setSnap.getString("title");
-                                if (title == null) title = notif.getSetTitle();
+                                if (title == null || title.isEmpty()) {
+                                    title = notif.getSetTitle(); // fallback
+                                }
 
                                 Map<String, Object> reply = new HashMap<>();
                                 reply.put("setId", notif.getSetId());
                                 reply.put("setType", notif.getSetType());
-                                reply.put("text", "Your request to have access as \"" + notif.getRequestedRole() + " in " + title + "\" has been " + newStatus + ".");
                                 reply.put("timestamp", FieldValue.serverTimestamp());
+                                reply.put("read", false);
                                 reply.put("type", "info");
-                                reply.put("read", false); // Mark reply as unread
 
-                                db.collection("users")
-                                        .document(notif.getSenderId())
-                                        .collection("notifications")
-                                        .add(reply);
-                            });
-                });
+                                // Determine if it was an invitation or a request
+                                boolean wasInvite = "invite".equals(notif.getType());
+                                String role = notif.getRequestedRole();
+
+                                if (wasInvite) {
+                                    // Receiver (current user) was invited
+                                    reply.put("text", "Your invitation to " + notif.getReceiverName() +
+                                            " to be an \"" + role + "\" in \"" + title + "\" was " + newStatus + ".");
+                                    // Send reply to the sender (the one who invited)
+                                    db.collection("users")
+                                            .document(notif.getSenderId())
+                                            .collection("notifications")
+                                            .add(reply)
+                                            .addOnFailureListener(e -> Log.e("handleAccess", "Failed to send reply to inviter", e));
+                                } else {
+                                    // Sender (requesting user) will get reply
+                                    reply.put("text", "Your request to have access as \"" + role + "\" in \"" +
+                                            title + "\" has been " + newStatus + ".");
+                                    db.collection("users")
+                                            .document(notif.getSenderId())
+                                            .collection("notifications")
+                                            .add(reply)
+                                            .addOnFailureListener(e -> Log.e("handleAccess", "Failed to send reply to requester", e));
+                                }
+                            })
+                            .addOnFailureListener(e -> Log.e("handleAccess", "Failed to fetch set title", e));
+                })
+                .addOnFailureListener(e -> Log.e("handleAccess", "Failed to update notification status", e));
     }
+
 
     @Override
     public int getItemCount() {

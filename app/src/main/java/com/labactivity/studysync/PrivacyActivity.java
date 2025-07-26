@@ -284,28 +284,54 @@ public class PrivacyActivity extends AppCompatActivity {
             data.put("privacy", isPublic ? "Public" : "Private");
             data.put("privacyRole", isPublic ? roleTxt.getText().toString().toLowerCase() : null);
 
-            Map<String, String> newAccessMap = new HashMap<>();
+            Map<String, String> accessUsers = new HashMap<>();
+            Map<String, String> pendingRoles = new HashMap<>();
+
             for (UserWithRole uwr : selectedUserList) {
-                String role = uwr.getUser().getUid().equals(currentUserId) ? "Owner" : uwr.getRole();
-                newAccessMap.put(uwr.getUser().getUid(), role);
+                String uid = uwr.getUser().getUid();
+                String selectedRole = uwr.getRole();
+
+                if (uid.equals(currentUserId)) {
+                    accessUsers.put(uid, "Owner");
+                } else {
+                    if ("Editor".equals(selectedRole)) {
+                        accessUsers.put(uid, "Viewer"); // TEMPORARY ROLE
+                        pendingRoles.put(uid, "Editor"); // Intended editor
+                    } else {
+                        accessUsers.put(uid, selectedRole);
+                    }
+                }
             }
-            data.put("accessUsers", newAccessMap);
+
+            data.put("accessUsers", accessUsers);
+            if (!pendingRoles.isEmpty()) {
+                data.put("pendingRoles", pendingRoles);
+            } else {
+                data.put("pendingRoles", FieldValue.delete());
+            }
 
             db.collection(getCollectionName()).document(setId).update(data)
                     .addOnSuccessListener(aVoid -> {
-                        for (String uid : newAccessMap.keySet()) {
-                            String newRole = newAccessMap.get(uid);
+                        // Notify additions or role changes
+                        for (String uid : accessUsers.keySet()) {
+                            String actualRole = accessUsers.get(uid);
                             String oldRole = oldAccessMap.get(uid);
 
+                            // Use pending editor role for notification if applicable
+                            String intendedRole = pendingRoles.containsKey(uid)
+                                    ? pendingRoles.get(uid)
+                                    : actualRole;
+
                             if (!oldAccessMap.containsKey(uid)) {
-                                sendAccessNotification(uid, "added", newRole);
-                            } else if (!newRole.equals(oldRole)) {
-                                sendAccessNotification(uid, "role_changed", newRole);
+                                sendAccessNotification(uid, "added", intendedRole);
+                            } else if (!actualRole.equals(oldRole)) {
+                                sendAccessNotification(uid, "role_changed", intendedRole);
                             }
                         }
 
+                        // Notify removals
                         for (String uid : oldAccessMap.keySet()) {
-                            if (!newAccessMap.containsKey(uid)) {
+                            if (!accessUsers.containsKey(uid)) {
                                 sendAccessNotification(uid, "removed", oldAccessMap.get(uid));
                             }
                         }
@@ -313,9 +339,12 @@ public class PrivacyActivity extends AppCompatActivity {
                         Toast.makeText(this, "Privacy settings saved.", Toast.LENGTH_SHORT).show();
                         finish();
                     })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                    .addOnFailureListener(e ->
+                            Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_SHORT).show());
         });
     }
+
+
 
     private boolean containsUser(User user) {
         for (UserWithRole u : selectedUserList)
@@ -343,63 +372,98 @@ public class PrivacyActivity extends AppCompatActivity {
     private void sendAccessNotification(String toUserId, String action, String role) {
         if (toUserId.equals(currentUserId)) return;
 
-        db.collection("users")
-                .document(currentUserId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    String fullName = currentUserId;
-                    if (documentSnapshot.exists()) {
-                        String firstName = documentSnapshot.getString("firstName");
-                        String lastName = documentSnapshot.getString("lastName");
-                        fullName = (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
-                        fullName = fullName.trim();
+        // Use final wrapper arrays to store mutable names
+        final String[] senderName = {currentUserId};
+        final String[] receiverName = {toUserId};
+
+        db.collection("users").document(currentUserId).get()
+                .addOnSuccessListener(senderSnapshot -> {
+                    if (senderSnapshot.exists()) {
+                        String firstName = senderSnapshot.getString("firstName");
+                        String lastName = senderSnapshot.getString("lastName");
+                        senderName[0] = (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+                        senderName[0] = senderName[0].trim();
                     }
 
-                    String setTitle = titleTxt.getText().toString();
-                    String messageText = "";
+                    db.collection("users").document(toUserId).get()
+                            .addOnSuccessListener(receiverSnapshot -> {
+                                if (receiverSnapshot.exists()) {
+                                    String firstName = receiverSnapshot.getString("firstName");
+                                    String lastName = receiverSnapshot.getString("lastName");
+                                    receiverName[0] = (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+                                    receiverName[0] = receiverName[0].trim();
+                                }
 
-                    switch (action) {
-                        case "added":
-                            messageText = fullName + " added you as " + role.toLowerCase() + " to the set \"" + setTitle + "\".";
-                            break;
-                        case "removed":
-                            messageText = fullName + " removed your access to the set \"" + setTitle + "\".";
-                            break;
-                        case "role_changed":
-                            messageText = fullName + " changed your role to " + role.toLowerCase() + " in the set \"" + setTitle + "\".";
-                            break;
-                    }
+                                String setTitle = titleTxt.getText().toString();
+                                String messageText = "";
+                                String type = "access";
+                                String status = "default";
 
-                    Map<String, Object> notificationData = new HashMap<>();
-                    notificationData.put("senderId", currentUserId);
-                    notificationData.put("receiverId", toUserId);
-                    notificationData.put("text", messageText);
-                    notificationData.put("timestamp", FieldValue.serverTimestamp());
-                    notificationData.put("type", "access");
-                    notificationData.put("setId", setId);
-                    notificationData.put("setType", setType);
-                    notificationData.put("action", action);
-                    notificationData.put("read", false);
+                                switch (action) {
+                                    case "added":
+                                        if (role.equalsIgnoreCase("editor")) {
+                                            messageText = senderName[0] + " invited you to be an editor in the set \"" + setTitle + "\".";
+                                            type = "invite";
+                                            status = "pending";
+                                        } else if (role.equalsIgnoreCase("viewer")) {
+                                            messageText = senderName[0] + " added you as a viewer to the set \"" + setTitle + "\".";
+                                            type = "access";
+                                        }
+                                        break;
+                                    case "role_changed":
+                                        if (role.equalsIgnoreCase("editor")) {
+                                            messageText = senderName[0] + " invited you to be an editor in the set \"" + setTitle + "\".";
+                                            type = "invite";
+                                            status = "pending";
+                                        } else if (role.equalsIgnoreCase("viewer")) {
+                                            messageText = senderName[0] + " changed your role to viewer in the set \"" + setTitle + "\".";
+                                            type = "access";
+                                        }
+                                        break;
+                                    case "removed":
+                                        return;
+                                }
 
-                    DocumentReference notifDoc = db.collection("users")
-                            .document(toUserId)
-                            .collection("notifications")
-                            .document();
+                                Map<String, Object> notificationData = new HashMap<>();
+                                notificationData.put("senderId", currentUserId);
+                                notificationData.put("receiverId", toUserId);
+                                notificationData.put("senderName", senderName[0]);
+                                notificationData.put("receiverName", receiverName[0]);
+                                notificationData.put("text", messageText);
+                                notificationData.put("timestamp", FieldValue.serverTimestamp());
+                                notificationData.put("type", type);
+                                notificationData.put("setId", setId);
+                                notificationData.put("setType", setType);
+                                notificationData.put("action", action);
+                                notificationData.put("requestedRole", role);
+                                notificationData.put("read", false);
+                                notificationData.put("status", status);
 
-                    notificationData.put("notificationId", notifDoc.getId());
+                                DocumentReference notifDoc = db.collection("users")
+                                        .document(toUserId)
+                                        .collection("notifications")
+                                        .document();
 
-                    notifDoc.set(notificationData)
-                            .addOnSuccessListener(unused ->
-                                    Toast.makeText(this, "Access notification sent", Toast.LENGTH_SHORT).show()
-                            )
+                                notificationData.put("notificationId", notifDoc.getId());
+
+                                notifDoc.set(notificationData)
+                                        .addOnSuccessListener(unused ->
+                                                Toast.makeText(this, "Notification sent", Toast.LENGTH_SHORT).show()
+                                        )
+                                        .addOnFailureListener(e ->
+                                                Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                                        );
+                            })
                             .addOnFailureListener(e ->
-                                    Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this, "Failed to fetch receiver info: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                             );
                 })
                 .addOnFailureListener(e ->
-                        Toast.makeText(this, "Failed to fetch user info: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "Failed to fetch sender info: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
     }
+
+
 
     private void markNotificationAsRead() {
         String notificationId = getIntent().getStringExtra("notificationId");

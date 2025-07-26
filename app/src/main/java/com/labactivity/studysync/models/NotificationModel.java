@@ -5,7 +5,9 @@ import com.google.firebase.Timestamp;
 public class NotificationModel {
     private String notificationId;
     private String senderId;
+    private String senderName;
     private String receiverId;
+    private String receiverName;
     private String text;
     private String type;
     private String setId;
@@ -37,13 +39,10 @@ public class NotificationModel {
 
     public String getSetId() { return setId; }
     public void setSetId(String setId) { this.setId = setId; }
-
     public String getSetType() { return setType; }
     public void setSetType(String setType) { this.setType = setType; }
-
     public String getRequestedRole() { return requestedRole; }
     public void setRequestedRole(String requestedRole) { this.requestedRole = requestedRole; }
-
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
@@ -55,5 +54,15 @@ public class NotificationModel {
 
     public boolean isRead() { return read; }
     public void setRead(boolean read) { this.read = read; }
+    public String getReceiverName() { return receiverName; }
+    public void setReceiverName(String receiverName) { this.receiverName = receiverName; }
+
+    public String getSenderName() {
+        return senderName;
+    }
+
+    public void setSenderName(String senderName) {
+        this.senderName = senderName;
+    }
 
 }
