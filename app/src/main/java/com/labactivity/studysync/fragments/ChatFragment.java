@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -33,16 +34,12 @@ import java.util.*;
 public class ChatFragment extends Fragment {
 
     private ImageView addButton;
-
     private boolean hasLoadedOnce = false;
-
     private SearchView searchView;
     private RecyclerView chatRecyclerView;
     private ProgressBar progressBar;
-
     private FirebaseFirestore db;
     private FirebaseUser currentUser;
-
     private ChatRoomAdapter adapter;
     private final List<ChatRoom> chatRoomList = new ArrayList<>();
     private final Map<String, Date> lastOpenedMap = new HashMap<>();
@@ -59,6 +56,8 @@ public class ChatFragment extends Fragment {
         searchView = view.findViewById(com.labactivity.studysync.R.id.search_set);
         progressBar = view.findViewById(com.labactivity.studysync.R.id.progress_bar);
         chatRecyclerView = view.findViewById(R.id.recycler_flashcards);
+        TextView noChatroomsText = view.findViewById(R.id.no_chatrooms);
+
 
         EditText searchEditText = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
         View searchPlate = searchView.findViewById(androidx.appcompat.R.id.search_plate);
@@ -226,6 +225,19 @@ public class ChatFragment extends Fragment {
 
         adapter.setUserLastOpenedMap(lastOpenedMap);
         adapter.updateData(chatRoomList);
+
+        if (getView() != null) {
+            TextView noChatroomsText = getView().findViewById(R.id.no_chatrooms);
+            RecyclerView chatRecycler = getView().findViewById(R.id.recycler_flashcards);
+
+            if (chatRoomList.isEmpty()) {
+                noChatroomsText.setVisibility(View.VISIBLE);
+                chatRecycler.setVisibility(View.GONE);
+            } else {
+                noChatroomsText.setVisibility(View.GONE);
+                chatRecycler.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     private String getCurrentUserId() {

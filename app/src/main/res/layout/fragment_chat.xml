@@ -57,6 +57,21 @@
             android:layout_margin="20dp"
             android:layout_weight="1"
             android:background="@color/white" />
+
+        <TextView
+            android:id="@+id/no_chatrooms"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:lineSpacingExtra="8dp"
+            android:padding="30dp"
+            android:paddingVertical="20dp"
+            android:text="@string/no_chatrooms"
+            android:textAlignment="center"
+            android:textColor="#888888"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
     </LinearLayout>
 
     <ProgressBar

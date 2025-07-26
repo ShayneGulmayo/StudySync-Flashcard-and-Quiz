@@ -116,6 +116,8 @@
     <string name="info_page_5">5. This is a one-way quiz — you can\'t go back to previous questions once answered.\nYou may restart the quiz anytime, just note that your progress will reset.</string>
     <string name="select_time_prompt">Select seconds per question</string>
     <string name="no_notifs">No New Notifications</string>
+    <string name="no_chatrooms">No chatrooms yet.\n Tap the + icon to start one!</string>
+
 
 
 </resources>
