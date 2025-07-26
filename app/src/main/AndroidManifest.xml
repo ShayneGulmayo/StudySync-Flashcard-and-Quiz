@@ -24,56 +24,67 @@
             android:name=".LiveQuizViewActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            />
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
+        />
         <activity
             android:name=".LiveQuizLeaderboardsActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".LiveQuizzesActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".InputLiveQuizActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".LiveQuizActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".GeneratingLiveQuizActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".SelectSetLiveQuizActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".NotificationsActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".ChatRoomSharedMediaActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".ChatRoomSharedSetsActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".DeleteAccountActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
 
         <receiver android:name=".receivers.ReminderReceiver" />
@@ -83,125 +94,154 @@
             android:name=".VerificationCodeActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".InputPromptActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustPan"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".LoadingSetActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".GenerateSetActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".UserProfileActivity"
             android:exported="false"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
+            />
         <activity
             android:name=".BrowseActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".NoAccessActivity"
             android:exported="false"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
+            />
         <activity
             android:name=".ChatRoomPickerActivity"
             android:exported="false"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
+            />
         <activity
             android:name=".PrivacyActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".SetPickerActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".ImageViewerActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".QuizPreviewActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".EmailResetPasswordActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".ForgotPasswordActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".AddMembersActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".SeeMembersActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".ReviewQuestionsActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".QuizViewActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".QuizProgressActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".CreateQuizActivity"
             android:parentActivityName=".fragments.SetFragment"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".MainActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".ChatRoomActivity"
             android:exported="false"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             android:screenOrientation="portrait"
             />
         <activity
             android:name=".UserSettingsActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".UserSetUpProfileActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".SplashActivity"
             android:exported="true"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -210,76 +250,93 @@
         </activity>
         <activity
             android:name=".FlashcardPreviewActivity"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
+            />
         <activity
             android:name=".FlashcardViewerActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".FlashcardProgressActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".EditChatRoomActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".CreateFlashcardActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".CreateChatRoomActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".ChangeUsernameActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".ChangePasswordActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".ChangeFullnameActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".ChangeEmailActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".DownloadedSetsActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".DocumentScanActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".LoginActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name=".SignupActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
             />
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
+            tools:ignore="LockedOrientationActivity,DiscouragedApi"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
