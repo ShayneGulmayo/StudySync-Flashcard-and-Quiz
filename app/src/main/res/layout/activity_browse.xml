@@ -65,7 +65,7 @@
         android:layout_marginBottom="10dp"
         android:gravity="center"
         android:orientation="horizontal"
-        android:visibility="gone"
+        android:visibility="visible"
         android:weightSum="3">
 
         <com.google.android.material.button.MaterialButton
@@ -75,8 +75,11 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:checkable="true"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="@string/people"
             android:textAllCaps="false"
+            app:autoSizeMinTextSize="10sp"
             android:textSize="14sp"
             app:cornerRadius="15dp" />
 
@@ -88,8 +91,11 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:checkable="true"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="@string/quizzes"
             android:textAllCaps="false"
+            app:autoSizeMinTextSize="10sp"
             android:textSize="14sp"
             app:cornerRadius="15dp" />
 
@@ -101,9 +107,13 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:checkable="true"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="@string/flashcards"
             android:textAllCaps="false"
+            app:autoSizeMinTextSize="10sp"
             android:textSize="14sp"
+            app:autoSizeTextType="uniform"
             app:cornerRadius="15dp" />
     </LinearLayout>
 
