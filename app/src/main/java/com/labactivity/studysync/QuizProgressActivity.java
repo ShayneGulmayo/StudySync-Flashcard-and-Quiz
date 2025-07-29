@@ -575,17 +575,19 @@ public class QuizProgressActivity extends AppCompatActivity {
             String photoPath = (String) q.getOrDefault("photoPath", "");
             boolean isCorrect = Boolean.TRUE.equals(q.get("isCorrect"));
 
-            // ✅ Properly handle both string and list selected answers
+            // Handle both String and List for 'selected'
             List<String> userAnswers = new ArrayList<>();
             Object selectedObj = q.get("selected");
             if (selectedObj instanceof String) {
-                String selectedStr = (String) selectedObj;
-                if (!selectedStr.trim().isEmpty()) {
-                    userAnswers.add(selectedStr.trim());
+                String selectedStr = ((String) selectedObj).trim();
+                if (!selectedStr.isEmpty()) {
+                    userAnswers.add(selectedStr);
                 }
             } else if (selectedObj instanceof List) {
                 userAnswers = (List<String>) selectedObj;
             }
+
+            Log.d("QUIZ_DISPLAY", "Q" + number + " userAnswers=" + userAnswers + ", correctAnswers=" + correctAnswers + ", isCorrect=" + isCorrect);
 
             TextView questionText = view.findViewById(R.id.question_text);
             TextView statusLabel = view.findViewById(R.id.status_label);
@@ -607,6 +609,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                 selectedWrongAnswerContainer.setVisibility(View.VISIBLE);
             }
 
+            // Add correct answers
             correctAnswerContainer.removeAllViews();
             for (String ans : correctAnswers) {
                 if (!TextUtils.isEmpty(ans.trim())) {
@@ -618,6 +621,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                 }
             }
 
+            // Show selected wrong answers (if incorrect)
             selectedWrongAnswerContainer.removeAllViews();
             if (!isCorrect && userAnswers != null) {
                 for (String ans : userAnswers) {
@@ -631,6 +635,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                 }
             }
 
+            // Handle image display
             if (!TextUtils.isEmpty(photoPath)) {
                 File imgFile = new File(photoPath);
                 if (imgFile.exists()) {

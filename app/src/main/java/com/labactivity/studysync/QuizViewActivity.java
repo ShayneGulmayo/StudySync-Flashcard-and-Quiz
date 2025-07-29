@@ -35,6 +35,7 @@
 
     import java.io.File;
     import java.io.FileOutputStream;
+    import java.io.IOException;
     import java.lang.reflect.Type;
     import java.nio.charset.StandardCharsets;
     import java.nio.file.Files;
@@ -42,10 +43,12 @@
     import java.util.ArrayList;
     import java.util.Collections;
     import java.util.HashMap;
+    import java.util.HashSet;
     import java.util.LinkedHashMap;
     import java.util.List;
     import java.util.Map;
     import java.util.Objects;
+    import java.util.Set;
 
     import org.json.JSONArray;
     import org.json.JSONObject;
@@ -457,6 +460,12 @@
                 answer.put("photoUrl", currentQuestion.get("photoUrl"));
 
                 userAnswersList.add(answer);
+                questions.get(currentQuestionIndex).put("selectedAnswer", selectedAnswer);
+
+                for (int i = 0; i < questions.size(); i++) {
+                    Log.d("CHECK_SELECTED", "Q" + (i + 1) + " selectedAnswer = " + questions.get(i).get("selectedAnswer"));
+                }
+
                 saveUserAnswersOffline(); // <-- Add this line
 
 
@@ -539,6 +548,12 @@
                     answer.put("incorrectInputs", incorrectInputs);
                     answer.put("photoUrl", currentQuestion.get("photoUrl"));
                     userAnswersList.add(answer);
+                    questions.get(currentQuestionIndex).put("selectedAnswer", rawUserAnswers);
+
+                    for (int i = 0; i < questions.size(); i++) {
+                        Log.d("CHECK_SELECTED", "Q" + (i + 1) + " selectedAnswer = " + questions.get(i).get("selectedAnswer"));
+                    }
+
                     saveUserAnswersOffline(); // <-- Add this line
 
                     hasAnswered = true;
@@ -661,35 +676,102 @@
         }
 
         private void saveUserAnswersOffline() {
-            if (!isOffline || quizId == null) return;
+            Log.d("QUIZ_OFFLINE", ">>> saveUserAnswersOffline CALLED <<<");
+
+            if (!isOffline || quizId == null || questions == null || questions.isEmpty()) return;
 
             try {
-                // Construct file name if not already set
                 if (progressFileName == null) {
                     progressFileName = "quiz_" + quizId + ".json";
                 }
 
                 File file = new File(getCacheDir(), progressFileName);
+                JSONObject quizJson;
 
-                // Read existing quiz JSON if it exists
-                JSONObject quizJson = null;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    quizJson = file.exists()
-                            ? new JSONObject(new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8))
-                            : new JSONObject();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && file.exists()) {
+                    String fileContent = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+                    Log.d("QUIZ_DEBUG", "Original file content:\n" + fileContent);
+                    quizJson = new JSONObject(fileContent);
+                } else {
+                    Log.e("QUIZ_OFFLINE", "Quiz JSON file not found or unreadable.");
+                    return;
                 }
 
-                // Update or insert userAnswers
-                quizJson.put("selected", new JSONArray(new Gson().toJson(userAnswersList)));
+                // Construct answeredQuestions from in-memory questions
+                JSONArray answeredQuestionsArray = new JSONArray();
+                int correctCount = 0;
 
-                // Write back to file
+                for (int i = 0; i < questions.size(); i++) {
+                    Map<String, Object> q = questions.get(i);
+                    String type = String.valueOf(q.get("type"));
+                    Object selected = q.get("selectedAnswer");
+                    Object correctRaw = q.get("correctAnswer");
+
+                    List<String> correctAnswers = new ArrayList<>();
+                    if (correctRaw instanceof List) {
+                        for (Object c : (List<?>) correctRaw) correctAnswers.add(String.valueOf(c).trim());
+                    } else if (correctRaw instanceof String) {
+                        correctAnswers.add(((String) correctRaw).trim());
+                    }
+
+                    JSONObject answerObj = new JSONObject();
+                    answerObj.put("number", i + 1);
+                    answerObj.put("question", q.get("question"));
+                    answerObj.put("choices", new JSONArray((List<?>) q.get("choices")));
+                    answerObj.put("photoPath", q.getOrDefault("photoPath", ""));
+                    answerObj.put("type", type);
+
+                    boolean isCorrect = false;
+
+                    if ("multiple choice".equalsIgnoreCase(type)) {
+                        String selectedStr = selected != null ? selected.toString().trim() : "";
+                        answerObj.put("selectedAnswer", selectedStr);
+                        isCorrect = correctAnswers.contains(selectedStr);
+
+                    } else if ("enumeration".equalsIgnoreCase(type)) {
+                        List<String> selectedList = new ArrayList<>();
+                        if (selected instanceof List) {
+                            for (Object s : (List<?>) selected) {
+                                selectedList.add(String.valueOf(s).trim());
+                            }
+                        }
+                        answerObj.put("selectedAnswer", new JSONArray(selectedList));
+
+                        Set<String> selSet = new HashSet<>(selectedList);
+                        Set<String> corrSet = new HashSet<>(correctAnswers);
+                        isCorrect = selSet.equals(corrSet);
+                    }
+
+                    answerObj.put("isCorrect", isCorrect);
+                    if (isCorrect) correctCount++;
+
+                    answeredQuestionsArray.put(answerObj);
+                }
+
+                int incorrectCount = questions.size() - correctCount;
+                int percentage = (int) ((correctCount / (float) questions.size()) * 100);
+
+                // Overwrite fields in quizJson
+                quizJson.put("answeredQuestions", answeredQuestionsArray);
+                quizJson.put("correctCount", correctCount);
+                quizJson.put("incorrectCount", incorrectCount);
+                quizJson.put("percentage", percentage);
+
+                // OPTIONAL: remove these if you don’t need them anymore
+                quizJson.remove("questions");
+                quizJson.remove("userAnswers");
+
+                // Write back updated JSON
+                String updatedJson = quizJson.toString(2);
+                Log.d("QUIZ_DEBUG", "Updated JSON:\n" + updatedJson);
+
                 try (FileOutputStream fos = new FileOutputStream(file, false)) {
-                    fos.write(quizJson.toString().getBytes(StandardCharsets.UTF_8));
+                    fos.write(updatedJson.getBytes(StandardCharsets.UTF_8));
                 }
 
-                Log.d("QUIZ_OFFLINE", "Progress saved: " + file.getAbsolutePath());
+                Log.d("QUIZ_OFFLINE", "Progress saved to " + file.getAbsolutePath());
+
             } catch (Exception e) {
-                e.printStackTrace();
                 Log.e("QUIZ_OFFLINE", "Failed to save progress.", e);
             }
         }
