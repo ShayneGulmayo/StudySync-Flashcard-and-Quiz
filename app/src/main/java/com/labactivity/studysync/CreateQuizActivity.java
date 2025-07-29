@@ -11,8 +11,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
-
-
 import com.canhub.cropper.CropImage;
 import com.google.firebase.storage.FirebaseStorage;
 import android.content.DialogInterface;
@@ -54,11 +52,9 @@ import com.google.firebase.firestore.DocumentReference;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
-
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.Timestamp;
 import com.yalantis.ucrop.UCrop;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -84,16 +80,19 @@ public class CreateQuizActivity extends AppCompatActivity {
     private View currentQuizItemView;
     private ActivityResultLauncher<Intent> pickQuizImageLauncher;
     private Map<View, Uri> pendingUploads = new HashMap<>();
-
     private String ownerUid;
+    private String currentUid;
+    private String ownerUsername;
+    private String currentUsersName;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        quizId = getIntent().getStringExtra("quizId");
-        Log.d("CreateQuizActivity", "onCreate called, quizId: " + quizId);
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_quiz);
+
+        quizId = getIntent().getStringExtra("quizId");
+        Log.d("CreateQuizActivity", "onCreate called, quizId: " + quizId);
 
         quizContainer = findViewById(R.id.container_add_quiz);
         addQuizButton = findViewById(R.id.floating_add_btn);
@@ -106,20 +105,56 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
-        ownerUid = auth.getCurrentUser().getUid();
+        currentUid = auth.getCurrentUser().getUid(); // ← Use for editor actions
 
+        // Load current user's name (optional)
         db.collection("users")
-                .document(auth.getCurrentUser().getUid())
+                .document(currentUid)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-                        username = documentSnapshot.getString("username");
+                        currentUsersName = documentSnapshot.getString("username");
                     }
                 });
 
         if (quizId != null) {
-            loadQuizData(quizId); // 🔁 Load existing quiz data
+            loadQuizData(quizId); // 🔁 Load and preserve quiz owner
+            //load privacy and privacy role from firebase
+            db.collection("quiz").document(quizId)
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            // 1. Privacy
+                            Boolean publicStatus = documentSnapshot.getBoolean("isPublic");
+                            isPublic = (publicStatus != null) ? publicStatus : false; // default to false
+
+                            if (isPublic) {
+                                privacyTxt.setText("Public");
+                                Glide.with(this).load(R.drawable.public_icon).into(privacyIcon);
+                            } else {
+                                privacyTxt.setText("Private");
+                                Glide.with(this).load(R.drawable.lock).into(privacyIcon);
+                            }
+
+                            // 2. Access role
+                            if (isPublic) {
+                                String privacyRole = documentSnapshot.getString("privacyRole");
+
+                                if (privacyRole != null && !privacyRole.trim().isEmpty()) {
+                                    roleTxt.setText(privacyRole);
+                                } else {
+                                    roleTxt.setText(""); // Do not display if null or empty
+                                }
+                            } else {
+                                roleTxt.setText(""); // No role shown for private quizzes
+                            }
+
+                        }
+                    })
+                    .addOnFailureListener(e -> Log.e("CreateQuizActivity", "Failed to fetch privacy/role info", e));
         } else {
+            ownerUid = currentUid; // creator = owner
+            ownerUsername = currentUsersName;
             addQuizView(); // ➕ Add blank question for new quiz
         }
 
@@ -142,17 +177,17 @@ public class CreateQuizActivity extends AppCompatActivity {
         checkButton.setOnClickListener(v -> {
             if (quizTitleInput.getText().toString().trim().isEmpty()) {
                 quizTitleInput.setError("Quiz title is required");
-                quizTitleInput.requestFocus(); // optional: moves cursor to the field
+                quizTitleInput.requestFocus();
                 return;
             }
 
-
             if (validateAllQuestions()) {
                 Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
-                saveQuizToFirebase();
+                saveQuizToFirebase(); // ✅ will use originalOwnerUid
                 finish();
             }
         });
+
         roleTxt.setOnClickListener(v -> {
             if (isPublic) {
                 androidx.appcompat.widget.PopupMenu roleMenu = new androidx.appcompat.widget.PopupMenu(this, roleTxt);
@@ -221,13 +256,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                     }
                 }
         );
-
-
-
-
-
-
-
     }
 
     private void saveQuizToFirebase() {
@@ -299,24 +327,32 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         // ✅ Quiz metadata
         Map<String, Object> quizData = new HashMap<>();
+
+        if (quizId == null) {
+            // New quiz — set current user as owner
+            ownerUid = auth.getCurrentUser().getUid();  // ✅ assign
+            quizData.put("owner_uid", ownerUid);
+            quizData.put("owner_username", username);
+            quizData.put("created_at", Timestamp.now());
+        } else {
+            // Editing — preserve owner info (already loaded into ownerUid/ownerUsername)
+            quizData.put("owner_uid", ownerUid);
+            quizData.put("owner_username", ownerUsername);
+        }
         quizData.put("title", quizTitleInput.getText().toString().trim());
-        quizData.put("owner_uid", auth.getCurrentUser().getUid());
-        quizData.put("owner_username", username);
         quizData.put("number_of_items", questionCount);
         quizData.put("questions", questionList);
-        quizData.put("created_at", Timestamp.now());
-
         Map<String, Object> accessUsers = new HashMap<>();
         accessUsers.put(auth.getCurrentUser().getUid(), "Owner");
         quizData.put("accessUsers", accessUsers);
 
         if (isPublic) {
-            quizData.put("privacy", "public");
+            quizData.put("privacy", "Public");
             String role = roleTxt.getText().toString().trim().toLowerCase();
             quizData.put("privacyRole", role.isEmpty() ? "view" : role);
         } else {
-            quizData.put("privacy", "private");
-            quizData.put("privacyRole", "");
+            quizData.put("privacy", "Private");
+            quizData.put("privacyRole", null);
         }
 
         DocumentReference quizRef;
@@ -329,15 +365,30 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         quizRef.get().addOnSuccessListener(doc -> {
             if (doc.exists()) {
-                quizRef.update(quizData)
-                        .addOnSuccessListener(documentReference -> {
+                // Preserve original owner and access info before updating
+                if (!quizData.containsKey("owner_uid")) {
+                    quizData.put("owner_uid", doc.getString("owner_uid"));
+                }
+                if (!quizData.containsKey("owner_username")) {
+                    quizData.put("owner_username", doc.getString("owner_username"));
+                }
+
+                // Get accessUsers from Firestore and preserve it
+                Map<String, Object> existingAccess = (Map<String, Object>) doc.get("accessUsers");
+                if (existingAccess != null) {
+                    quizData.put("accessUsers", existingAccess);
+                }
+
+                quizRef.set(quizData, SetOptions.merge())  // 🔥 this is the key part
+                        .addOnSuccessListener(unused -> {
                             resetQuizAttemptsPercentage(quizId);
                             resetOwnedSetProgressForUsers(quizId);
                             Toast.makeText(this, "Quiz updated successfully!", Toast.LENGTH_SHORT).show();
                             finish();
                         })
                         .addOnFailureListener(e -> Toast.makeText(this, "Failed to update quiz", Toast.LENGTH_SHORT).show());
-            } else {
+            }
+            else {
                 quizRef.set(quizData)
                         .addOnSuccessListener(unused -> {
                             for (Map.Entry<View, Uri> entry : pendingUploads.entrySet()) {
@@ -349,7 +400,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                             ownedSet.put("id", quizId);
                             ownedSet.put("type", "quiz");
 
-                            DocumentReference userRef = db.collection("users").document(auth.getCurrentUser().getUid());
+                            DocumentReference userRef = db.collection("users").document(ownerUid);
                             userRef.update("owned_sets", FieldValue.arrayUnion(ownedSet))
                                     .addOnSuccessListener(userUpdate -> {
                                         Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
@@ -429,9 +480,6 @@ public class CreateQuizActivity extends AppCompatActivity {
         });
     }
 
-
-
-
     private void showExitConfirmation() {
         new AlertDialog.Builder(this)
                 .setTitle("Leave without saving?")
@@ -440,7 +488,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                 .show();
     }
-
 
     private void addQuizView() {
         View quizItem = LayoutInflater.from(this).inflate(R.layout.item_add_quiz, null);
@@ -483,7 +530,6 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         });
 
-
         quizTypeSpinner.setOnItemSelectedListener(getQuizTypeChangeListener(addOptionText, optionsContainer));
 
         // Manually trigger default to multiple choice (or default index 0)
@@ -496,7 +542,6 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         quizContainer.addView(quizItem);
     }
-
 
     private void addOptionView(LinearLayout container) {
         View optionView = LayoutInflater.from(this).inflate(R.layout.item_add_quiz_options, null);
@@ -599,9 +644,9 @@ public class CreateQuizActivity extends AppCompatActivity {
             }
 
         }
-
         return true;
     }
+
     private void renumberEnumerationInputs(LinearLayout container) {
         for (int i = 0; i < container.getChildCount(); i++) {
             View child = container.getChildAt(i);
@@ -611,23 +656,34 @@ public class CreateQuizActivity extends AppCompatActivity {
             }
         }
     }
+
     private void loadQuizData(String quizId) {
         db.collection("quiz").document(quizId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         quizTitleInput.setText(documentSnapshot.getString("title"));
-                        ownerUid = documentSnapshot.getString("owner_uid");
 
+                        // ✅ Set the original (true) owner info, not the current user
+                        ownerUid = documentSnapshot.getString("owner_uid");      // Use "owner_uid" from Firestore
+                        ownerUsername = documentSnapshot.getString("owner_username");    // Owner's name
+
+                        // ✅ Load the quiz questions
                         List<Map<String, Object>> questions = (List<Map<String, Object>>) documentSnapshot.get("questions");
                         if (questions != null) {
                             for (Map<String, Object> question : questions) {
                                 addQuizViewFromData(question);
                             }
                         }
+
+                        // (Optional) load and set isPublic / access info here if needed
                     }
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to load quiz data", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Failed to load quiz data", Toast.LENGTH_SHORT).show()
+                );
     }
+
+
     private void addQuizViewFromData(Map<String, Object> questionData) {
         View quizItem = LayoutInflater.from(this).inflate(R.layout.item_add_quiz, null);
         questionCount++;
@@ -689,7 +745,6 @@ public class CreateQuizActivity extends AppCompatActivity {
             correctAnswerList = null;
         }
 
-
         boolean isMultipleChoice = type.equals("multiple choice");
 
         // Initial typeChangeListener reference holder
@@ -704,7 +759,6 @@ public class CreateQuizActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> adapterView, View view, int pos, long id) {
                 String selectedType = adapterView.getItemAtPosition(pos).toString().toLowerCase();
                 addOptionText.setText(selectedType.equals("enumeration") ? "Add answer" : "Add option");
-
                 optionsContainer.removeAllViews();
 
                 if (selectedType.equals("multiple choice")) {
@@ -805,7 +859,6 @@ public class CreateQuizActivity extends AppCompatActivity {
         quizContainer.addView(quizItem);
     }
 
-
     private void setupAddOptionListener(TextView addOptionText, Spinner quizTypeSpinner, LinearLayout optionsContainer) {
         addOptionText.setOnClickListener(v -> {
             String type = quizTypeSpinner.getSelectedItem().toString().toLowerCase();
@@ -854,6 +907,7 @@ public class CreateQuizActivity extends AppCompatActivity {
             }
         });
     }
+
     private AdapterView.OnItemSelectedListener getQuizTypeChangeListener(
             TextView addOptionText,
             LinearLayout optionsContainer
@@ -879,8 +933,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                     renumberEnumerationInputs(optionsContainer);
                 }
             }
-
-
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {}
         };
@@ -943,9 +995,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                 });
     }
 
-
-
-
     public static File getFileFromUri(Context context, Uri uri) throws Exception {
         ContentResolver contentResolver = context.getContentResolver();
         String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(uri));
@@ -964,7 +1013,6 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         return tempFile;
     }
-
 
     private final ActivityResultLauncher<CropImageContractOptions> cropImageLauncher =
             registerForActivityResult(new CropImageContract(), result -> {
@@ -1002,7 +1050,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                     .withMaxResultSize(512, 512)
                     .start(this);
         }
-
 
         if (requestCode == UCrop.REQUEST_CROP && resultCode == RESULT_OK && data != null) {
             Uri resultUri = UCrop.getOutput(data);
