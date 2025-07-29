@@ -792,7 +792,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
     private void saveSetOffline(Map<String, Object> setData, String setId, String type) {
         File dir = getFilesDir();
-        File file = new File(dir, "set_" + setId + ".json");
+        File file = new File(dir, "flashcard_" + setId + ".json");
 
         if (file.exists()) {
             Toast.makeText(this, "Set already downloaded.", Toast.LENGTH_SHORT).show();
@@ -801,7 +801,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         try {
             setData.put("type", type);
-            setData.put("fileName", "set_" + setId + ".json");
+            setData.put("fileName", "flashcard_" + setId + ".json");
 
             String json = new Gson().toJson(setData);
             FileOutputStream fos = new FileOutputStream(file);
@@ -1078,6 +1078,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         startActivity(Intent.createChooser(intent, "Open PDF File"));
     }
+
     private void makeCopy() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DocumentReference userRef = db.collection("users").document(userId);
@@ -1226,7 +1227,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to copy flashcard set.", Toast.LENGTH_SHORT).show();
                 });
     }
-
 
     private void showDeleteConfirmationDialog() {
         if (isFinishing() || isDestroyed()) return;

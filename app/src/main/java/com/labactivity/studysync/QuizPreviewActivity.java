@@ -118,6 +118,8 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
     private List<Quiz.Question> quizQuestions = new ArrayList<>();
     private Map<String, String> accessUsers = new HashMap<>();
+    private List<Map<String, Object>> userAnswers;
+    private Map<String, Object> offlineQuizMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -986,14 +988,36 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     setData.put("id", quizId);
                     List<Map<String, Object>> questions = (List<Map<String, Object>>) setData.get("questions");
 
+                    // ✅ Proper userAnswers with required fields
+                    List<Map<String, Object>> userAnswers = new ArrayList<>();
+
                     for (Map<String, Object> question : questions) {
-                        if (!question.containsKey("selectedAnswer")) {
-                            question.put("selectedAnswer", "");
+                        String questionText = (String) question.get("question");
+                        String type = (String) question.get("type");
+
+                        Map<String, Object> answerEntry = new HashMap<>();
+                        answerEntry.put("question", questionText);
+                        answerEntry.put("isCorrect", false); // default
+                        answerEntry.put("photoPath", question.getOrDefault("localPhotoPath", ""));
+
+                        // Handle answer fields
+                        if ("enumeration".equals(type)) {
+                            answerEntry.put("selected", new ArrayList<String>());
+                            answerEntry.put("correctAnswers", question.get("correctAnswer"));
+                        } else {
+                            String correct = (String) question.get("correctAnswer");
+                            answerEntry.put("selected", ""); // default empty
+                            answerEntry.put("correctAnswers", Collections.singletonList(correct));
                         }
+
+                        userAnswers.add(answerEntry);
                     }
 
-                    String username = documentSnapshot.getString("owner_username");
 
+                    // Save userAnswers field
+                    setData.put("userAnswers", userAnswers);
+
+                    String username = documentSnapshot.getString("owner_username");
                     if (username != null) {
                         setData.put("username", username);
                     }
@@ -1032,7 +1056,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
                     Tasks.whenAllComplete(imageTasks)
                             .addOnSuccessListener(tasks -> {
-                                saveSetOffline(setData, quizId);
+                                saveSetOffline(setData, quizId); // Now includes userAnswers
                                 startActivity(new Intent(QuizPreviewActivity.this, DownloadedSetsActivity.class));
                             });
                 })
@@ -1044,7 +1068,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
     private void saveSetOffline(Map<String, Object> setData, String id) {
         File dir = getFilesDir();
-        File file = new File(dir, "set_" + id + ".json");
+        File file = new File(dir, "quiz_" + id + ".json");
 
         if (file.exists()) {
             Toast.makeText(this, "Set already downloaded.", Toast.LENGTH_SHORT).show();
@@ -1071,7 +1095,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
             return;
         }
 
-        quizId = file.getName().replace("set_", "").replace(".json", "");
+        quizId = file.getName().replace("quiz_", "").replace(".json", "");
 
         try {
             FileInputStream fis = new FileInputStream(file);
@@ -1116,6 +1140,17 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 this.quizQuestions = questionList;
             }
 
+            // ✅ Load user answers if present
+            if (quizMap.containsKey("userAnswers")) {
+                this.userAnswers = (List<Map<String, Object>>) quizMap.get("userAnswers");
+            } else {
+                this.userAnswers = new ArrayList<>();
+            }
+
+            // ✅ Optionally update local file if any new answer is added later
+            this.offlineQuizMap = quizMap; // Store reference for future updates
+
+            // ✅ Load owner photo
             if (quizMap.get("ownerPhotoPath") != null) {
                 File localFile = new File(quizMap.get("ownerPhotoPath").toString());
                 if (localFile.exists()) {

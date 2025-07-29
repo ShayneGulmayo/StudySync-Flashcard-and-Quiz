@@ -3,6 +3,7 @@ package com.labactivity.studysync;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
@@ -22,7 +23,10 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -37,6 +41,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.gson.Gson;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
@@ -45,15 +50,15 @@ import java.util.Map;
 
 public class QuizProgressActivity extends AppCompatActivity {
 
-    private TextView quizTitleText, correctText, incorrectText, progressPercentageText;
-    private ProgressBar progressCircle;
-    private FirebaseFirestore db;
-
+    private TextView quizTitleText, correctText, incorrectText, progressPercentageText, retake_quiz_btn;
     private ImageView back_button;
     private Button review_questions_btn;
-    private TextView retake_quiz_btn;
 
     private String quizId;
+
+    private ProgressBar progressCircle;
+
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -61,18 +66,17 @@ public class QuizProgressActivity extends AppCompatActivity {
         setContentView(R.layout.activity_quiz_progress);
         boolean isOffline = getIntent().getBooleanExtra("isOffline", false);
 
-
         quizTitleText = findViewById(R.id.txtView_quiz_title);
         correctText = findViewById(R.id.know_items);
         incorrectText = findViewById(R.id.still_learning_items);
         progressPercentageText = findViewById(R.id.progress_percentage);
         progressCircle = findViewById(R.id.stats_progressbar);
+
         db = FirebaseFirestore.getInstance();
 
         back_button = findViewById(R.id.back_button);
         review_questions_btn = findViewById(R.id.review_questions_btn);
         retake_quiz_btn = findViewById(R.id.retake_quiz_btn);
-
 
         quizTitleText.setText("Loading...");
         correctText.setText("-");
@@ -81,6 +85,7 @@ public class QuizProgressActivity extends AppCompatActivity {
         progressCircle.setProgress(0);
 
         quizId = getIntent().getStringExtra("quizId");
+
         if (quizId == null || quizId.isEmpty()) {
             Toast.makeText(this, "No quiz ID provided", Toast.LENGTH_SHORT).show();
             finish();
@@ -95,8 +100,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                 quizTitleText.setText("Untitled Quiz");
             }
 
-            // ✅ Build correct progress file path using quizId
-            File file = new File(getCacheDir(), "progress_" + quizId + ".json");
+            File file = new File(getCacheDir(), "quiz_" + quizId + ".json");
 
             if (file.exists()) {
                 try {
@@ -113,7 +117,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                     Type listType = new TypeToken<List<Map<String, Object>>>() {}.getType();
                     List<Map<String, Object>> userAnswersList = new Gson().fromJson(questionsArray.toString(), listType);
 
-                    displayOfflineQuizProgress(userAnswersList, title);
+                    displayQuizProgressOffline();
                     displayOfflineAnsweredQuestions(userAnswersList);
 
                 } catch (Exception e) {
@@ -136,9 +140,7 @@ public class QuizProgressActivity extends AppCompatActivity {
             if (percentage == 100) {
                 review_questions_btn.setVisibility(View.GONE);
             }
-
-    } else {
-            // 🔹 ONLINE MODE
+        } else {
             db.collection("quiz").document(quizId).get().addOnSuccessListener(documentSnapshot -> {
                 if (documentSnapshot.exists()) {
                     displayQuizProgress(documentSnapshot); // ✅ Only when online
@@ -153,25 +155,31 @@ public class QuizProgressActivity extends AppCompatActivity {
             });
         }
 
-
         back_button.setOnClickListener(v -> onBackPressed());
 
         retake_quiz_btn.setOnClickListener(v -> {
-            Intent intent;
+            Intent intent = new Intent(QuizProgressActivity.this, QuizViewActivity.class);
+
             if (isOffline) {
-                // ✅ Retake OFFLINE quiz
-                intent = new Intent(QuizProgressActivity.this, QuizViewActivity.class);
+                intent.putExtra("isOffline", true);
                 intent.putExtra("mode", "normal");
-                intent.putExtra("isOffline", true);  // Important
                 intent.putExtra("retakeFull", true);
 
+                if (quizId != null) {
+                    intent.putExtra("quizId", quizId);
+                }
+
+                if (getIntent().hasExtra("questionsJson")) {
+                    intent.putExtra("questionsJson", getIntent().getStringExtra("questionsJson"));
+                }
+
                 String photoUrl = getIntent().getStringExtra("photoUrl");
+
                 if (photoUrl != null) {
                     intent.putExtra("photoUrl", photoUrl);
                 }
             } else {
-                // ✅ Retake ONLINE quiz
-                intent = new Intent(QuizProgressActivity.this, QuizViewActivity.class);
+                intent.putExtra("isOffline", false);
                 intent.putExtra("quizId", quizId);
                 intent.putExtra("mode", "normal");
             }
@@ -180,20 +188,25 @@ public class QuizProgressActivity extends AppCompatActivity {
             finish();
         });
 
-
         review_questions_btn.setOnClickListener(v -> {
             if (isOffline) {
-                // ✅ OFFLINE REVIEW FLOW
                 try {
                     Log.d("QUIZ_REVIEW", "Opening offline file...");
 
+                    String quizId = getIntent().getStringExtra("quizId");
                     String fileName = getIntent().getStringExtra("progressFileName");
+
+                    if (fileName == null && quizId != null) {
+                        fileName = "quiz_" + quizId + ".json";
+                    }
+
                     if (fileName == null) {
                         Log.e("QUIZPROGRESS", "Missing file name for progress!");
+                        Toast.makeText(this, "No offline progress file specified.", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    File file = new File(getCacheDir(), fileName);
 
+                    File file = new File(getCacheDir(), fileName);
                     if (!file.exists()) {
                         Toast.makeText(this, "No offline quiz data to review.", Toast.LENGTH_SHORT).show();
                         return;
@@ -205,59 +218,83 @@ public class QuizProgressActivity extends AppCompatActivity {
                     fis.close();
 
                     String json = new String(data);
-                    Log.d("QUIZ_REVIEW", "JSON loaded: " + json);
+                    Log.d("QUIZ_REVIEW", "Offline JSON loaded: " + json);
 
                     JSONObject obj = new JSONObject(json);
-                    JSONArray answersArray = obj.getJSONArray("userAnswers");
+                    if (!obj.has("answeredQuestions")) {
+                        Toast.makeText(this, "No answers found in offline file.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
 
+                    JSONArray answersArray = obj.getJSONArray("answeredQuestions");
                     ArrayList<Map<String, Object>> incorrectAnswersOnly = new ArrayList<>();
+
                     for (int i = 0; i < answersArray.length(); i++) {
                         JSONObject a = answersArray.getJSONObject(i);
-
                         if (!a.optBoolean("isCorrect", true)) {
                             Map<String, Object> map = new HashMap<>();
-                            map.put("question", a.getString("question"));
+                            map.put("question", a.optString("question", "No question"));
 
-                            if (a.get("selected") instanceof JSONArray) {
-                                JSONArray selectedArray = a.getJSONArray("selected");
-                                List<String> selectedList = new ArrayList<>();
-
-                                for (int k = 0; k < selectedArray.length(); k++) {
-                                    selectedList.add(selectedArray.getString(k));
+                            if (a.has("userAnswer")) {
+                                Object ua = a.get("userAnswer");
+                                if (ua instanceof JSONArray) {
+                                    JSONArray arr = (JSONArray) ua;
+                                    List<String> userAnswerList = new ArrayList<>();
+                                    for (int j = 0; j < arr.length(); j++) {
+                                        userAnswerList.add(arr.getString(j));
+                                    }
+                                    map.put("userAnswer", userAnswerList);
+                                } else {
+                                    map.put("userAnswer", a.getString("userAnswer"));
                                 }
-                                map.put("userAnswer", selectedList);
-                            } else {
-                                map.put("userAnswer", a.getString("selected"));
+                            } else if (a.has("selected")) {
+                                Object ua = a.get("selected");
+                                if (ua instanceof JSONArray) {
+                                    JSONArray arr = (JSONArray) ua;
+                                    List<String> userAnswerList = new ArrayList<>();
+                                    for (int j = 0; j < arr.length(); j++) {
+                                        userAnswerList.add(arr.getString(j));
+                                    }
+                                    map.put("userAnswer", userAnswerList);
+                                } else {
+                                    map.put("userAnswer", a.getString("selected"));
+                                }
                             }
 
-                            map.put("correctAnswers", a.get("correctAnswers"));
+                            if (a.has("correctAnswers")) {
+                                Object correct = a.get("correctAnswers");
+                                map.put("correctAnswers", correct);
+                            }
+
+                            if (a.has("photoPath")) {
+                                map.put("photoPath", a.getString("photoPath"));
+                            }
+
                             map.put("isCorrect", false);
                             incorrectAnswersOnly.add(map);
                         }
                     }
-                    Log.d("QUIZ_REVIEW", "Incorrect answers count: " + incorrectAnswersOnly.size());
+
                     if (incorrectAnswersOnly.isEmpty()) {
                         Toast.makeText(this, "All answers were correct. Nothing to review.", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    String listJson = new Gson().toJson(incorrectAnswersOnly);
-                    Log.d("QUIZ_REVIEW", "Launching QuizViewActivity with data: " + listJson);
+
                     Intent intent = new Intent(QuizProgressActivity.this, QuizViewActivity.class);
                     intent.putExtra("quizId", quizId);
                     intent.putExtra("mode", "retake_incorrect_only");
                     intent.putExtra("isOffline", true);
                     intent.putExtra("userAnswersList", new Gson().toJson(incorrectAnswersOnly));
+                    intent.putExtra("progressFileName", fileName);
+
                     startActivity(intent);
                     finish();
 
                 } catch (Exception e) {
                     Log.e("QUIZ_REVIEW", "Exception occurred", e);
-                    Toast.makeText(this, "Failed to prepare review data.", Toast.LENGTH_SHORT).show();
-                    e.printStackTrace();
+                    Toast.makeText(this, "Failed to prepare offline review data.", Toast.LENGTH_SHORT).show();
                 }
-
             } else {
-                // ✅ ONLINE REVIEW FLOW
                 if (FirebaseAuth.getInstance().getCurrentUser() == null) {
                     Toast.makeText(this, "User not logged in.", Toast.LENGTH_SHORT).show();
                     return;
@@ -363,7 +400,6 @@ public class QuizProgressActivity extends AppCompatActivity {
         LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
         LayoutInflater inflater = LayoutInflater.from(this);
 
-
         db.collection("quiz")
                 .document(quizId)
                 .collection("quiz_attempt")
@@ -406,8 +442,6 @@ public class QuizProgressActivity extends AppCompatActivity {
                                 } else {
                                     questionImageCard.setVisibility(View.GONE);
                                 }
-
-
 
                                 String question = (String) q.get("question");
                                 Object correctObj = q.get("correct");
@@ -458,7 +492,6 @@ public class QuizProgressActivity extends AppCompatActivity {
                                         wrongAnswerContainer.setVisibility(View.GONE);
                                     }
                                 }
-
                                 answersLayout.addView(answerView);
                             }
                         }
@@ -467,34 +500,62 @@ public class QuizProgressActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to load answers", Toast.LENGTH_SHORT).show());
     }
 
-
-    private void displayOfflineQuizProgress(List<Map<String, Object>> userAnswersList, String quizTitle) {
-        if (userAnswersList == null || userAnswersList.isEmpty()) return;
-
-        TextView quizTitleText = findViewById(R.id.txtView_quiz_title);
-        TextView correctText = findViewById(R.id.know_items);
-        TextView incorrectText = findViewById(R.id.still_learning_items);
-        TextView progressPercentageText = findViewById(R.id.progress_percentage);
-        ProgressBar progressBar = findViewById(R.id.stats_progressbar);
-
-        int correctCount = 0;
-        for (Map<String, Object> q : userAnswersList) {
-            if (Boolean.TRUE.equals(q.get("isCorrect"))) {
-                correctCount++;
+    private void displayQuizProgressOffline() {
+        try {
+            File file = new File(getCacheDir(), "quiz_" + quizId + ".json");
+            if (!file.exists()) {
+                quizTitleText.setText("Untitled Quiz");
+                correctText.setText("0 Items");
+                incorrectText.setText("0 Items");
+                progressCircle.setProgress(0);
+                progressPercentageText.setText("0%");
+                return;
             }
+
+            String json = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                json = new String(Files.readAllBytes(file.toPath()));
+            }
+
+            JSONObject jsonObject = new JSONObject(json);
+
+            // ✅ Read and display quiz title
+            String quizTitle = jsonObject.optString("quizTitle", "Untitled Quiz");
+            quizTitleText.setText(quizTitle);
+
+            JSONArray questionsArray = jsonObject.getJSONArray("questions");
+            JSONArray userAnswersArray = jsonObject.getJSONArray("userAnswers");
+
+            int correctCount = 0;
+            int incorrectCount = 0;
+
+            for (int i = 0; i < userAnswersArray.length(); i++) {
+                JSONObject answerObj = userAnswersArray.getJSONObject(i);
+                boolean isCorrect = answerObj.optBoolean("isCorrect", false);
+                if (isCorrect) {
+                    correctCount++;
+                } else {
+                    incorrectCount++;
+                }
+            }
+
+            int total = correctCount + incorrectCount;
+            int percentage = total == 0 ? 0 : (int) (((double) correctCount / total) * 100);
+
+            correctText.setText(correctCount + " Items");
+            incorrectText.setText(incorrectCount + " Items");
+            progressCircle.setProgress(percentage);
+            progressPercentageText.setText(percentage + "%");
+
+        } catch (IOException | JSONException e) {
+            e.printStackTrace();
+            quizTitleText.setText("Untitled Quiz");
+            correctText.setText("0 Items");
+            incorrectText.setText("0 Items");
+            progressCircle.setProgress(0);
+            progressPercentageText.setText("0%");
         }
-
-        int total = userAnswersList.size();
-        int incorrectCount = total - correctCount;
-        int percentage = total == 0 ? 0 : (int) ((correctCount / (double) total) * 100);
-
-        quizTitleText.setText(quizTitle != null ? quizTitle : "Untitled Quiz");
-        correctText.setText("Correct: " + correctCount);
-        incorrectText.setText("Incorrect: " + incorrectCount);
-        progressPercentageText.setText(percentage + "%");
-        progressBar.setProgress(percentage);
     }
-
 
     private void displayOfflineAnsweredQuestions(List<Map<String, Object>> userAnswersList) {
         if (userAnswersList == null || userAnswersList.isEmpty()) {
@@ -511,9 +572,20 @@ public class QuizProgressActivity extends AppCompatActivity {
 
             String questionTextStr = (String) q.getOrDefault("question", "No question");
             List<String> correctAnswers = (List<String>) q.getOrDefault("correctAnswers", new ArrayList<>());
-            List<String> userAnswers = (List<String>) q.getOrDefault("userAnswer", new ArrayList<>());
             String photoPath = (String) q.getOrDefault("photoPath", "");
             boolean isCorrect = Boolean.TRUE.equals(q.get("isCorrect"));
+
+            // ✅ Properly handle both string and list selected answers
+            List<String> userAnswers = new ArrayList<>();
+            Object selectedObj = q.get("selected");
+            if (selectedObj instanceof String) {
+                String selectedStr = (String) selectedObj;
+                if (!selectedStr.trim().isEmpty()) {
+                    userAnswers.add(selectedStr.trim());
+                }
+            } else if (selectedObj instanceof List) {
+                userAnswers = (List<String>) selectedObj;
+            }
 
             TextView questionText = view.findViewById(R.id.question_text);
             TextView statusLabel = view.findViewById(R.id.status_label);
@@ -525,7 +597,6 @@ public class QuizProgressActivity extends AppCompatActivity {
             questionText.setText(number + ". " + questionTextStr);
             number++;
 
-            // Set status
             if (isCorrect) {
                 statusLabel.setText("Correct");
                 statusLabel.setBackgroundColor(Color.parseColor("#00BF63"));
@@ -536,7 +607,6 @@ public class QuizProgressActivity extends AppCompatActivity {
                 selectedWrongAnswerContainer.setVisibility(View.VISIBLE);
             }
 
-            // Correct answers
             correctAnswerContainer.removeAllViews();
             for (String ans : correctAnswers) {
                 if (!TextUtils.isEmpty(ans.trim())) {
@@ -548,7 +618,6 @@ public class QuizProgressActivity extends AppCompatActivity {
                 }
             }
 
-            // User's wrong answers
             selectedWrongAnswerContainer.removeAllViews();
             if (!isCorrect && userAnswers != null) {
                 for (String ans : userAnswers) {
@@ -562,7 +631,6 @@ public class QuizProgressActivity extends AppCompatActivity {
                 }
             }
 
-            // Load local image if present
             if (!TextUtils.isEmpty(photoPath)) {
                 File imgFile = new File(photoPath);
                 if (imgFile.exists()) {

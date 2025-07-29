@@ -106,7 +106,9 @@ public class DownloadedSetsActivity extends AppCompatActivity {
     private List<Map<String, Object>> loadDownloadedSets() {
         List<Map<String, Object>> sets = new ArrayList<>();
         File dir = getFilesDir();
-        File[] files = dir.listFiles((dir1, name) -> name.startsWith("set_") && name.endsWith(".json"));
+        File[] files = dir.listFiles((dir1, name) ->
+                (name.startsWith("flashcard_") || name.startsWith("quiz_")) && name.endsWith(".json")
+        );
 
         if (files != null) {
             for (File file : files) {
