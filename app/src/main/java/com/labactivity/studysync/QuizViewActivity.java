@@ -697,12 +697,22 @@
                     return;
                 }
 
-                // Construct answeredQuestions from in-memory questions
-                JSONArray answeredQuestionsArray = new JSONArray();
-                int correctCount = 0;
+                // Load previous answered questions
+                // 1. Load existing answers
+                Map<Integer, JSONObject> previousAnswersMap = new HashMap<>();
+                if (quizJson.has("answeredQuestions")) {
+                    JSONArray previousAnswers = quizJson.getJSONArray("answeredQuestions");
+                    for (int i = 0; i < previousAnswers.length(); i++) {
+                        JSONObject ans = previousAnswers.getJSONObject(i);
+                        previousAnswersMap.put(ans.getInt("number"), ans);
+                    }
+                }
 
+                // Merge current attempt into previousAnswersMap
                 for (int i = 0; i < questions.size(); i++) {
                     Map<String, Object> q = questions.get(i);
+                    int questionNumber = i + 1;
+
                     String type = String.valueOf(q.get("type"));
                     Object selected = q.get("selectedAnswer");
                     Object correctRaw = q.get("correctAnswer");
@@ -715,16 +725,18 @@
                     }
 
                     JSONObject answerObj = new JSONObject();
-                    answerObj.put("number", i + 1);
+                    answerObj.put("number", questionNumber);
                     answerObj.put("question", q.get("question"));
                     answerObj.put("choices", new JSONArray((List<?>) q.get("choices")));
                     answerObj.put("photoPath", q.getOrDefault("photoPath", ""));
                     answerObj.put("type", type);
 
                     boolean isCorrect = false;
+                    boolean hasAnswer = false;
 
                     if ("multiple choice".equalsIgnoreCase(type)) {
                         String selectedStr = selected != null ? selected.toString().trim() : "";
+                        hasAnswer = !selectedStr.isEmpty();
                         answerObj.put("selectedAnswer", selectedStr);
                         isCorrect = correctAnswers.contains(selectedStr);
 
@@ -735,6 +747,7 @@
                                 selectedList.add(String.valueOf(s).trim());
                             }
                         }
+                        hasAnswer = !selectedList.isEmpty();
                         answerObj.put("selectedAnswer", new JSONArray(selectedList));
 
                         Set<String> selSet = new HashSet<>(selectedList);
@@ -743,25 +756,55 @@
                     }
 
                     answerObj.put("isCorrect", isCorrect);
-                    if (isCorrect) correctCount++;
 
-                    answeredQuestionsArray.put(answerObj);
+                    JSONObject previousAnswer = previousAnswersMap.get(questionNumber);
+
+                    // 🛠️ Debug logging
+                    Log.d("QUIZ_DEBUG", "Q" + questionNumber + " - hasAnswer: " + hasAnswer + ", isCorrect: " + isCorrect + ", prevCorrect: " + (previousAnswer != null && previousAnswer.optBoolean("isCorrect", false)));
+
+                    // Only update if:
+                    // 1. There was no previous answer
+                    // 2. Or current is correct
+                    // 3. Or current has an answer and no previous correct
+                    // Existing:
+                    if (previousAnswer == null || isCorrect || (hasAnswer && !previousAnswer.optBoolean("isCorrect", true))) {
+                        previousAnswersMap.put(questionNumber, answerObj);
+                        Log.d("QUIZ_DEBUG", "Saved/Updated Q" + questionNumber + " answer.");
+                    } else {
+                        previousAnswersMap.put(questionNumber, previousAnswer); // <= ensure previous stays
+                        Log.d("QUIZ_DEBUG", "Skipped Q" + questionNumber + " due to previous correct and current wrong.");
+                    }
+
+
                 }
 
-                int incorrectCount = questions.size() - correctCount;
-                int percentage = (int) ((correctCount / (float) questions.size()) * 100);
+                // Final merged array
+                JSONArray finalAnswers = new JSONArray();
+                int correctCount = 0;
 
-                // Overwrite fields in quizJson
-                quizJson.put("answeredQuestions", answeredQuestionsArray);
+                List<Integer> sortedKeys = new ArrayList<>(previousAnswersMap.keySet());
+                Collections.sort(sortedKeys);
+
+                for (int num : sortedKeys) {
+                    JSONObject answer = previousAnswersMap.get(num);
+                    finalAnswers.put(answer);
+
+                    if (answer.optBoolean("isCorrect", false)) correctCount++;
+                }
+
+                int totalQuestions = questions.size(); // Use actual total number of questions
+                int incorrectCount = totalQuestions - correctCount;
+                int percentage = (int) ((correctCount / (float) totalQuestions) * 100);
+
+                quizJson.put("answeredQuestions", finalAnswers);
                 quizJson.put("correctCount", correctCount);
                 quizJson.put("incorrectCount", incorrectCount);
                 quizJson.put("percentage", percentage);
 
-                // OPTIONAL: remove these if you don’t need them anymore
+                // Remove unused fields
                 quizJson.remove("questions");
                 quizJson.remove("userAnswers");
 
-                // Write back updated JSON
                 String updatedJson = quizJson.toString(2);
                 Log.d("QUIZ_DEBUG", "Updated JSON:\n" + updatedJson);
 
@@ -921,14 +964,9 @@
                 int incorrect = 0;
                 JSONArray finalAnswers = new JSONArray();
 
-                for (int i = 0; i < userAnswersList.size(); i++) {
-                    Map<String, Object> q = userAnswersList.get(i);
-                    String questionText = String.valueOf(q.get("question"));
-
-                    JSONObject mergedQ = combinedAnswers.get(questionText);
-                    if (mergedQ == null) continue;
-
-                    mergedQ.put("number", i + 1); // force display order
+                int number = 1;
+                for (JSONObject mergedQ : combinedAnswers.values()) {
+                    mergedQ.put("number", number++); // preserve merged order
                     finalAnswers.put(mergedQ);
 
                     if (mergedQ.optBoolean("isCorrect", false)) {
@@ -937,6 +975,7 @@
                         incorrect++;
                     }
                 }
+
 
                 JSONObject data = new JSONObject();
                 data.put("quizId", quizId);

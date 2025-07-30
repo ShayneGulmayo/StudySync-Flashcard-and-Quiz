@@ -519,30 +519,18 @@ public class QuizProgressActivity extends AppCompatActivity {
 
             JSONObject jsonObject = new JSONObject(json);
 
-            // ✅ Read and display quiz title
+            // ✅ Display title from JSON
             String quizTitle = jsonObject.optString("quizTitle", "Untitled Quiz");
             quizTitleText.setText(quizTitle);
 
-            JSONArray questionsArray = jsonObject.getJSONArray("questions");
-            JSONArray userAnswersArray = jsonObject.getJSONArray("userAnswers");
+            // ✅ Get correct/answered count from model fields
+            int totalCorrect = jsonObject.optInt("totalCorrect", 0);
+            int totalAnswered = jsonObject.optInt("totalAnswered", 0);
 
-            int correctCount = 0;
-            int incorrectCount = 0;
+            int incorrectCount = totalAnswered - totalCorrect;
+            int percentage = totalAnswered == 0 ? 0 : (int) (((double) totalCorrect / totalAnswered) * 100);
 
-            for (int i = 0; i < userAnswersArray.length(); i++) {
-                JSONObject answerObj = userAnswersArray.getJSONObject(i);
-                boolean isCorrect = answerObj.optBoolean("isCorrect", false);
-                if (isCorrect) {
-                    correctCount++;
-                } else {
-                    incorrectCount++;
-                }
-            }
-
-            int total = correctCount + incorrectCount;
-            int percentage = total == 0 ? 0 : (int) (((double) correctCount / total) * 100);
-
-            correctText.setText(correctCount + " Items");
+            correctText.setText(totalCorrect + " Items");
             incorrectText.setText(incorrectCount + " Items");
             progressCircle.setProgress(percentage);
             progressPercentageText.setText(percentage + "%");
@@ -556,6 +544,7 @@ public class QuizProgressActivity extends AppCompatActivity {
             progressPercentageText.setText("0%");
         }
     }
+
 
     private void displayOfflineAnsweredQuestions(List<Map<String, Object>> userAnswersList) {
         if (userAnswersList == null || userAnswersList.isEmpty()) {
