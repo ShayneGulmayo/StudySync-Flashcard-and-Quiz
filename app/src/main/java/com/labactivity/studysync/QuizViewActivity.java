@@ -738,7 +738,7 @@
                         String selectedStr = selected != null ? selected.toString().trim() : "";
                         hasAnswer = !selectedStr.isEmpty();
                         answerObj.put("selectedAnswer", selectedStr);
-                        isCorrect = correctAnswers.contains(selectedStr);
+                        isCorrect = hasAnswer && correctAnswers.contains(selectedStr);
 
                     } else if ("enumeration".equalsIgnoreCase(type)) {
                         List<String> selectedList = new ArrayList<>();
@@ -752,7 +752,7 @@
 
                         Set<String> selSet = new HashSet<>(selectedList);
                         Set<String> corrSet = new HashSet<>(correctAnswers);
-                        isCorrect = selSet.equals(corrSet);
+                        isCorrect = hasAnswer && selSet.equals(corrSet);
                     }
 
                     answerObj.put("isCorrect", isCorrect);
@@ -767,13 +767,18 @@
                     // 2. Or current is correct
                     // 3. Or current has an answer and no previous correct
                     // Existing:
-                    if (previousAnswer == null || isCorrect || (hasAnswer && !previousAnswer.optBoolean("isCorrect", true))) {
+                    if (hasAnswer) {
+                        // Even if previously correct, this replaces it with new result (correct or wrong)
                         previousAnswersMap.put(questionNumber, answerObj);
                         Log.d("QUIZ_DEBUG", "Saved/Updated Q" + questionNumber + " answer.");
+                    } else if (previousAnswer != null) {
+                        // Keep old answer if no new answer is provided
+                        previousAnswersMap.put(questionNumber, previousAnswer);
+                        Log.d("QUIZ_DEBUG", "Kept previous Q" + questionNumber + " answer.");
                     } else {
-                        previousAnswersMap.put(questionNumber, previousAnswer); // <= ensure previous stays
-                        Log.d("QUIZ_DEBUG", "Skipped Q" + questionNumber + " due to previous correct and current wrong.");
+                        Log.d("QUIZ_DEBUG", "Skipped Q" + questionNumber + " - No answer and no previous record.");
                     }
+
 
 
                 }
@@ -792,9 +797,10 @@
                     if (answer.optBoolean("isCorrect", false)) correctCount++;
                 }
 
-                int totalQuestions = questions.size(); // Use actual total number of questions
+                int totalQuestions = previousAnswersMap.size(); // Use merged answers count
                 int incorrectCount = totalQuestions - correctCount;
                 int percentage = (int) ((correctCount / (float) totalQuestions) * 100);
+
 
                 quizJson.put("answeredQuestions", finalAnswers);
                 quizJson.put("correctCount", correctCount);
