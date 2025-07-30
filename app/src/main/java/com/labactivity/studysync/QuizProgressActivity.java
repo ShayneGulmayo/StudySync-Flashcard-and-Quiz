@@ -519,16 +519,46 @@ public class QuizProgressActivity extends AppCompatActivity {
 
             JSONObject jsonObject = new JSONObject(json);
 
-            // ✅ Display title from JSON
-            String quizTitle = jsonObject.optString("quizTitle", "Untitled Quiz");
-            quizTitleText.setText(quizTitle);
+            // ✅ If quizTitle is missing or empty, fetch it from Firestore and update JSON
+            String quizTitle = jsonObject.optString("quizTitle", "");
+            if (quizTitle.isEmpty()) {
+                FirebaseFirestore.getInstance()
+                        .collection("quiz")
+                        .document(quizId)
+                        .get()
+                        .addOnSuccessListener(doc -> {
+                            String title = doc.getString("title");
+                            if (title == null || title.trim().isEmpty()) {
+                                title = "Untitled Quiz";
+                            }
+                            try {
+                                // Put the title into the existing JSON object
+                                jsonObject.put("quizTitle", title);
+
+                                // Overwrite file with updated JSON
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    Files.write(file.toPath(), jsonObject.toString().getBytes());
+                                }
+
+                                // Show title on UI
+                                quizTitleText.setText(title);
+                            } catch (JSONException | IOException e) {
+                                e.printStackTrace();
+                                quizTitleText.setText("Untitled Quiz");
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            quizTitleText.setText("Untitled Quiz");
+                        });
+            } else {
+                quizTitleText.setText(quizTitle);
+            }
 
             // ✅ Get correct/answered count from model fields
-            int totalCorrect = jsonObject.optInt("totalCorrect", 0);
-            int totalAnswered = jsonObject.optInt("totalAnswered", 0);
-
-            int incorrectCount = totalAnswered - totalCorrect;
-            int percentage = totalAnswered == 0 ? 0 : (int) (((double) totalCorrect / totalAnswered) * 100);
+            int totalCorrect = jsonObject.optInt("correctCount", 0);
+            int incorrectCount = jsonObject.optInt("incorrectCount", 0);
+            int totalItems = totalCorrect + incorrectCount;
+            int percentage = totalItems == 0 ? 0 : (int) (((double) totalCorrect / totalItems) * 100);
 
             correctText.setText(totalCorrect + " Items");
             incorrectText.setText(incorrectCount + " Items");
