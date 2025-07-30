@@ -84,6 +84,58 @@ export const sendChatRoomMessageNotification = onDocumentCreated(
     await Promise.all(notifications);
   }
 );
+export const sendUserNotification = onDocumentCreated(
+  "users/{userId}/notifications/{notificationId}",
+  async (event) => {
+    const snapshot = event.data;
+    const userId = event.params.userId;
+
+    if (!snapshot) {
+      logger.warn("No notification data found.");
+      return;
+    }
+
+    const notification = snapshot.data();
+
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (!userDoc.exists) {
+      logger.warn(`User ${userId} not found.`);
+      return;
+    }
+
+    const userData = userDoc.data();
+    const fcmToken = userData.fcmToken;
+
+    if (!fcmToken) {
+      logger.warn(`No FCM token for user ${userId}.`);
+      return;
+    }
+
+    const payload = {
+      notification: {
+        title: "StudySync Notification",
+        body: notification.text || "You have a new notification",
+      },
+      data: {
+        type: notification.type || "info",
+        setId: notification.setId || "",
+        setType: notification.setType || "",
+        status: notification.status || "",
+        senderId: notification.senderId || "",
+        action: notification.action || "",
+        notificationId: event.params.notificationId,
+      },
+      token: fcmToken,
+    };
+
+    try {
+      await getMessaging().send(payload);
+      logger.info(`User notification sent to ${userId}`);
+    } catch (err) {
+      logger.error(`Failed to send user notification to ${userId}:`, err);
+    }
+  }
+);
 
 
 
