@@ -1,5 +1,6 @@
 package com.labactivity.studysync;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -33,6 +34,7 @@ import java.util.Collections;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 
 import com.google.common.reflect.TypeToken;
 import com.google.firebase.auth.FirebaseAuth;
@@ -118,7 +120,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                     List<Map<String, Object>> userAnswersList = new Gson().fromJson(questionsArray.toString(), listType);
 
                     displayQuizProgressOffline();
-                    displayOfflineAnsweredQuestions(userAnswersList);
+                    displayOfflineAnsweredQuestions((List<Map<String, Object>>) userAnswersList);
 
                 } catch (Exception e) {
                     Log.e("OFFLINE_LOAD", "Failed to read offline quiz data", e);
@@ -576,25 +578,35 @@ public class QuizProgressActivity extends AppCompatActivity {
     }
 
 
+    @SuppressLint("ResourceAsColor")
     private void displayOfflineAnsweredQuestions(List<Map<String, Object>> userAnswersList) {
         if (userAnswersList == null || userAnswersList.isEmpty()) {
             Log.w("QUIZ_DISPLAY", "No answers to display.");
             return;
         }
 
-        LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
+        LinearLayout answersLayout = findViewById(R.id.answers_linear_layout); // This is your container
         LayoutInflater inflater = LayoutInflater.from(this);
-
         int number = 1;
         for (Map<String, Object> q : userAnswersList) {
             View view = inflater.inflate(R.layout.item_quiz_attempt_view, answersLayout, false);
 
+            // Get views
+            TextView questionText = view.findViewById(R.id.question_text);
+            TextView statusLabel = view.findViewById(R.id.status_label);
+            LinearLayout correctAnswerContainer = view.findViewById(R.id.correct_answer_container);
+            LinearLayout selectedWrongAnswerContainer = view.findViewById(R.id.selected_wrong_answer_container);
+            ImageView imageView = view.findViewById(R.id.question_image);
+            View imageCard = view.findViewById(R.id.question_img_card);
+            LinearLayout containerLayout = view.findViewById(R.id.answer_linear_layout); // for border
+
+            // Extract data
             String questionTextStr = (String) q.getOrDefault("question", "No question");
             List<String> correctAnswers = (List<String>) q.getOrDefault("correctAnswers", new ArrayList<>());
             String photoPath = (String) q.getOrDefault("photoPath", "");
             boolean isCorrect = Boolean.TRUE.equals(q.get("isCorrect"));
 
-            // Handle both String and List for 'selected'
+            // Handle selected answer(s)
             List<String> userAnswers = new ArrayList<>();
             Object selectedObj = q.get("selected");
             if (selectedObj instanceof String) {
@@ -606,33 +618,26 @@ public class QuizProgressActivity extends AppCompatActivity {
                 userAnswers = (List<String>) selectedObj;
             }
 
-            Log.d("QUIZ_DISPLAY", "Q" + number + " userAnswers=" + userAnswers + ", correctAnswers=" + correctAnswers + ", isCorrect=" + isCorrect);
-
-            TextView questionText = view.findViewById(R.id.question_text);
-            TextView statusLabel = view.findViewById(R.id.status_label);
-            LinearLayout correctAnswerContainer = view.findViewById(R.id.correct_answer_container);
-            LinearLayout selectedWrongAnswerContainer = view.findViewById(R.id.selected_wrong_answer_container);
-            ImageView imageView = view.findViewById(R.id.question_image);
-            View imageCard = view.findViewById(R.id.question_img_card);
-
+            // Set question number and text
             questionText.setText(number + ". " + questionTextStr);
             number++;
 
+            // Set status label and border
             if (isCorrect) {
                 statusLabel.setText("Correct");
                 statusLabel.setBackgroundColor(Color.parseColor("#00BF63"));
-                selectedWrongAnswerContainer.setVisibility(View.GONE);
+                containerLayout.setBackgroundResource(R.drawable.green_stroke_bg);
             } else {
                 statusLabel.setText("Incorrect");
                 statusLabel.setBackgroundColor(Color.parseColor("#F24F4F"));
-                selectedWrongAnswerContainer.setVisibility(View.VISIBLE);
+                containerLayout.setBackgroundResource(R.drawable.light_red_stroke_bg);
             }
 
-            // Add correct answers
+            // Show correct answers
             correctAnswerContainer.removeAllViews();
             for (String ans : correctAnswers) {
                 if (!TextUtils.isEmpty(ans.trim())) {
-                    TextView tv = new TextView(this);
+                    TextView tv = new TextView(this);  // because Activity itself is a Context
                     tv.setText("✓ " + ans);
                     tv.setTextColor(Color.parseColor("#006400"));
                     tv.setTextSize(16);
@@ -645,7 +650,7 @@ public class QuizProgressActivity extends AppCompatActivity {
             if (!isCorrect && userAnswers != null) {
                 for (String ans : userAnswers) {
                     if (!TextUtils.isEmpty(ans.trim())) {
-                        TextView tv = new TextView(this);
+                        TextView tv = new TextView(this);  // because Activity itself is a Context
                         tv.setText("✗ " + ans);
                         tv.setTextColor(Color.parseColor("#B22222"));
                         tv.setTextSize(16);
@@ -654,7 +659,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                 }
             }
 
-            // Handle image display
+            // Handle image
             if (!TextUtils.isEmpty(photoPath)) {
                 File imgFile = new File(photoPath);
                 if (imgFile.exists()) {
@@ -667,6 +672,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                 imageCard.setVisibility(View.GONE);
             }
 
+            // Finally add the view to the layout
             answersLayout.addView(view);
         }
     }
