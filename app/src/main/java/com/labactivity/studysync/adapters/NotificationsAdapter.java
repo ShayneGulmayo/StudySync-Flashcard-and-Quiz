@@ -139,7 +139,6 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         String newStatus = isAccept ? "accepted" : "denied";
         String collection = "flashcard".equals(notif.getSetType()) ? "flashcards" : "quiz";
 
-        // Update the current user's notification status
         DocumentReference notifRef = db.collection("users")
                 .document(currentUserId)
                 .collection("notifications")
@@ -153,50 +152,55 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
                     DocumentReference setRef = db.collection(collection).document(notif.getSetId());
 
                     if (isAccept && notif.getRequestedRole() != null) {
-                        // Change role from Temporary View to Editor
-                        setRef.update("accessUsers." + currentUserId, "Editor")
-                                .addOnSuccessListener(unused2 -> Log.d("handleAccess", "Role updated to Editor"))
-                                .addOnFailureListener(e -> Log.e("handleAccess", "Failed to promote to Editor", e));
+                        String role = notif.getRequestedRole();
+                        Map<String, Object> updateAccess = new HashMap<>();
 
-                        DocumentReference userRef = db.collection("users").document(currentUserId);
-                        Map<String, Object> savedSet = new HashMap<>();
-                        savedSet.put("id", notif.getSetId());
-                        savedSet.put("type", notif.getSetType());
+                        // Handle request (owner approving user request)
+                        if ("request".equals(notif.getType())) {
+                            updateAccess.put("accessUsers." + notif.getSenderId(), role);
+                        }
+                        // Handle invite (user accepting owner's invite)
+                        else if ("invite".equals(notif.getType())) {
+                            updateAccess.put("accessUsers." + currentUserId, role);
 
-                        userRef.update("saved_sets", FieldValue.arrayUnion(savedSet))
-                                .addOnSuccessListener(unused3 -> Log.d("handleAccess", "Set added to saved_sets"))
-                                .addOnFailureListener(e -> Log.e("handleAccess", "Failed to add set to saved_sets", e));
+                            // Save set to user's saved_sets
+                            DocumentReference userRef = db.collection("users").document(currentUserId);
+                            Map<String, Object> savedSet = new HashMap<>();
+                            savedSet.put("id", notif.getSetId());
+                            savedSet.put("type", notif.getSetType());
 
-                    } else if (!isAccept) {
-                        // Remove user from accessUsers
-                        Map<String, Object> updates = new HashMap<>();
-                        updates.put("accessUsers." + currentUserId, FieldValue.delete());
+                            userRef.update("saved_sets", FieldValue.arrayUnion(savedSet))
+                                    .addOnSuccessListener(_log -> Log.d("handleAccess", "Set added to saved_sets"))
+                                    .addOnFailureListener(e -> Log.e("handleAccess", "Failed to add set to saved_sets", e));
+                        }
 
-                        setRef.update(updates)
-                                .addOnSuccessListener(unused2 -> Log.d("handleAccess", "User removed from accessUsers"))
-                                .addOnFailureListener(e -> Log.e("handleAccess", "Failed to remove user from accessUsers", e));
+                        // Update accessUsers in Firestore
+                        setRef.update(updateAccess)
+                                .addOnSuccessListener(_log -> Log.d("handleAccess", "Access granted"))
+                                .addOnFailureListener(e -> Log.e("handleAccess", "Failed to update accessUsers", e));
                     }
 
-                    setRef.get().addOnSuccessListener(documentSnapshot -> {
-                        if (documentSnapshot.exists()) {
-                            Map<String, Object> pendingRoles = (Map<String, Object>) documentSnapshot.get("pendingRoles");
-                            if (pendingRoles != null && pendingRoles.containsKey(currentUserId)) {
+                    // In both accept/decline: remove pendingRole (if exists)
+                    setRef.get().addOnSuccessListener(doc -> {
+                        if (doc.exists()) {
+                            Map<String, Object> pendingRoles = (Map<String, Object>) doc.get("pendingRoles");
+
+                            // Check for either currentUserId or senderId depending on who was pending
+                            String toRemoveUid = "invite".equals(notif.getType()) ? currentUserId : notif.getSenderId();
+
+                            if (pendingRoles != null && pendingRoles.containsKey(toRemoveUid)) {
                                 Map<String, Object> pendingRoleRemoval = new HashMap<>();
-                                pendingRoleRemoval.put("pendingRoles." + currentUserId, FieldValue.delete());
+                                pendingRoleRemoval.put("pendingRoles." + toRemoveUid, FieldValue.delete());
 
                                 setRef.update(pendingRoleRemoval)
-                                        .addOnSuccessListener(unused4 -> Log.d("handleAccess", "Pending role removed"))
+                                        .addOnSuccessListener(_log -> Log.d("handleAccess", "Pending role removed"))
                                         .addOnFailureListener(e -> Log.e("handleAccess", "Failed to remove pending role", e));
-                            } else {
-                                Log.d("handleAccess", "No pending role found for current user");
                             }
-                        } else {
-                            Log.e("handleAccess", "Quiz document does not exist");
                         }
-                    }).addOnFailureListener(e -> Log.e("handleAccess", "Failed to fetch quiz document", e));
+                    }).addOnFailureListener(e -> Log.e("handleAccess", "Failed to check pending roles", e));
 
 
-                    // Fetch the set title to use in the response message
+                    // Prepare and send reply notification
                     db.collection(collection).document(notif.getSetId())
                             .get()
                             .addOnSuccessListener(setSnap -> {
@@ -212,22 +216,18 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
                                 reply.put("read", false);
                                 reply.put("type", "info");
 
-                                // Determine if it was an invitation or a request
-                                boolean wasInvite = "invite".equals(notif.getType());
                                 String role = notif.getRequestedRole();
+                                boolean isInvite = "invite".equals(notif.getType());
 
-                                if (wasInvite) {
-                                    // Receiver (current user) was invited
+                                if (isInvite) {
                                     reply.put("text", "Your invitation to " + notif.getReceiverName() +
                                             " to be an \"" + role + "\" in \"" + title + "\" was " + newStatus + ".");
-                                    // Send reply to the sender (the one who invited)
                                     db.collection("users")
                                             .document(notif.getSenderId())
                                             .collection("notifications")
                                             .add(reply)
                                             .addOnFailureListener(e -> Log.e("handleAccess", "Failed to send reply to inviter", e));
                                 } else {
-                                    // Sender (requesting user) will get reply
                                     reply.put("text", "Your request to have access as \"" + role + "\" in \"" +
                                             title + "\" has been " + newStatus + ".");
                                     db.collection("users")
@@ -241,6 +241,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
                 })
                 .addOnFailureListener(e -> Log.e("handleAccess", "Failed to update notification status", e));
     }
+
 
 
     @Override
