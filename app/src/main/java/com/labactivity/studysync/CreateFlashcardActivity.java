@@ -58,6 +58,7 @@ public class CreateFlashcardActivity extends AppCompatActivity {
     private String ownerUsername;
     private String currentUsersName;
     private View privacyContainer;
+    private String privacyRole;
     private ActivityResultLauncher<Intent> pickImageLauncher;
 
     @SuppressLint("MissingInflatedId")
@@ -107,6 +108,27 @@ public class CreateFlashcardActivity extends AppCompatActivity {
             addFlashcardView();
             addFlashcardView();
         }
+
+        db.collection("flashcards").document(setId)
+                .addSnapshotListener((snapshot, e) -> {
+                    if (e != null || snapshot == null || !snapshot.exists()) return;
+
+                    // Update public/private status
+                    Boolean publicStatus = snapshot.getBoolean("isPublic");
+                    isPublic = publicStatus != null && publicStatus;
+                    privacyTxt.setText(isPublic ? "Public" : "Private");
+                    Glide.with(this)
+                            .load(isPublic ? R.drawable.public_icon : R.drawable.lock)
+                            .into(privacyIcon);
+
+                    String privacyRole = snapshot.getString("privacyRole");
+                    if (privacyRole != null) {
+                        roleTxt.setText(privacyRole);
+                    } else {
+                        roleTxt.setText("");
+                    }
+                });
+
 
         findViewById(R.id.back_button).setOnClickListener(v -> onBackPressed());
         findViewById(R.id.save_button).setOnClickListener(v -> fetchUsernameAndSaveFlashcardSet(ownerUid));
