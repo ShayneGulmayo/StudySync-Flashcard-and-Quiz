@@ -84,13 +84,13 @@ import java.util.UUID;
 
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
-    private TextView titleTextView, ownerTextView, numberOfItemsTextView, setReminderTxt;
+    private TextView titleTextView, ownerTextView, numberOfItemsTextView, setReminderTxt, reminderCountdownTxt, reminderTimeFormatted;
     private ImageView ownerPhotoImageView, backButton, moreButton, saveSetBtn;
     private Button startFlashcardBtn, cancelReminderBtn, convertBtn;
     private MaterialButton downloadBtn, setReminderBtn, shareToChatBtn;
     private SpringDotsIndicator dotsIndicator;
 
-    private LinearLayout linearLayout;
+    private LinearLayout reminderLayout;
     private ViewPager2 carouselViewPager;
 
     private String currentPrivacy, setId, offlineFileName, ownerUid, userId, title;
@@ -207,12 +207,15 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         moreButton = findViewById(R.id.more_button);
         saveSetBtn = findViewById(R.id.saveQuizBtn);
         setReminderTxt = findViewById(R.id.setRemindersTxt);
-        cancelReminderBtn = findViewById(R.id.cancelReminderBtn);
         convertBtn = findViewById(R.id.convertToQuizBtn);
         shareToChatBtn = findViewById(R.id.shareToChat);
         downloadBtn = findViewById(R.id.downloadBtn);
         setReminderBtn = findViewById(R.id.setReminderBtn);
-        linearLayout = findViewById(R.id.reminder_layout);
+        reminderTimeFormatted = findViewById(R.id.reminderTimeFormatted);
+        reminderCountdownTxt = findViewById(R.id.reminderCountdownTxt);
+        cancelReminderBtn = findViewById(R.id.cancelReminderBtn);
+        reminderLayout = findViewById(R.id.reminder_layout);
+
 
         boolean fromNotification = getIntent().getBooleanExtra("fromNotification", false);
 
@@ -298,7 +301,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     .remove(userId + "_" + setId + "_isRepeating")
                     .apply();
 
-            setReminderTxt.setText("No reminder set");
+            reminderTimeFormatted.setText("No reminder set");
+            reminderCountdownTxt.setVisibility(View.GONE);
             cancelReminderBtn.setVisibility(View.GONE);
             Toast.makeText(this, "Reminder canceled.", Toast.LENGTH_SHORT).show();
         });
@@ -354,15 +358,18 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
                                 String ampm = (hour >= 12) ? "PM" : "AM";
                                 int displayHour = (hour % 12 == 0) ? 12 : hour % 12;
-                                String display = String.format("%02d:%02d %s on %d/%d/%d%s",
+                                String displayTime = String.format("%02d:%02d %s on %d/%d/%d",
                                         displayHour, minute, ampm,
                                         calendar.get(Calendar.MONTH) + 1,
                                         calendar.get(Calendar.DAY_OF_MONTH),
-                                        calendar.get(Calendar.YEAR),
-                                        isRepeating ? " (Daily)" : "");
+                                        calendar.get(Calendar.YEAR));
 
-                                setReminderTxt.setText(display);
-                                cancelReminderBtn.setVisibility(View.VISIBLE);
+                                reminderTimeFormatted.setText(displayTime);
+                                reminderCountdownTxt.setText(getCountdownText(calendar.getTimeInMillis()));
+                                reminderLayout.setVisibility(View.VISIBLE);
+                                loadReminderText();
+
+
 
                             }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
 
@@ -390,7 +397,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 } while (calendar.getTimeInMillis() <= currentTimeMillis);
 
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putLong("reminderTime", calendar.getTimeInMillis());
+                editor.putLong(userId + "_" + setId + "_reminderTime", calendar.getTimeInMillis());
                 editor.apply();
             }
 
@@ -406,13 +413,46 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                     calendar.get(Calendar.YEAR),
                     isRepeating ? " (Daily)" : "");
 
-            setReminderTxt.setText(display);
+            reminderTimeFormatted.setText(display);
+            reminderCountdownTxt.setText(getCountdownText(calendar.getTimeInMillis()));
+
+            reminderTimeFormatted.setVisibility(View.VISIBLE);
+            reminderCountdownTxt.setVisibility(View.VISIBLE);
             cancelReminderBtn.setVisibility(View.VISIBLE);
+            reminderLayout.setVisibility(View.VISIBLE);
+            setReminderBtn.setVisibility(View.VISIBLE);
         } else {
-            setReminderTxt.setText("");
+            reminderTimeFormatted.setText("No reminder set");
+            reminderCountdownTxt.setText("");
             cancelReminderBtn.setVisibility(View.GONE);
+
+            reminderLayout.setVisibility(View.VISIBLE);
+            setReminderBtn.setVisibility(View.VISIBLE);
         }
     }
+
+    private String getCountdownText(long futureTimeMillis) {
+        long now = System.currentTimeMillis();
+        long diff = futureTimeMillis - now;
+
+        if (diff <= 0) return "Reminder time passed";
+
+        long seconds = diff / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+
+        hours %= 24;
+        minutes %= 60;
+
+        StringBuilder builder = new StringBuilder("In ");
+        if (days > 0) builder.append(days).append(" day").append(days > 1 ? "s, " : ", ");
+        if (hours > 0) builder.append(hours).append(" hour").append(hours > 1 ? "s, " : ", ");
+        builder.append(minutes).append(" minute").append(minutes != 1 ? "s" : "");
+
+        return builder.toString();
+    }
+
 
     private void openUserProfile() {
         if (ownerUid != null) {
@@ -1349,7 +1389,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
             shareToChatBtn.setVisibility(View.GONE);
             setReminderBtn.setVisibility(View.GONE);
             cancelReminderBtn.setVisibility(View.GONE);
-            linearLayout.setVisibility(View.GONE);
+            //linearLayout.setVisibility(View.GONE);
 
             accessLevel = "Viewer";
             loadFlashcards();

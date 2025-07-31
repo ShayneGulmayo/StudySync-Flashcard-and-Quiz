@@ -73,10 +73,18 @@ public class AlarmHelper {
         if (alarmManager != null && pendingIntent != null) {
             alarmManager.cancel(pendingIntent);
             pendingIntent.cancel();
-            removeReminder(context, userId, setId);
             Log.d("AlarmHelper", "Alarm cancelled for setId: " + setId);
         }
+
+        SharedPreferences reminderPrefs = context.getSharedPreferences("ReminderPrefs", Context.MODE_PRIVATE);
+        reminderPrefs.edit()
+                .remove(userId + "_" + setId + "_reminderTime")
+                .remove(userId + "_" + setId + "_isRepeating")
+                .apply();
+
+        removeReminder(context, userId, setId);
     }
+
 
     public static boolean isReminderSet(Context context, String userId, String setId) {
         SharedPreferences prefs = context.getSharedPreferences("ReminderPrefs", Context.MODE_PRIVATE);

@@ -251,54 +251,53 @@
                 android:id="@+id/reminder_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
                 android:layout_marginStart="20dp"
                 android:layout_marginEnd="20dp"
-                android:layout_marginBottom="100dp"
-                android:background="@drawable/green_stroke_bg"
+                android:background="@drawable/reminder_card_bg"
                 android:orientation="vertical"
-                android:paddingStart="20dp"
-                android:paddingTop="10dp"
-                android:paddingEnd="20dp"
-                android:paddingBottom="20dp">
+                android:padding="20dp"
+                android:layout_marginBottom="200dp"
+                android:elevation="4dp"
+                android:clipToOutline="true">
 
                 <TextView
+                    android:id="@+id/reminderTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="Next reminder set for:"
+                    android:text="Upcoming Reminder"
                     android:textColor="@color/black"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/setRemindersTxt"
+                    android:id="@+id/reminderTimeFormatted"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="20dp"
-                    android:layout_marginBottom="20dp"
-                    android:text="No reminder set yet"
-                    android:textAlignment="center"
+                    android:layout_marginTop="8dp"
+                    android:text="Today at 5:00 PM"
                     android:textColor="@color/black"
                     android:textSize="16sp" />
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/reminderCountdownTxt"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2">
+                    android:layout_marginTop="4dp"
+                    android:text="In 2 days, 3 hours"
+                    android:textColor="@color/text_gray"
+                    android:textSize="14sp" />
 
-                    <Button
-                        android:id="@+id/cancelReminderBtn"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_gravity="center"
-                        android:layout_weight="1"
-                        android:backgroundTint="@color/warning"
-                        android:text="Cancel"
-                        android:textSize="16sp"
-                        app:cornerRadius="15dp" />
-                </LinearLayout>
+                <Button
+                    android:id="@+id/cancelReminderBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="16dp"
+                    android:text="Cancel Reminder"
+                    android:textSize="16sp"
+                    android:backgroundTint="@color/warning"
+                    app:cornerRadius="12dp" />
+
             </LinearLayout>
 
         </LinearLayout>
