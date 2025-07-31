@@ -106,20 +106,55 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             return;
         }
 
-        Intent intent;
-        if ("quiz".equalsIgnoreCase(model.getSetType())) {
-            intent = new Intent(context, QuizPreviewActivity.class);
-            intent.putExtra("quizId", model.getSetId());
-        } else if ("flashcard".equalsIgnoreCase(model.getSetType())) {
-            intent = new Intent(context, FlashcardPreviewActivity.class);
-            intent.putExtra("setId", model.getSetId());
-        } else {
-            Toast.makeText(context, "Unknown set type", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        String collection = "quiz".equalsIgnoreCase(model.getSetType()) ? "quiz" : "flashcards";
+        DocumentReference docRef = db.collection(collection).document(model.getSetId());
 
-        context.startActivity(intent);
+        docRef.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                DocumentSnapshot doc = task.getResult();
+
+                if (doc != null && doc.exists()) {
+                    Map<String, Object> accessUsers = (Map<String, Object>) doc.get("accessUsers");
+                    String ownerUid = doc.getString("ownerUid");
+
+                    // Check access permission
+                    boolean hasAccess = false;
+                    if (ownerUid != null && ownerUid.equals(currentUserId)) {
+                        hasAccess = true; // Owner always has access
+                    } else if (accessUsers != null && accessUsers.containsKey(currentUserId)) {
+                        hasAccess = true;
+                    }
+
+                    if (hasAccess) {
+                        // Open the appropriate preview activity
+                        Intent intent;
+                        if ("quiz".equalsIgnoreCase(model.getSetType())) {
+                            intent = new Intent(context, QuizPreviewActivity.class);
+                            intent.putExtra("quizId", model.getSetId());
+                        } else {
+                            intent = new Intent(context, FlashcardPreviewActivity.class);
+                            intent.putExtra("setId", model.getSetId());
+                        }
+                        context.startActivity(intent);
+                    } else {
+                        // User has no access
+                        Intent intent = new Intent(context, com.labactivity.studysync.NoAccessActivity.class);
+                        context.startActivity(intent);
+                    }
+
+                } else {
+                    // Document was deleted
+                    Intent intent = new Intent(context, com.labactivity.studysync.NoAccessDeletedActivity.class);
+                    context.startActivity(intent);
+                }
+            } else {
+                // Query failed, fallback to NoAccessDeletedActivity to prevent crash
+                Intent intent = new Intent(context, com.labactivity.studysync.NoAccessDeletedActivity.class);
+                context.startActivity(intent);
+            }
+        });
     }
+
 
     private void showConfirmationDialog(NotificationModel model, boolean isAccept) {
         if (!(context instanceof android.app.Activity)) return;
