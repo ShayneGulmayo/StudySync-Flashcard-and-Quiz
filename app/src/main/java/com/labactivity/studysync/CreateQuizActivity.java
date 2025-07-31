@@ -51,6 +51,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.DocumentReference;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.FileProvider;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.Timestamp;
@@ -66,7 +67,6 @@ public class CreateQuizActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
-    private String username;
     private LinearLayout quizContainer;
     private FloatingActionButton addQuizButton;
     private ImageView backButton, checkButton;
@@ -84,6 +84,8 @@ public class CreateQuizActivity extends AppCompatActivity {
     private String currentUid;
     private String ownerUsername;
     private String currentUsersName;
+    private ConstraintLayout privacyContainer;
+
 
 
     @Override
@@ -94,11 +96,13 @@ public class CreateQuizActivity extends AppCompatActivity {
         quizId = getIntent().getStringExtra("quizId");
         Log.d("CreateQuizActivity", "onCreate called, quizId: " + quizId);
 
+        TextView headerText = findViewById(R.id.txtView_add_quiz);
         quizContainer = findViewById(R.id.container_add_quiz);
         addQuizButton = findViewById(R.id.floating_add_btn);
         backButton = findViewById(R.id.back_button);
         checkButton = findViewById(R.id.save_button);
         quizTitleInput = findViewById(R.id.quiz_name);
+        privacyContainer = findViewById(R.id.privacy_container);
         privacyTxt = findViewById(R.id.privacy_text);
         privacyIcon = findViewById(R.id.icon_privacy);
         roleTxt = findViewById(R.id.role_text);
@@ -106,6 +110,12 @@ public class CreateQuizActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
         currentUid = auth.getCurrentUser().getUid(); // ← Use for editor actions
+
+        if (quizId != null) {
+            headerText.setText("Edit Quiz");
+        } else {
+            headerText.setText("Add Quiz");
+        }
 
         // Load current user's name (optional)
         db.collection("users")
@@ -124,7 +134,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                     .get()
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
-                            // 1. Privacy
                             Boolean publicStatus = documentSnapshot.getBoolean("isPublic");
                             isPublic = (publicStatus != null) ? publicStatus : false; // default to false
 
@@ -149,6 +158,11 @@ public class CreateQuizActivity extends AppCompatActivity {
                                 roleTxt.setText(""); // No role shown for private quizzes
                             }
 
+                            // ✅ 3. Hide privacy container if not owner
+                            ownerUid = documentSnapshot.getString("ownerUid");
+                            if (!currentUid.equals(ownerUid)) {
+                                privacyContainer.setVisibility(View.GONE);
+                            }
                         }
                     })
                     .addOnFailureListener(e -> Log.e("CreateQuizActivity", "Failed to fetch privacy/role info", e));
@@ -183,7 +197,7 @@ public class CreateQuizActivity extends AppCompatActivity {
 
             if (validateAllQuestions()) {
                 Toast.makeText(this, "Quiz saved successfully!", Toast.LENGTH_SHORT).show();
-                saveQuizToFirebase(); // ✅ will use originalOwnerUid
+                saveQuizToFirebase();
                 finish();
             }
         });
@@ -332,13 +346,10 @@ public class CreateQuizActivity extends AppCompatActivity {
             // New quiz — set current user as owner
             ownerUid = auth.getCurrentUser().getUid();  // ✅ assign
             quizData.put("owner_uid", ownerUid);
-            quizData.put("owner_username", username);
-            quizData.put("created_at", Timestamp.now());
-        } else {
-            // Editing — preserve owner info (already loaded into ownerUid/ownerUsername)
-            quizData.put("owner_uid", ownerUid);
             quizData.put("owner_username", ownerUsername);
+            quizData.put("created_at", Timestamp.now());
         }
+
         quizData.put("title", quizTitleInput.getText().toString().trim());
         quizData.put("number_of_items", questionCount);
         quizData.put("questions", questionList);
@@ -365,15 +376,13 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         quizRef.get().addOnSuccessListener(doc -> {
             if (doc.exists()) {
-                // Preserve original owner and access info before updating
-                if (!quizData.containsKey("owner_uid")) {
+                if (quizId != null) {
+                    // Preserve original owner
                     quizData.put("owner_uid", doc.getString("owner_uid"));
-                }
-                if (!quizData.containsKey("owner_username")) {
                     quizData.put("owner_username", doc.getString("owner_username"));
                 }
 
-                // Get accessUsers from Firestore and preserve it
+                // Preserve accessUsers
                 Map<String, Object> existingAccess = (Map<String, Object>) doc.get("accessUsers");
                 if (existingAccess != null) {
                     quizData.put("accessUsers", existingAccess);
