@@ -447,9 +447,9 @@ public class PrivacyActivity extends AppCompatActivity {
                                 notificationData.put("notificationId", notifDoc.getId());
 
                                 notifDoc.set(notificationData)
-                                        .addOnSuccessListener(unused ->
-                                                Toast.makeText(this, "Notification sent", Toast.LENGTH_SHORT).show()
-                                        )
+                                        .addOnSuccessListener(unused ->{
+                                                //Toast.makeText(this, "Notification sent", Toast.LENGTH_SHORT).show()
+                                        })
                                         .addOnFailureListener(e ->
                                                 Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                                         );
