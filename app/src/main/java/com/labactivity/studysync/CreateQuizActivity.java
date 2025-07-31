@@ -159,7 +159,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                             }
 
                             // ✅ 3. Hide privacy container if not owner
-                            ownerUid = documentSnapshot.getString("ownerUid");
+                            ownerUid = documentSnapshot.getString("owner_uid");
                             if (!currentUid.equals(ownerUid)) {
                                 privacyContainer.setVisibility(View.GONE);
                             }
