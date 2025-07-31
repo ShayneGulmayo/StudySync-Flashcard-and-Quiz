@@ -238,14 +238,16 @@ public class QuizPreviewActivity extends AppCompatActivity {
             showDateTimePicker();
         });
 
-        if (!AlarmHelper.isReminderSet(this, quizId)) {
-            cancelReminderBtn.setVisibility(View.GONE);
-        } else {
-            cancelReminderBtn.setVisibility(View.VISIBLE);
+        if (quizId != null && !isOffline) {
+            if (!AlarmHelper.isReminderSet(this, currentUserId, quizId)) {
+                cancelReminderBtn.setVisibility(View.GONE);
+            } else {
+                cancelReminderBtn.setVisibility(View.VISIBLE);
+            }
         }
 
         cancelReminderBtn.setOnClickListener(v -> {
-            AlarmHelper.cancelAlarm(this, quizId);
+            AlarmHelper.cancelAlarm(this, currentUserId, quizId);
             setReminderTxt.setText("No reminder set");
             cancelReminderBtn.setVisibility(View.GONE);
             Toast.makeText(this, "Reminder canceled.", Toast.LENGTH_SHORT).show();
@@ -301,6 +303,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                 boolean isRepeating = repeatDailyCheckBox.isChecked();
                                 long currentTimeMillis = System.currentTimeMillis();
 
+
                                 if (isRepeating) {
                                     while (calendar.getTimeInMillis() <= currentTimeMillis) {
                                         calendar.add(Calendar.DAY_OF_YEAR, 1);
@@ -312,12 +315,12 @@ public class QuizPreviewActivity extends AppCompatActivity {
                                     }
                                 }
 
-                                AlarmHelper.setAlarm(this, calendar, quizId, title, isRepeating);
+                                AlarmHelper.setAlarm(this, calendar, currentUserId, quizId, title, isRepeating);
 
                                 SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
                                 prefs.edit()
-                                        .putLong("reminderTime", calendar.getTimeInMillis())
-                                        .putBoolean("isRepeating", isRepeating)
+                                        .putLong(currentUserId + "_" + quizId + "_reminderTime", calendar.getTimeInMillis())
+                                        .putBoolean(currentUserId + "_" + quizId + "_isRepeating", isRepeating)
                                         .apply();
 
                                 String ampm = (hour >= 12) ? "PM" : "AM";
@@ -340,10 +343,11 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+
     private void loadReminderText() {
         SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
-        long reminderTime = prefs.getLong("reminderTime", -1);
-        boolean isRepeating = prefs.getBoolean("isRepeating", false);
+        long reminderTime = prefs.getLong(currentUserId + "_" + quizId + "_reminderTime", -1);
+        boolean isRepeating = prefs.getBoolean(currentUserId + "_" + quizId + "_isRepeating", false);
 
         if (reminderTime != -1) {
             Calendar calendar = Calendar.getInstance();

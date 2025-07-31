@@ -2,7 +2,9 @@ package com.labactivity.studysync.fragments;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -28,6 +30,7 @@ import com.labactivity.studysync.LoginActivity;
 import com.labactivity.studysync.NotificationsActivity;
 import com.labactivity.studysync.R;
 import com.labactivity.studysync.UserSettingsActivity;
+import com.labactivity.studysync.helpers.AlarmHelper;
 import com.yalantis.ucrop.UCrop;
 
 import java.io.File;
@@ -45,7 +48,7 @@ public class UserProfileFragment extends Fragment {
 
     private ActivityResultLauncher<Intent> galleryLauncher;
 
-    private String previousFileName;
+    private String previousFileName, userId;
 
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
     private static final String BUCKET_NAME = "user-files";
@@ -70,6 +73,8 @@ public class UserProfileFragment extends Fragment {
         logoutBtn = view.findViewById(R.id.logoutBtn);
         downloadedSetBtn = view.findViewById(R.id.downloadedSetBtn);
         notifBtn = view.findViewById(R.id.notifBtn);
+        userId = currentUser.getUid();
+
 
         loadUserData();
 
@@ -87,6 +92,9 @@ public class UserProfileFragment extends Fragment {
         logoutBtn.setOnClickListener(v -> {
             String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
             FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+            AlarmHelper.cancelAllReminders(requireContext(), currentUserId);
+            clearReminderPrefs(requireContext(), userId);
 
             db.collection("users")
                     .document(currentUserId)
@@ -122,6 +130,18 @@ public class UserProfileFragment extends Fragment {
 
         return view;
     }
+    private void clearReminderPrefs(Context context, String userId) {
+        SharedPreferences prefs = context.getSharedPreferences("ReminderPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        for (String key : prefs.getAll().keySet()) {
+            if (key.startsWith(userId + "_")) {
+                editor.remove(key);
+            }
+        }
+        editor.apply();
+    }
+
 
     private void openGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);

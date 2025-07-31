@@ -172,7 +172,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
 
         if (setId != null && !isOffline) {
-            if (!AlarmHelper.isReminderSet(this, setId)) {
+            if (!AlarmHelper.isReminderSet(this, userId, setId)) {
                 cancelReminderBtn.setVisibility(View.GONE);
             } else {
                 cancelReminderBtn.setVisibility(View.VISIBLE);
@@ -290,7 +290,7 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         });
 
         cancelReminderBtn.setOnClickListener(v -> {
-            AlarmHelper.cancelAlarm(this, setId);
+            AlarmHelper.cancelAlarm(this, userId, setId);
             setReminderTxt.setText("No reminder set");
             cancelReminderBtn.setVisibility(View.GONE);
             Toast.makeText(this, "Reminder canceled.", Toast.LENGTH_SHORT).show();
@@ -336,12 +336,12 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                                     }
                                 }
 
-                                AlarmHelper.setAlarm(this, calendar, setId, title, isRepeating);
+                                AlarmHelper.setAlarm(this, calendar, userId, setId, title, isRepeating);
 
                                 SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
                                 prefs.edit()
-                                        .putLong("reminderTime", calendar.getTimeInMillis())
-                                        .putBoolean("isRepeating", isRepeating)
+                                        .putLong(userId + "_" + setId + "_reminderTime", calendar.getTimeInMillis())
+                                        .putBoolean(userId + "_" + setId + "_isRepeating", isRepeating)
                                         .apply();
 
                                 String ampm = (hour >= 12) ? "PM" : "AM";
@@ -367,8 +367,8 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
     private void loadReminderText() {
         SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
-        long reminderTime = prefs.getLong("reminderTime", -1);
-        boolean isRepeating = prefs.getBoolean("isRepeating", false);
+        long reminderTime = prefs.getLong(userId + "_" + setId + "_reminderTime", -1);
+        boolean isRepeating = prefs.getBoolean(userId + "_" + setId + "_isRepeating", false);
 
         if (reminderTime != -1) {
             Calendar calendar = Calendar.getInstance();

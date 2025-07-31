@@ -4,6 +4,8 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 import android.widget.Toast;
@@ -11,18 +13,19 @@ import android.widget.Toast;
 import com.labactivity.studysync.receivers.ReminderReceiver;
 
 import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Set;
 
 public class AlarmHelper {
 
-    // Updated to accept setId
-    public static void setAlarm(Context context, Calendar calendar, String setId, String title, boolean isRepeating) {
+    private static final String PREF_NAME = "user_reminders";
+
+    public static void setAlarm(Context context, Calendar calendar, String userId, String setId, String title, boolean isRepeating) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
-        Intent intent = new Intent(context, ReminderReceiver.class);
-        intent.putExtra("title", title);
-        intent.putExtra("setId", setId); // Optional: Pass setId to the receiver if needed
+        Intent intent = buildIntent(context, userId, setId, title, isRepeating, calendar.getTimeInMillis());
+        int requestCode = buildRequestCode(userId, setId);
 
-        int requestCode = setId.hashCode(); // Unique and consistent ID
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,
                 requestCode,
@@ -32,29 +35,20 @@ public class AlarmHelper {
 
         if (alarmManager != null) {
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (!alarmManager.canScheduleExactAlarms()) {
-                        Toast.makeText(context, "Exact alarm permission not granted.", Toast.LENGTH_LONG).show();
-                        Log.w("AlarmHelper", "Exact alarm permission not granted.");
-                        return;
-                    }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                        !alarmManager.canScheduleExactAlarms()) {
+                    Toast.makeText(context, "Exact alarm permission not granted.", Toast.LENGTH_LONG).show();
+                    Log.w("AlarmHelper", "Exact alarm permission not granted.");
+                    return;
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    alarmManager.setExactAndAllowWhileIdle(
-                            AlarmManager.RTC_WAKEUP,
-                            calendar.getTimeInMillis(),
-                            pendingIntent
-                    );
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
                 } else {
-                    alarmManager.setExact(
-                            AlarmManager.RTC_WAKEUP,
-                            calendar.getTimeInMillis(),
-                            pendingIntent
-                    );
+                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
                 }
 
-
+                saveReminder(context, userId, setId);
                 Log.d("AlarmHelper", "Alarm set for: " + calendar.getTime() + (isRepeating ? " (Daily)" : ""));
             } catch (SecurityException e) {
                 e.printStackTrace();
@@ -64,30 +58,29 @@ public class AlarmHelper {
         }
     }
 
-    // Cancel specific alarm by setId
-    public static void cancelAlarm(Context context, String setId) {
+    public static void cancelAlarm(Context context, String userId, String setId) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = buildIntent(context, userId, setId, "", false, 0);
+        int requestCode = buildRequestCode(userId, setId);
 
-        Intent intent = new Intent(context, ReminderReceiver.class);
-
-        int requestCode = setId.hashCode();
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,
                 requestCode,
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
         );
 
-        if (alarmManager != null) {
+        if (alarmManager != null && pendingIntent != null) {
             alarmManager.cancel(pendingIntent);
+            pendingIntent.cancel();
+            removeReminder(context, userId, setId);
             Log.d("AlarmHelper", "Alarm cancelled for setId: " + setId);
         }
     }
 
-    // Check if reminder is set for this setId
-    public static boolean isReminderSet(Context context, String setId) {
-        Intent intent = new Intent(context, ReminderReceiver.class);
-        int requestCode = setId.hashCode();
+    public static boolean isReminderSet(Context context, String userId, String setId) {
+        Intent intent = buildIntent(context, userId, setId, "", false, 0);
+        int requestCode = buildRequestCode(userId, setId);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -96,5 +89,46 @@ public class AlarmHelper {
                 PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
         );
         return pendingIntent != null;
+    }
+
+    public static void cancelAllReminders(Context context, String userId) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        Set<String> setIds = prefs.getStringSet(userId, new HashSet<>());
+        if (setIds != null) {
+            for (String setId : setIds) {
+                cancelAlarm(context, userId, setId);
+            }
+        }
+        prefs.edit().remove(userId).apply();
+    }
+
+    private static Intent buildIntent(Context context, String userId, String setId, String title, boolean isRepeating, long triggerAt) {
+        Intent intent = new Intent(context, ReminderReceiver.class);
+        intent.setAction("com.labactivity.studysync.REMINDER_" + userId + "_" + setId);
+        intent.setData(Uri.parse("studysync://reminder/" + userId + "/" + setId));
+        intent.putExtra("userId", userId);
+        intent.putExtra("setId", setId);
+        intent.putExtra("title", title);
+        intent.putExtra("isRepeating", isRepeating);
+        intent.putExtra("triggerAt", triggerAt);
+        return intent;
+    }
+
+    private static int buildRequestCode(String userId, String setId) {
+        return (userId + ":" + setId).hashCode();
+    }
+
+    private static void saveReminder(Context context, String userId, String setId) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        Set<String> setIds = new HashSet<>(prefs.getStringSet(userId, new HashSet<>()));
+        setIds.add(setId);
+        prefs.edit().putStringSet(userId, setIds).apply();
+    }
+
+    private static void removeReminder(Context context, String userId, String setId) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        Set<String> setIds = new HashSet<>(prefs.getStringSet(userId, new HashSet<>()));
+        setIds.remove(setId);
+        prefs.edit().putStringSet(userId, setIds).apply();
     }
 }
