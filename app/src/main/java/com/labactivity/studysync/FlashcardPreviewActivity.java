@@ -206,7 +206,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         startFlashcardBtn = findViewById(R.id.start_flashcard_btn);
         moreButton = findViewById(R.id.more_button);
         saveSetBtn = findViewById(R.id.saveQuizBtn);
-        setReminderTxt = findViewById(R.id.setRemindersTxt);
         convertBtn = findViewById(R.id.convertToQuizBtn);
         shareToChatBtn = findViewById(R.id.shareToChat);
         downloadBtn = findViewById(R.id.downloadBtn);

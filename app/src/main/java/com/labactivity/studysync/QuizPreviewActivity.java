@@ -34,6 +34,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -102,6 +103,8 @@ public class QuizPreviewActivity extends AppCompatActivity {
     private MaterialButton downloadBtn, setReminderBtn, convertBtn, shareToChatBtn;
     private Switch shuffleSwitch, shuffleOptionsSwitch;
     private SpringDotsIndicator dotsIndicator;
+    private TextView reminderTimeFormatted, reminderCountdownTxt;
+
 
     private ViewPager2 carouselViewPager;
     private BottomSheetDialog bottomSheetDialog;
@@ -120,6 +123,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
     private Map<String, String> accessUsers = new HashMap<>();
     private List<Map<String, Object>> userAnswers;
     private Map<String, Object> offlineQuizMap;
+    private LinearLayout reminderLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -149,8 +153,10 @@ public class QuizPreviewActivity extends AppCompatActivity {
         downloadBtn = findViewById(R.id.downloadBtn);
         setReminderBtn = findViewById(R.id.setReminderBtn);
         shareToChatBtn = findViewById(R.id.shareToChat);
-        setReminderTxt = findViewById(R.id.setRemindersTxt);
+        reminderTimeFormatted = findViewById(R.id.reminderTimeFormatted);
+        reminderCountdownTxt = findViewById(R.id.reminderCountdownTxt);
         cancelReminderBtn = findViewById(R.id.cancelReminderBtn);
+        reminderLayout = findViewById(R.id.reminder_layout);
         auth = FirebaseAuth.getInstance();
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
@@ -170,7 +176,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
             shareToChatBtn.setVisibility(View.GONE);
             downloadBtn.setVisibility(View.GONE);
             setReminderBtn.setVisibility(View.GONE);
-            findViewById(R.id.quizReminderSetFor).setVisibility(View.GONE);
+            //findViewById(R.id.quizReminderSetFor).setVisibility(View.GONE);
         }
 
         if (isOffline && fileName != null) {
@@ -255,7 +261,8 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     .remove(currentUserId + "_" + quizId + "_isRepeating")
                     .apply();
 
-            setReminderTxt.setText("No reminder set");
+            reminderTimeFormatted.setText("No reminder set");
+            reminderCountdownTxt.setVisibility(View.GONE);
             cancelReminderBtn.setVisibility(View.GONE);
             Toast.makeText(this, "Reminder canceled.", Toast.LENGTH_SHORT).show();
         });
@@ -332,15 +339,18 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
                                 String ampm = (hour >= 12) ? "PM" : "AM";
                                 int displayHour = (hour % 12 == 0) ? 12 : hour % 12;
-                                String display = String.format("%02d:%02d %s on %d/%d/%d%s",
+                                String displayTime = String.format("%02d:%02d %s on %d/%d/%d",
                                         displayHour, minute, ampm,
                                         calendar.get(Calendar.MONTH) + 1,
                                         calendar.get(Calendar.DAY_OF_MONTH),
-                                        calendar.get(Calendar.YEAR),
-                                        isRepeating ? " (Daily)" : "");
+                                        calendar.get(Calendar.YEAR));
 
-                                setReminderTxt.setText(display);
-                                cancelReminderBtn.setVisibility(View.VISIBLE);
+                                reminderTimeFormatted.setText(displayTime);
+                                reminderCountdownTxt.setText(getCountdownText(calendar.getTimeInMillis()));
+                                reminderLayout.setVisibility(View.VISIBLE);
+                                loadReminderText();
+
+
 
                             }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
 
@@ -368,7 +378,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 } while (calendar.getTimeInMillis() <= currentTimeMillis);
 
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putLong("reminderTime", calendar.getTimeInMillis());
+                editor.putLong(currentUserId + "_" + quizId + "_reminderTime", calendar.getTimeInMillis());
                 editor.apply();
             }
 
@@ -384,12 +394,44 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     calendar.get(Calendar.YEAR),
                     isRepeating ? " (Daily)" : "");
 
-            setReminderTxt.setText(display);
+            reminderTimeFormatted.setText(display);
+            reminderCountdownTxt.setText(getCountdownText(calendar.getTimeInMillis()));
+
+            reminderTimeFormatted.setVisibility(View.VISIBLE);
+            reminderCountdownTxt.setVisibility(View.VISIBLE);
             cancelReminderBtn.setVisibility(View.VISIBLE);
+            reminderLayout.setVisibility(View.VISIBLE);
+            setReminderBtn.setVisibility(View.VISIBLE);
         } else {
-            setReminderTxt.setText("");
+            reminderTimeFormatted.setText("No reminder set");
+            reminderCountdownTxt.setText("");
             cancelReminderBtn.setVisibility(View.GONE);
+
+            reminderLayout.setVisibility(View.VISIBLE);
+            setReminderBtn.setVisibility(View.VISIBLE);
         }
+    }
+
+    private String getCountdownText(long futureTimeMillis) {
+        long now = System.currentTimeMillis();
+        long diff = futureTimeMillis - now;
+
+        if (diff <= 0) return "Reminder time passed";
+
+        long seconds = diff / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+
+        hours %= 24;
+        minutes %= 60;
+
+        StringBuilder builder = new StringBuilder("In ");
+        if (days > 0) builder.append(days).append(" day").append(days > 1 ? "s, " : ", ");
+        if (hours > 0) builder.append(hours).append(" hour").append(hours > 1 ? "s, " : ", ");
+        builder.append(minutes).append(" minute").append(minutes != 1 ? "s" : "");
+
+        return builder.toString();
     }
 
     private void loadQuizData(String quizId) {
