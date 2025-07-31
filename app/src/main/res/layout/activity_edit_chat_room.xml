@@ -176,7 +176,9 @@
                 android:textAlignment="textStart"
                 android:textColor="@color/primary"
                 android:textSize="16sp"
-                tools:ignore="RtlCompat" />
+                tools:ignore="RtlCompat"
+                android:checked="false"
+                />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/leave_chatroom_btn"

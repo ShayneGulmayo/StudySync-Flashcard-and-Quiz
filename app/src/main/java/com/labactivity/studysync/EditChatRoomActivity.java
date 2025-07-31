@@ -93,7 +93,7 @@ public class EditChatRoomActivity extends AppCompatActivity {
         chatroomNameTextView = findViewById(R.id.chatroom_name);
         moreBtn = findViewById(R.id.more_button);
         notifToggle = findViewById(R.id.notif_btn);
-        notifToggle.setChecked(true);
+        notifToggle.setChecked(false);
         sharedSets = findViewById(R.id.shared_sets_btn);
         deleteChatRoom = findViewById(R.id.delete_chatroom_btn);
         sharedMedia = findViewById(R.id.media_files_btn);
