@@ -79,6 +79,19 @@ public class AlarmHelper {
     }
 
     public static boolean isReminderSet(Context context, String userId, String setId) {
+        SharedPreferences prefs = context.getSharedPreferences("ReminderPrefs", Context.MODE_PRIVATE);
+        long reminderTime = prefs.getLong(userId + "_" + setId + "_reminderTime", -1);
+        boolean isRepeating = prefs.getBoolean(userId + "_" + setId + "_isRepeating", false);
+
+        if (reminderTime != -1 && !isRepeating && reminderTime < System.currentTimeMillis()) {
+            cancelAlarm(context, userId, setId);
+            prefs.edit()
+                    .remove(userId + "_" + setId + "_reminderTime")
+                    .remove(userId + "_" + setId + "_isRepeating")
+                    .apply();
+            return false;
+        }
+
         Intent intent = buildIntent(context, userId, setId, "", false, 0);
         int requestCode = buildRequestCode(userId, setId);
 
@@ -90,6 +103,7 @@ public class AlarmHelper {
         );
         return pendingIntent != null;
     }
+
 
     public static void cancelAllReminders(Context context, String userId) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);

@@ -291,10 +291,18 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
         cancelReminderBtn.setOnClickListener(v -> {
             AlarmHelper.cancelAlarm(this, userId, setId);
+
+            SharedPreferences prefs = this.getSharedPreferences("ReminderPrefs", Context.MODE_PRIVATE);
+            prefs.edit()
+                    .remove(userId + "_" + setId + "_reminderTime")
+                    .remove(userId + "_" + setId + "_isRepeating")
+                    .apply();
+
             setReminderTxt.setText("No reminder set");
             cancelReminderBtn.setVisibility(View.GONE);
             Toast.makeText(this, "Reminder canceled.", Toast.LENGTH_SHORT).show();
         });
+
 
     }
 

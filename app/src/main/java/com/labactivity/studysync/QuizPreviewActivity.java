@@ -248,6 +248,13 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         cancelReminderBtn.setOnClickListener(v -> {
             AlarmHelper.cancelAlarm(this, currentUserId, quizId);
+
+            SharedPreferences prefs = this.getSharedPreferences("ReminderPrefs", Context.MODE_PRIVATE);
+            prefs.edit()
+                    .remove(currentUserId + "_" + quizId + "_reminderTime")
+                    .remove(currentUserId + "_" + quizId + "_isRepeating")
+                    .apply();
+
             setReminderTxt.setText("No reminder set");
             cancelReminderBtn.setVisibility(View.GONE);
             Toast.makeText(this, "Reminder canceled.", Toast.LENGTH_SHORT).show();
