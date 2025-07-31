@@ -147,6 +147,8 @@
 
             messagesRef = db.collection("chat_rooms").document(roomId).collection("messages");
 
+
+            listenForLiveQuizTriggers();
             String startLiveQuizId = getIntent().getStringExtra("startLiveQuizId");
             if (startLiveQuizId != null && !triggeredQuizIds.contains(startLiveQuizId)) {
                 launchLiveQuiz(startLiveQuizId);
@@ -194,7 +196,7 @@
                                 startMessage.put("timestamp", Timestamp.now());
                                 startMessage.put("type", "text");
 
-                                messageRef.add(startMessage);
+                                announceQuizStarted(roomId);
 
                                 runQuizPopup(title, questions, durationPerQuestion.intValue(), roomId, quizId);
                             } else {
@@ -206,6 +208,48 @@
                         Toast.makeText(this, "Failed to load quiz.", Toast.LENGTH_SHORT).show();
                     });
         }
+        private void fetchAndRunLiveQuiz(String quizId) {
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            String roomId = getIntent().getStringExtra("roomId");
+
+            db.collection("chat_rooms")
+                    .document(roomId)
+                    .collection("live_quiz")
+                    .document(quizId)
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            String title = documentSnapshot.getString("title");
+                            List<Map<String, Object>> questions = (List<Map<String, Object>>) documentSnapshot.get("questions");
+                            Long durationPerQuestion = documentSnapshot.getLong("duration");
+
+                            if (questions != null && durationPerQuestion != null) {
+                                runQuizPopup(title, questions, durationPerQuestion.intValue(), roomId, quizId);
+                            } else {
+                                Toast.makeText(this, "Invalid quiz data.", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to load quiz.", Toast.LENGTH_SHORT).show();
+                    });
+        }
+        private void announceQuizStarted(String roomId) {
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            CollectionReference messageRef = db.collection("chat_rooms").document(roomId).collection("messages");
+
+            Map<String, Object> startMessage = new HashMap<>();
+            startMessage.put("senderId", "Live Quiz Manager");
+            startMessage.put("senderName", "Live Quiz Manager");
+            startMessage.put("senderPhotoUrl", "https://.../studysync_logo.png");
+            startMessage.put("text", "🚨 A Live Quiz has just started! Get ready to answer quickly.");
+            startMessage.put("timestamp", Timestamp.now());
+            startMessage.put("type", "text");
+
+            messageRef.add(startMessage);
+        }
+
+
 
         private void runQuizPopup(String title, List<Map<String, Object>> questions, int durationSeconds, String roomId, String quizId) {
             Map<String, Integer> scores = new HashMap<>();
@@ -422,6 +466,7 @@
         }
 
         private void listenForLiveQuizTriggers() {
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
             db.collection("chat_rooms")
                     .document(roomId)
                     .collection("live_quiz")
@@ -438,7 +483,7 @@
                                     && !triggeredQuizIds.contains(quizId)) {
 
                                 triggeredQuizIds.add(quizId);
-                                launchLiveQuiz(quizId);
+                                fetchAndRunLiveQuiz(quizId);
                             }
                         }
                     });
