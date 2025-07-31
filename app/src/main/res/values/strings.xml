@@ -118,7 +118,7 @@
     <string name="no_notifs">No New Notifications</string>
     <string name="no_chatrooms">No chatrooms yet.\n Tap the + icon to start one!</string>
     <string name="reminders_for_upcoming_reviews">Reminders for Upcoming Reviews</string>
-
+    <string name="no_access_deleted">The set you are trying to open \ndoes not exist.</string>
 
 
 </resources>
