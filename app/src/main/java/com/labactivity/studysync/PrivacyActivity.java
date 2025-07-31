@@ -416,7 +416,7 @@ public class PrivacyActivity extends AppCompatActivity {
                                             type = "invite";
                                             status = "pending";
                                         } else if (role.equalsIgnoreCase("viewer")) {
-                                            messageText = senderName[0] + " changed your role to viewer in the set \"" + setTitle + "\".";
+                                            messageText = senderName[0] + " added you as a viewer to the set \"" + setTitle + "\".";
                                             type = "access";
                                         }
                                         break;
