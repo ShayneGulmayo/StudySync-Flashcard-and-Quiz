@@ -443,17 +443,12 @@ public class SetFragment extends Fragment {
             }
         }
 
-        // ✅ Always sort by lastAccessed before assigning to displayedSets
         temp.sort((s1, s2) -> Long.compare(s2.getLastAccessed(), s1.getLastAccessed()));
         displayedSets.addAll(temp);
 
         adapter.notifyDataSetChanged();
         noSetsText.setVisibility(displayedSets.isEmpty() ? View.VISIBLE : View.GONE);
     }
-
-
-
-
 
     private void showAddSet() {
         View view = getLayoutInflater().inflate(R.layout.add_set_menu, null);

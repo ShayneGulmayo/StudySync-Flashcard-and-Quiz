@@ -86,6 +86,7 @@ public class SeeMembersActivity extends AppCompatActivity {
 
                         users.add(new UserWithRole(user, role));
                     }
+                    users.sort((u1, u2) -> u1.getUser().getFullName().compareToIgnoreCase(u2.getUser().getFullName()));
                     adapter.updateData(users, ownerId, admins);
                 });
     }

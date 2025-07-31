@@ -1,6 +1,7 @@
 package com.labactivity.studysync.adapters;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -78,12 +79,22 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
         boolean isAdmin = admins != null && admins.contains(currentUserId);
         boolean isOwner = currentUserId.equals(ownerId);
 
-        if (isOwner || isAdmin) {
-            holder.itemView.setOnClickListener(v -> showBottomSheet(userWithRole));
-        } else {
-            holder.itemView.setOnClickListener(null);
-        }
+        holder.itemView.setOnClickListener(v -> {
+            if (isOwner || isAdmin) {
+                showBottomSheet(userWithRole);
+            } else {
+                openUserProfile(user.getUid());
+            }
+        });
+
     }
+
+    private void openUserProfile(String userId) {
+        Intent intent = new Intent(context, com.labactivity.studysync.UserProfileActivity.class);
+        intent.putExtra("userId", userId);
+        context.startActivity(intent);
+    }
+
 
     private void showBottomSheet(UserWithRole target) {
         BottomSheetDialog sheet = new BottomSheetDialog(context);

@@ -2,6 +2,7 @@ package com.labactivity.studysync;
 
 import android.os.Bundle;
 import android.widget.ImageView;
+import androidx.appcompat.widget.SearchView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -32,6 +33,7 @@ public class SetPickerActivity extends AppCompatActivity {
     private String chatRoomId;
     private boolean flashcardsLoaded = false;
     private boolean quizzesLoaded = false;
+    private SearchView searchView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,13 +48,38 @@ public class SetPickerActivity extends AppCompatActivity {
         recyclerPublicSets = findViewById(R.id.recyclerPublicSets);
         recyclerOwnedSets.setLayoutManager(new LinearLayoutManager(this));
         recyclerPublicSets.setLayoutManager(new LinearLayoutManager(this));
+        searchView = findViewById(R.id.searchView);
 
         ImageView backBtn = findViewById(R.id.back_button);
         backBtn.setOnClickListener(v -> finish());
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                filterSets(query);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                filterSets(newText);
+                return true;
+            }
+        });
 
         fetchFlashcards();
         fetchQuizzes();
+
     }
+
+    private void filterSets(String query) {
+        if (ownedAdapter != null) {
+            ownedAdapter.filter(query);
+        }
+        if (publicAdapter != null) {
+            publicAdapter.filter(query);
+        }
+    }
+
 
     private void fetchFlashcards() {
         db.collection("flashcards").get().addOnSuccessListener(query -> {
@@ -135,7 +162,6 @@ public class SetPickerActivity extends AppCompatActivity {
                             .collection("messages")
                             .add(message)
                             .addOnSuccessListener(ref -> {
-                                // Update last message in chat_rooms
                                 db.collection("chat_rooms")
                                         .document(chatRoomId)
                                         .update(

@@ -15,6 +15,7 @@ import com.labactivity.studysync.models.Flashcard;
 import com.labactivity.studysync.models.Quiz;
 import com.labactivity.studysync.models.User;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class SendSetAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -26,24 +27,26 @@ public class SendSetAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private static final int VIEW_TYPE_ITEM = 0;
     private static final int VIEW_TYPE_EMPTY = 1;
 
-    private final List<Object> sets;
+    private final List<Object> originalList;
+    private final List<Object> filteredList;
     private final OnSetClickListener listener;
     private final FirebaseFirestore db;
 
     public SendSetAdapter(List<Object> sets, OnSetClickListener listener) {
-        this.sets = sets;
+        this.originalList = new ArrayList<>(sets);
+        this.filteredList = new ArrayList<>(sets);
         this.listener = listener;
         this.db = FirebaseFirestore.getInstance();
     }
 
     @Override
     public int getItemCount() {
-        return sets.isEmpty() ? 1 : sets.size();
+        return filteredList.isEmpty() ? 1 : filteredList.size();
     }
 
     @Override
     public int getItemViewType(int position) {
-        return sets.isEmpty() ? VIEW_TYPE_EMPTY : VIEW_TYPE_ITEM;
+        return filteredList.isEmpty() ? VIEW_TYPE_EMPTY : VIEW_TYPE_ITEM;
     }
 
     @NonNull
@@ -61,7 +64,7 @@ public class SendSetAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof SetViewHolder) {
-            Object item = sets.get(position);
+            Object item = filteredList.get(position);
             SetViewHolder setHolder = (SetViewHolder) holder;
 
             if (item instanceof Flashcard) {
@@ -107,6 +110,30 @@ public class SendSetAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 }
             }
         }
+    }
+
+    public void filter(String query) {
+        String lowerQuery = query.toLowerCase().trim();
+        filteredList.clear();
+
+        if (lowerQuery.isEmpty()) {
+            filteredList.addAll(originalList);
+        } else {
+            for (Object item : originalList) {
+                String title = "";
+                if (item instanceof Flashcard) {
+                    title = ((Flashcard) item).getTitle();
+                } else if (item instanceof Quiz) {
+                    title = ((Quiz) item).getTitle();
+                }
+
+                if (title.toLowerCase().contains(lowerQuery)) {
+                    filteredList.add(item);
+                }
+            }
+        }
+
+        notifyDataSetChanged();
     }
 
     public static class SetViewHolder extends RecyclerView.ViewHolder {

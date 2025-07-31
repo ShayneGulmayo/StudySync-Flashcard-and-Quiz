@@ -705,14 +705,20 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 senderImage.setVisibility(VISIBLE);
                 Glide.with(itemView.getContext())
                         .load(message.getSenderPhotoUrl())
+                        .placeholder(R.drawable.user_profile)
                         .circleCrop()
                         .into(senderImage);
 
-                senderImage.setOnClickListener(v -> {
-                    Intent intent = new Intent(itemView.getContext(), UserProfileActivity.class);
-                    intent.putExtra("userId", message.getSenderId());
-                    itemView.getContext().startActivity(intent);
-                });
+                if (!"Live Quiz Manager".equals(message.getSenderName())) {
+                    senderImage.setOnClickListener(v -> {
+                        Intent intent = new Intent(itemView.getContext(), UserProfileActivity.class);
+                        intent.putExtra("userId", message.getSenderId());
+                        itemView.getContext().startActivity(intent);
+                    });
+                } else {
+                    senderImage.setClickable(false);
+                }
+
             }
 
             itemView.setOnClickListener(v -> {
