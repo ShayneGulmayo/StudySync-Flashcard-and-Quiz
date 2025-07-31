@@ -69,8 +69,6 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         holder.denyBtn.setVisibility(isInviteOrRequest && !isHandled ? View.VISIBLE : View.GONE);
         holder.allowedIndicator.setVisibility("accepted".equals(model.getStatus()) ? View.VISIBLE : View.GONE);
         holder.deniedIndicator.setVisibility("denied".equals(model.getStatus()) ? View.VISIBLE : View.GONE);
-
-
         holder.acceptBtn.setOnClickListener(v -> showConfirmationDialog(model, true));
         holder.denyBtn.setOnClickListener(v -> showConfirmationDialog(model, false));
 
@@ -178,6 +176,24 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
                                 .addOnSuccessListener(unused2 -> Log.d("handleAccess", "User removed from accessUsers"))
                                 .addOnFailureListener(e -> Log.e("handleAccess", "Failed to remove user from accessUsers", e));
                     }
+
+                    setRef.get().addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            Map<String, Object> pendingRoles = (Map<String, Object>) documentSnapshot.get("pendingRoles");
+                            if (pendingRoles != null && pendingRoles.containsKey(currentUserId)) {
+                                Map<String, Object> pendingRoleRemoval = new HashMap<>();
+                                pendingRoleRemoval.put("pendingRoles." + currentUserId, FieldValue.delete());
+
+                                setRef.update(pendingRoleRemoval)
+                                        .addOnSuccessListener(unused4 -> Log.d("handleAccess", "Pending role removed"))
+                                        .addOnFailureListener(e -> Log.e("handleAccess", "Failed to remove pending role", e));
+                            } else {
+                                Log.d("handleAccess", "No pending role found for current user");
+                            }
+                        } else {
+                            Log.e("handleAccess", "Quiz document does not exist");
+                        }
+                    }).addOnFailureListener(e -> Log.e("handleAccess", "Failed to fetch quiz document", e));
 
 
                     // Fetch the set title to use in the response message
