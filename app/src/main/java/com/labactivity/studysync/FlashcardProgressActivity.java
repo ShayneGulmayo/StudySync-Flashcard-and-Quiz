@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -311,6 +312,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                 reader.close();
 
                 String json = jsonBuilder.toString();
+
                 Map<String, Object> setData = new Gson().fromJson(json, Map.class);
 
                 List<Map<String, Object>> attempts = (List<Map<String, Object>>) setData.get("attempts");
@@ -327,6 +329,7 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                 });
 
                 for (Map<String, Object> t : attempts) {
+
                     View answerView = inflater.inflate(R.layout.item_flashcard_attempt_view, answersLayout, false);
 
                     TextView termText = answerView.findViewById(R.id.term_text);
@@ -340,6 +343,8 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                     String definition = t.get("definition") != null ? t.get("definition").toString() : "No definition";
                     String photoUrl = t.get("photoUrl") != null ? t.get("photoUrl").toString() : null;
                     boolean isCorrect = t.get("isCorrect") != null && (boolean) t.get("isCorrect");
+
+                    Log.d("FLASHCARD_ATTEMPT", "Term: " + term + ", Definition: " + definition + ", PhotoURL: " + photoUrl + ", isCorrect: " + isCorrect);
 
                     termText.setText(term);
                     definitionText.setText(definition);
@@ -367,7 +372,6 @@ public class FlashcardProgressActivity extends AppCompatActivity {
 
                     answersLayout.addView(answerView);
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Failed to load offline attempts.", Toast.LENGTH_SHORT).show();

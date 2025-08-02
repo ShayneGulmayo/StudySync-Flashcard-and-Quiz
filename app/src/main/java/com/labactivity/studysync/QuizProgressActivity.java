@@ -102,7 +102,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                 quizTitleText.setText("Untitled Quiz");
             }
 
-            File file = new File(getCacheDir(), "quiz_" + quizId + ".json");
+            File file = new File(getFilesDir(), "quiz_" + quizId + ".json");
 
             if (file.exists()) {
                 try {
@@ -208,7 +208,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                         return;
                     }
 
-                    File file = new File(getCacheDir(), fileName);
+                    File file = new File(getFilesDir(), fileName);
                     if (!file.exists()) {
                         Toast.makeText(this, "No offline quiz data to review.", Toast.LENGTH_SHORT).show();
                         return;
@@ -504,7 +504,7 @@ public class QuizProgressActivity extends AppCompatActivity {
 
     private void displayQuizProgressOffline() {
         try {
-            File file = new File(getCacheDir(), "quiz_" + quizId + ".json");
+            File file = new File(getFilesDir(), "quiz_" + quizId + ".json");
             if (!file.exists()) {
                 quizTitleText.setText("Untitled Quiz");
                 correctText.setText("0 Items");

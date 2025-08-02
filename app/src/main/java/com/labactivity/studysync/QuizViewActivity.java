@@ -685,7 +685,7 @@
                     progressFileName = "quiz_" + quizId + ".json";
                 }
 
-                File file = new File(getCacheDir(), progressFileName);
+                File file = new File(getFilesDir(), progressFileName);
                 JSONObject quizJson;
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && file.exists()) {
@@ -909,7 +909,7 @@
             try {
                 String quizTitle = getIntent().getStringExtra("quizTitle");
                 String fileName = "quiz_" + quizId + ".json";
-                File file = new File(getCacheDir(), fileName);
+                File file = new File(getFilesDir(), fileName);
 
                 JSONArray previousArray = new JSONArray();
                 Map<String, JSONObject> combinedAnswers = new LinkedHashMap<>();
