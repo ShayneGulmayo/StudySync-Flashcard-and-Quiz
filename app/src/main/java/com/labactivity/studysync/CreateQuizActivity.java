@@ -324,7 +324,6 @@ public class CreateQuizActivity extends AppCompatActivity {
         if (quizId == null) {
             ownerUid = auth.getCurrentUser().getUid();
             quizData.put("owner_uid", ownerUid);
-            quizData.put("owner_username", ownerUsername);
             quizData.put("created_at", Timestamp.now());
         }
 
@@ -356,7 +355,6 @@ public class CreateQuizActivity extends AppCompatActivity {
             if (doc.exists()) {
                 if (quizId != null) {
                     quizData.put("owner_uid", doc.getString("owner_uid"));
-                    quizData.put("owner_username", doc.getString("owner_username"));
                 }
 
                 Map<String, Object> existingAccess = (Map<String, Object>) doc.get("accessUsers");
@@ -647,8 +645,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                         quizTitleInput.setText(documentSnapshot.getString("title"));
 
                         ownerUid = documentSnapshot.getString("owner_uid");
-                        ownerUsername = documentSnapshot.getString("owner_username");
-
                         List<Map<String, Object>> questions = (List<Map<String, Object>>) documentSnapshot.get("questions");
                         if (questions != null) {
                             for (Map<String, Object> question : questions) {
