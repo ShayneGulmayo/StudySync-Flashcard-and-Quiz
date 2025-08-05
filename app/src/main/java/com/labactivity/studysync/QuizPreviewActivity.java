@@ -69,12 +69,14 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.DocumentReference;
 
+import com.google.gson.GsonBuilder;
 import com.labactivity.studysync.adapters.QuizCarouselAdapter;
 import com.labactivity.studysync.helpers.AlarmHelper;
 import com.labactivity.studysync.models.Quiz;
 
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
 
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -91,6 +93,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -1039,70 +1042,54 @@ public class QuizPreviewActivity extends AppCompatActivity {
                     if (setData == null) return;
 
                     setData.put("id", quizId);
+
                     List<Map<String, Object>> questions = (List<Map<String, Object>>) setData.get("questions");
+                    Map<String, Object> questionsMap = new LinkedHashMap<>();
+                    List<Map<String, Object>> attemptList = new ArrayList<>();
 
-                    List<Map<String, Object>> userAnswers = new ArrayList<>();
+                    for (int i = 0; i < questions.size(); i++) {
+                        Map<String, Object> q = questions.get(i);
+                        String qIndex = String.valueOf(i);
 
-                    for (Map<String, Object> question : questions) {
-                        String questionText = (String) question.get("question");
-                        String quizType = (String) question.get("quizType");
+                        Map<String, Object> questionEntry = new LinkedHashMap<>();
+                        questionEntry.put("quizType", q.get("quizType"));
+                        questionEntry.put("question", q.get("question"));
+                        questionEntry.put("choices", q.get("choices"));
+                        questionEntry.put("correctAnswer", q.get("correctAnswer"));
+                        questionEntry.put("selectedAnswer", ""); // will be replaced per type
+                        questionEntry.put("photoUrl", q.get("photoUrl"));
+                        questionEntry.put("photoPath", q.getOrDefault("localPhotoPath", "")); // temporarily
 
-                        Map<String, Object> answerEntry = new HashMap<>();
-                        answerEntry.put("question", questionText);
-                        answerEntry.put("isCorrect", false); // default
-                        answerEntry.put("photoPath", question.getOrDefault("localPhotoPath", ""));
+                        questionsMap.put(qIndex, questionEntry);
 
-                        if ("enumeration".equals(quizType)) {
-                            answerEntry.put("selected", new ArrayList<String>());
-                            answerEntry.put("correctAnswers", question.get("correctAnswer"));
-                        } else {
-                            String correct = (String) question.get("correctAnswer");
-                            answerEntry.put("selected", ""); // default empty
-                            answerEntry.put("correctAnswers", Collections.singletonList(correct));
-                        }
+                        Map<String, Object> attempt = new LinkedHashMap<>(questionEntry);
+                        attempt.put("selectedAnswer", q.get("correctAnswer") instanceof List ? new ArrayList<>() : "");
+                        attempt.put("isCorrect", false);
+                        attempt.put("order", i + 1);
 
-                        userAnswers.add(answerEntry);
+                        attemptList.add(Collections.singletonMap(qIndex, attempt));
                     }
 
-                    setData.put("userAnswers", userAnswers);
+                    setData.put("questions", questionsMap);
+                    setData.put("attempts", attemptList);
 
-                    // Get owner_uid from quiz and fetch user info
                     String ownerUid = documentSnapshot.getString("owner_uid");
                     if (ownerUid != null) {
                         db.collection("users").document(ownerUid)
                                 .get()
                                 .addOnSuccessListener(userDoc -> {
-                                    if (userDoc.exists()) {
-                                        String username = userDoc.getString("username");
-                                        String photoUrl = userDoc.getString("photoUrl");
-
-                                        setData.put("username", username != null ? username : "Unknown User");
-                                        setData.put("photoUrl", photoUrl != null ? photoUrl : "");
-
-                                    } else {
-                                        setData.put("username", "Unknown User");
-                                        setData.put("photoUrl", "");
-                                    }
-
-                                    saveSetOffline(setData, quizId, "quiz");
-
-
-                                    Intent intent = new Intent(this, DownloadedSetsActivity.class);
-                                    startActivity(intent);
-                                    if (bottomSheetDialog != null) bottomSheetDialog.dismiss();
-
+                                    setData.put("username", userDoc.getString("username") != null ? userDoc.getString("username") : "Unknown User");
+                                    setData.put("photoUrl", userDoc.getString("photoUrl") != null ? userDoc.getString("photoUrl") : "");
+                                    downloadQuizImages(questions, setData);
                                 })
                                 .addOnFailureListener(e -> {
                                     setData.put("username", "Unknown User");
                                     setData.put("photoUrl", "");
-                                    saveSetOffline(setData, quizId, "flashcard");
-
-
-                                    Intent intent = new Intent(this, DownloadedSetsActivity.class);
-                                    startActivity(intent);
-                                    if (bottomSheetDialog != null) bottomSheetDialog.dismiss();
+                                    downloadQuizImages(questions, setData);
                                 });
                     } else {
+                        setData.put("username", "Unknown User");
+                        setData.put("photoUrl", "");
                         downloadQuizImages(questions, setData);
                     }
                 })
@@ -1115,64 +1102,98 @@ public class QuizPreviewActivity extends AppCompatActivity {
     private void downloadQuizImages(List<Map<String, Object>> questions, Map<String, Object> setData) {
         List<Task<Void>> imageTasks = new ArrayList<>();
 
-        for (int i = 0; i < questions.size(); i++) {
-            Map<String, Object> question = questions.get(i);
-            String imageUrl = (String) question.get("photoUrl");
-
-            if (imageUrl != null && !imageUrl.isEmpty()) {
-                int finalI = i;
-                Task<Void> imageTask = Tasks.call(() -> {
-                    try {
-                        FutureTarget<Bitmap> futureTarget = Glide.with(this)
-                                .asBitmap()
-                                .load(imageUrl)
-                                .submit();
-
-                        Bitmap bitmap = futureTarget.get();
-                        File file = new File(getFilesDir(), "quiz_qimg_" + UUID.randomUUID() + ".jpg");
-                        FileOutputStream out = new FileOutputStream(file);
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
-                        out.close();
-
-                        question.put("localPhotoPath", file.getAbsolutePath());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    return null;
-                });
-
-                imageTasks.add(imageTask);
-            }
-        }
+        // ✅ If downloading image files, append to imageTasks here (not shown in your code)
 
         Tasks.whenAllComplete(imageTasks)
                 .addOnSuccessListener(tasks -> {
+                    Map<String, Object> questionsMap = new LinkedHashMap<>();
+                    List<Map<String, Object>> attemptList = new ArrayList<>();
+
+                    for (int i = 0; i < questions.size(); i++) {
+                        Map<String, Object> q = questions.get(i);
+                        String qIndex = String.valueOf(i);
+
+                        Map<String, Object> questionEntry = new LinkedHashMap<>();
+                        questionEntry.put("quizType", q.get("quizType"));
+                        questionEntry.put("question", q.get("question"));
+                        questionEntry.put("choices", q.get("choices"));
+                        questionEntry.put("correctAnswer", q.get("correctAnswer"));
+                        questionEntry.put("selectedAnswer", "");
+
+                        questionEntry.put("photoUrl", q.get("photoUrl"));
+
+                        String fullPath = (String) q.get("photoPath");
+                        if (fullPath == null || fullPath.isEmpty()) {
+                            fullPath = (String) q.get("localPhotoPath");
+                        }
+
+                        if (fullPath != null && !fullPath.trim().isEmpty()) {
+                            File file = new File(fullPath);
+                            questionEntry.put("photoPath", file.getName()); // ✅ only file name
+                        } else {
+                            questionEntry.put("photoPath", "Add Image");
+                        }
+
+                        questionsMap.put(qIndex, questionEntry);
+
+                        Map<String, Object> attempt = new LinkedHashMap<>(questionEntry);
+                        attempt.put("selectedAnswer", q.get("correctAnswer") instanceof List ? new ArrayList<>() : "");
+                        attempt.put("isCorrect", false);
+                        attempt.put("order", i + 1);
+
+                        attemptList.add(Collections.singletonMap(qIndex, attempt));
+                    }
+
+                    setData.put("questions", questionsMap);
+                    setData.put("attempts", attemptList);
+
+// ✅ Compute correct, incorrect, percentage
+                    int correct = 0;
+                    int incorrect = 0;
+
+                    for (Map<String, Object> wrapper : attemptList) {
+                        for (Map.Entry<String, Object> entry : wrapper.entrySet()) {
+                            Map<String, Object> attempt = (Map<String, Object>) entry.getValue();
+                            Boolean isCorrect = (Boolean) attempt.get("isCorrect");
+                            if (isCorrect != null && isCorrect) {
+                                correct++;
+                            } else {
+                                incorrect++;
+                            }
+                        }
+                    }
+
+                    int total = correct + incorrect;
+                    int percentage = total > 0 ? (int) Math.round((correct * 100.0) / total) : 0;
+
+                    setData.put("correctCount", correct);
+                    setData.put("incorrectCount", incorrect);
+                    setData.put("percentage", percentage);
+
+// ✅ Now save
                     saveSetOffline(setData, quizId, "quiz");
-                    startActivity(new Intent(QuizPreviewActivity.this, DownloadedSetsActivity.class));
+
+                    Intent intent = new Intent(QuizPreviewActivity.this, DownloadedSetsActivity.class);
+                    startActivity(intent);
+
                 });
     }
 
-    private void saveSetOffline(Map<String, Object> setData, String quizId, String type) {
-        File dir = getFilesDir();
-        File file = new File(dir, "quiz_" + quizId + ".json");
 
-        if (file.exists()) {
-            Toast.makeText(this, "Set already downloaded.", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private void saveSetOffline(Map<String, Object> setData, String id, String type) {
+        Gson gson = new GsonBuilder()
+                .setPrettyPrinting() // <-- this is the key
+                .create();
 
-        try {
-            setData.put("type", type);
-            setData.put("fileName", "quiz_" + quizId + ".json");
+        String fileName = type + "_" + id + ".json";
+        File file = new File(getFilesDir(), fileName);
 
-            String json = new Gson().toJson(setData);
-            FileOutputStream fos = new FileOutputStream(file);
-            fos.write(json.getBytes());
-            fos.close();
-            Toast.makeText(this, "Set downloaded successfully.", Toast.LENGTH_SHORT).show();
+        setData.put("fileName", fileName);
+
+        try (FileWriter writer = new FileWriter(file)) {
+            gson.toJson(setData, writer);  // will now be pretty printed
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Failed to download set.", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -1206,22 +1227,28 @@ public class QuizPreviewActivity extends AppCompatActivity {
             if (usernameTextView != null && quizMap.get("username") != null)
                 usernameTextView.setText(quizMap.get("username").toString());
 
-            if (itemCountTextView != null && quizMap.get("questions") instanceof List)
-                itemCountTextView.setText(((List<?>) quizMap.get("questions")).size() + " items");
+            Map<String, Map<String, Object>> questionsData = null;
 
-            if (quizMap.get("questions") instanceof List) {
-                List<Map<String, Object>> questionsData = (List<Map<String, Object>>) quizMap.get("questions");
+            if (quizMap.get("questions") instanceof Map) {
+                questionsData = (Map<String, Map<String, Object>>) quizMap.get("questions");
+
+                if (itemCountTextView != null)
+                    itemCountTextView.setText(questionsData.size() + " items");
+
                 List<Quiz.Question> questionList = new ArrayList<>();
 
-                for (Map<String, Object> q : questionsData) {
+                for (String key : questionsData.keySet()) {
+                    Map<String, Object> q = questionsData.get(key);
                     Quiz.Question question = new Quiz.Question();
+
                     question.setQuestion((String) q.get("question"));
-                    question.setType((String) q.get("type"));
+                    question.setType((String) quizMap.get("type")); // global quiz type
+                    question.setQuizType((String) q.get("quizType")); // per-question
                     question.setChoices((List<String>) q.get("choices"));
-                    question.setCorrectAnswer(q.get("correctAnswers"));
+                    question.setCorrectAnswer(q.get("correctAnswer"));
 
                     question.setPhotoUrl((String) q.get("photoUrl"));
-                    question.setLocalPhotoPath((String) q.get("localPhotoPath"));
+                    question.setLocalPhotoPath((String) q.get("photoPath"));
 
                     questionList.add(question);
                 }
@@ -1229,17 +1256,55 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 this.quizQuestions = questionList;
             }
 
-            // ✅ Load user answers if present
-            if (quizMap.containsKey("userAnswers")) {
-                this.userAnswers = (List<Map<String, Object>>) quizMap.get("userAnswers");
+            // ✅ Load attempts safely
+            if (quizMap.containsKey("attempts") && quizMap.get("attempts") instanceof List) {
+                this.userAnswers = new ArrayList<>();
+
+                List<?> rawAttemptsList = (List<?>) quizMap.get("attempts");
+
+                for (Object attemptEntry : rawAttemptsList) {
+                    if (attemptEntry instanceof Map) {
+                        Map<?, ?> single = (Map<?, ?>) attemptEntry;
+
+                        for (Map.Entry<?, ?> entry : single.entrySet()) {
+                            String questionKey = entry.getKey().toString();
+                            Object rawAnswer = entry.getValue();
+
+                            if (rawAnswer instanceof Map) {
+                                Map<String, Object> answerData = (Map<String, Object>) rawAnswer;
+
+                                if (questionsData != null && questionsData.containsKey(questionKey)) {
+                                    Map<String, Object> questionData = questionsData.get(questionKey);
+
+                                    // Fill missing photoPath
+                                    Object attemptPhotoPath = answerData.get("photoPath");
+                                    if (attemptPhotoPath == null || attemptPhotoPath.toString().trim().isEmpty()) {
+                                        answerData.put("photoPath", questionData.get("photoPath"));
+                                    }
+
+                                    // Fill missing photoUrl
+                                    Object attemptPhotoUrl = answerData.get("photoUrl");
+                                    if (attemptPhotoUrl == null || attemptPhotoUrl.toString().trim().isEmpty()) {
+                                        answerData.put("photoUrl", questionData.get("photoUrl"));
+                                    }
+                                }
+
+                                this.userAnswers.add(answerData);
+                            } else {
+                                Log.w("QuizPreview", "Attempt value is not a Map: " + rawAnswer);
+                            }
+                        }
+                    } else {
+                        Log.w("QuizPreview", "Attempt entry is not a Map: " + attemptEntry);
+                    }
+                }
             } else {
                 this.userAnswers = new ArrayList<>();
             }
 
-            // ✅ Optionally update local file if any new answer is added later
-            this.offlineQuizMap = quizMap; // Store reference for future updates
+            this.offlineQuizMap = quizMap; // Keep for future updates
 
-            // ✅ Load owner photo
+            // ✅ Load owner photo (if already downloaded)
             if (quizMap.get("ownerPhotoPath") != null) {
                 File localFile = new File(quizMap.get("ownerPhotoPath").toString());
                 if (localFile.exists()) {
@@ -1257,6 +1322,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         } catch (IOException e) {
             Toast.makeText(this, "Error reading quiz file", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error loading quiz data", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
         }
     }

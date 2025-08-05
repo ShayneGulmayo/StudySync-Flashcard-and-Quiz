@@ -104,6 +104,7 @@ public class Quiz {
 
     public static class Question {
         private String question;
+        private String quizType;
         private String type;
         private String reminder;
         private String photoUrl;
@@ -119,6 +120,11 @@ public class Quiz {
         public void setQuestion(String question) {
             this.question = question;
         }
+
+        public String getQuizType() {
+            return quizType;
+        }
+        public void setQuizType(String quizType) { this.quizType = quizType; }
 
         public String getType() {
             return type;

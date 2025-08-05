@@ -1,5 +1,7 @@
 package com.labactivity.studysync;
 
+import static android.view.View.VISIBLE;
+
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Color;
@@ -115,7 +117,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                     JSONObject obj = new JSONObject(json);
                     String title = obj.optString("quizTitle", "Untitled Quiz");
 
-                    JSONArray questionsArray = obj.getJSONArray("answeredQuestions");
+                    JSONArray questionsArray = obj.getJSONArray("attempts");
                     Type listType = new TypeToken<List<Map<String, Object>>>() {}.getType();
                     List<Map<String, Object>> userAnswersList = new Gson().fromJson(questionsArray.toString(), listType);
 
@@ -223,12 +225,12 @@ public class QuizProgressActivity extends AppCompatActivity {
                     Log.d("QUIZ_REVIEW", "Offline JSON loaded: " + json);
 
                     JSONObject obj = new JSONObject(json);
-                    if (!obj.has("answeredQuestions")) {
+                    if (!obj.has("attempts")) {
                         Toast.makeText(this, "No answers found in offline file.", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    JSONArray answersArray = obj.getJSONArray("answeredQuestions");
+                    JSONArray answersArray = obj.getJSONArray("attempts");
                     ArrayList<Map<String, Object>> incorrectAnswersOnly = new ArrayList<>();
 
                     for (int i = 0; i < answersArray.length(); i++) {
@@ -249,8 +251,8 @@ public class QuizProgressActivity extends AppCompatActivity {
                                 } else {
                                     map.put("userAnswer", a.getString("userAnswer"));
                                 }
-                            } else if (a.has("selected")) {
-                                Object ua = a.get("selected");
+                            } else if (a.has("selectedAnswer")) {
+                                Object ua = a.get("selectedAnswer");
                                 if (ua instanceof JSONArray) {
                                     JSONArray arr = (JSONArray) ua;
                                     List<String> userAnswerList = new ArrayList<>();
@@ -259,7 +261,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                                     }
                                     map.put("userAnswer", userAnswerList);
                                 } else {
-                                    map.put("userAnswer", a.getString("selected"));
+                                    map.put("userAnswer", a.getString("selectedAnswer"));
                                 }
                             }
 
@@ -268,8 +270,8 @@ public class QuizProgressActivity extends AppCompatActivity {
                                 map.put("correctAnswers", correct);
                             }
 
-                            if (a.has("photoPath")) {
-                                map.put("photoPath", a.getString("photoPath"));
+                            if (a.has("photoUrl")) {
+                                map.put("photoUrl", a.getString("photoUrl"));
                             }
 
                             map.put("isCorrect", false);
@@ -435,8 +437,8 @@ public class QuizProgressActivity extends AppCompatActivity {
                                 String photoUrl = (String) q.get("photoUrl");
 
                                 if (photoUrl != null && !photoUrl.trim().isEmpty() && !photoUrl.equals("Add Image")) {
-                                    questionImageCard.setVisibility(View.VISIBLE);
-                                    questionImageView.setVisibility(View.VISIBLE);
+                                    questionImageCard.setVisibility(VISIBLE);
+                                    questionImageView.setVisibility(VISIBLE);
 
                                     Glide.with(this)
                                             .load(photoUrl)
@@ -461,7 +463,7 @@ public class QuizProgressActivity extends AppCompatActivity {
                                 } else {
                                     statusLabel.setText("Incorrect");
                                     statusLabel.setBackgroundColor(Color.parseColor("#F24F4F"));
-                                    wrongAnswerContainer.setVisibility(View.VISIBLE);
+                                    wrongAnswerContainer.setVisibility(VISIBLE);
                                     answerLinearLayout.setBackgroundResource(R.drawable.light_red_stroke_bg);
                                 }
 
@@ -473,7 +475,7 @@ public class QuizProgressActivity extends AppCompatActivity {
 
                                     if (!isCorrect && !correct.equals(selected)) {
                                         selectedWrongAnswerText.setText(selected);
-                                        wrongAnswerContainer.setVisibility(View.VISIBLE);
+                                        wrongAnswerContainer.setVisibility(VISIBLE);
                                     } else {
                                         wrongAnswerContainer.setVisibility(View.GONE);
                                     }
@@ -489,7 +491,7 @@ public class QuizProgressActivity extends AppCompatActivity {
 
                                     if (!isCorrect && !correctStr.equals(selectedStr)) {
                                         selectedWrongAnswerText.setText(selectedStr);
-                                        wrongAnswerContainer.setVisibility(View.VISIBLE);
+                                        wrongAnswerContainer.setVisibility(VISIBLE);
                                     } else {
                                         wrongAnswerContainer.setVisibility(View.GONE);
                                     }
@@ -577,7 +579,6 @@ public class QuizProgressActivity extends AppCompatActivity {
         }
     }
 
-
     @SuppressLint("ResourceAsColor")
     private void displayOfflineAnsweredQuestions(List<Map<String, Object>> userAnswersList) {
         if (userAnswersList == null || userAnswersList.isEmpty()) {
@@ -585,95 +586,101 @@ public class QuizProgressActivity extends AppCompatActivity {
             return;
         }
 
-        LinearLayout answersLayout = findViewById(R.id.answers_linear_layout); // This is your container
+        LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
         LayoutInflater inflater = LayoutInflater.from(this);
         int number = 1;
+
         for (Map<String, Object> q : userAnswersList) {
             View view = inflater.inflate(R.layout.item_quiz_attempt_view, answersLayout, false);
 
-            // Get views
+            // View bindings
             TextView questionText = view.findViewById(R.id.question_text);
             TextView statusLabel = view.findViewById(R.id.status_label);
-            LinearLayout correctAnswerContainer = view.findViewById(R.id.correct_answer_container);
+            TextView correctAnswerText = view.findViewById(R.id.correct_answer_text);
+            TextView selectedWrongAnswerText = view.findViewById(R.id.selected_wrong_answer_text);
             LinearLayout selectedWrongAnswerContainer = view.findViewById(R.id.selected_wrong_answer_container);
             ImageView imageView = view.findViewById(R.id.question_image);
             View imageCard = view.findViewById(R.id.question_img_card);
-            LinearLayout containerLayout = view.findViewById(R.id.answer_linear_layout); // for border
+            LinearLayout containerLayout = view.findViewById(R.id.answer_linear_layout);
+            ImageView checkIconCorrect = view.findViewById(R.id.correct_answer_container).findViewById(R.id.checkIcon);
+            ImageView checkIconWrong = selectedWrongAnswerContainer.findViewById(R.id.wrongIcon);
 
             // Extract data
             String questionTextStr = (String) q.getOrDefault("question", "No question");
-            List<String> correctAnswers = (List<String>) q.getOrDefault("correctAnswers", new ArrayList<>());
-            String photoPath = (String) q.getOrDefault("photoPath", "");
+            Object correctObj = q.get("correctAnswer");
+            Object selectedObj = q.get("selectedAnswer");
+            String photoUrl = (String) q.getOrDefault("photoUrl", "");
             boolean isCorrect = Boolean.TRUE.equals(q.get("isCorrect"));
 
-            // Handle selected answer(s)
-            List<String> userAnswers = new ArrayList<>();
-            Object selectedObj = q.get("selected");
-            if (selectedObj instanceof String) {
-                String selectedStr = ((String) selectedObj).trim();
-                if (!selectedStr.isEmpty()) {
-                    userAnswers.add(selectedStr);
+            // Parse correct answers
+            List<String> correctAnswers = new ArrayList<>();
+            if (correctObj instanceof List) {
+                for (Object obj : (List<?>) correctObj) {
+                    correctAnswers.add(String.valueOf(obj).trim());
                 }
-            } else if (selectedObj instanceof List) {
-                userAnswers = (List<String>) selectedObj;
+            } else if (correctObj instanceof String) {
+                correctAnswers.add(((String) correctObj).trim());
             }
 
-            // Set question number and text
+            // Parse selected answers
+            List<String> selectedAnswers = new ArrayList<>();
+            if (selectedObj instanceof List) {
+                for (Object obj : (List<?>) selectedObj) {
+                    selectedAnswers.add(String.valueOf(obj).trim());
+                }
+            } else if (selectedObj instanceof String) {
+                String sel = ((String) selectedObj).trim();
+                if (!sel.isEmpty()) selectedAnswers.add(sel);
+            }
+
+            // Set question text
             questionText.setText(number + ". " + questionTextStr);
             number++;
 
-            // Set status label and border
+            // Correctness UI
             if (isCorrect) {
                 statusLabel.setText("Correct");
                 statusLabel.setBackgroundColor(Color.parseColor("#00BF63"));
                 containerLayout.setBackgroundResource(R.drawable.green_stroke_bg);
+
+                checkIconCorrect.setVisibility(View.VISIBLE);
+
+                selectedWrongAnswerContainer.setVisibility(View.GONE); // hide wrong answer container
             } else {
                 statusLabel.setText("Incorrect");
                 statusLabel.setBackgroundColor(Color.parseColor("#F24F4F"));
                 containerLayout.setBackgroundResource(R.drawable.light_red_stroke_bg);
+
+                checkIconWrong.setVisibility(View.VISIBLE);
+
+                selectedWrongAnswerContainer.setVisibility(View.VISIBLE);
             }
 
-            // Show correct answers
-            correctAnswerContainer.removeAllViews();
-            for (String ans : correctAnswers) {
-                if (!TextUtils.isEmpty(ans.trim())) {
-                    TextView tv = new TextView(this);  // because Activity itself is a Context
-                    tv.setText("✓ " + ans);
-                    tv.setTextColor(Color.parseColor("#006400"));
-                    tv.setTextSize(16);
-                    correctAnswerContainer.addView(tv);
-                }
+            // Set correct answer text
+            if (!correctAnswers.isEmpty()) {
+                correctAnswerText.setText(TextUtils.join(", ", correctAnswers));
+            } else {
+                correctAnswerText.setText("No correct answer");
             }
 
-            // Show selected wrong answers (if incorrect)
-            selectedWrongAnswerContainer.removeAllViews();
-            if (!isCorrect && userAnswers != null) {
-                for (String ans : userAnswers) {
-                    if (!TextUtils.isEmpty(ans.trim())) {
-                        TextView tv = new TextView(this);  // because Activity itself is a Context
-                        tv.setText("✗ " + ans);
-                        tv.setTextColor(Color.parseColor("#B22222"));
-                        tv.setTextSize(16);
-                        selectedWrongAnswerContainer.addView(tv);
-                    }
-                }
+            // Set selected wrong answer text (only if incorrect)
+            if (!isCorrect && !selectedAnswers.isEmpty()) {
+                selectedWrongAnswerText.setText(TextUtils.join(", ", selectedAnswers));
             }
 
-            // Handle image
-            if (!TextUtils.isEmpty(photoPath)) {
-                File imgFile = new File(photoPath);
-                if (imgFile.exists()) {
-                    imageView.setImageURI(Uri.fromFile(imgFile));
-                    imageCard.setVisibility(View.VISIBLE);
-                } else {
-                    imageCard.setVisibility(View.GONE);
-                }
+            if (!TextUtils.isEmpty(photoUrl) && !"Add Image".equals(photoUrl)) {
+                imageCard.setVisibility(View.VISIBLE);
+
+                Glide.with(this)
+                        .load(photoUrl.trim())
+                        .placeholder(R.drawable.image)
+                        .error(R.drawable.image)
+                        .into(imageView);
             } else {
                 imageCard.setVisibility(View.GONE);
             }
-
-            // Finally add the view to the layout
             answersLayout.addView(view);
         }
     }
+
 }
