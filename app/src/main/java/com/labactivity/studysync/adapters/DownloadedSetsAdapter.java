@@ -2,20 +2,27 @@ package com.labactivity.studysync.adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.labactivity.studysync.FlashcardPreviewActivity;
 import com.labactivity.studysync.QuizPreviewActivity;
 import com.labactivity.studysync.R;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 
@@ -59,14 +66,17 @@ public class DownloadedSetsAdapter extends RecyclerView.Adapter<DownloadedSetsAd
         holder.username.setText(username);
         holder.items.setText(items + (items.equals("1") ? " item" : " items"));
 
-        // OPEN FILE FOR OFFLINE VIEW
         holder.itemView.setOnClickListener(v -> {
-            String type = (String) set.get("type"); // flashcard or quiz
+            String type = (String) set.get("type");
             String fileName = (String) set.get("fileName");
 
             if (fileName != null) {
                 File file = new File(context.getFilesDir(), fileName);
                 if (file.exists()) {
+                    if (type == null || (!"quiz".equalsIgnoreCase(type) && !"flashcard".equalsIgnoreCase(type))) {
+                        type = readSetTypeFromJson(file);
+                    }
+
                     Intent intent;
                     if ("quiz".equalsIgnoreCase(type)) {
                         intent = new Intent(context, QuizPreviewActivity.class);
@@ -89,7 +99,6 @@ public class DownloadedSetsAdapter extends RecyclerView.Adapter<DownloadedSetsAd
             }
         });
 
-        // DELETE FILE
         holder.deleteBtn.setOnClickListener(v -> {
             String fileName = (String) set.get("fileName");
             if (fileName != null) {
@@ -135,5 +144,27 @@ public class DownloadedSetsAdapter extends RecyclerView.Adapter<DownloadedSetsAd
             items = itemView.findViewById(R.id.setItems);
             deleteBtn = itemView.findViewById(R.id.deleteBtn);
         }
+    }
+
+    private String readSetTypeFromJson(File file) {
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            StringBuilder jsonBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                jsonBuilder.append(line);
+            }
+            reader.close();
+
+            String json = jsonBuilder.toString();
+            Type type = new TypeToken<Map<String, Object>>() {}.getType();
+            Map<String, Object> jsonMap = new Gson().fromJson(json, type);
+            if (jsonMap != null && jsonMap.containsKey("type")) {
+                return (String) jsonMap.get("type");
+            }
+        } catch (Exception e) {
+            Log.e("DownloadedSetsAdapter", "Failed to read set type from JSON", e);
+        }
+        return null;
     }
 }
