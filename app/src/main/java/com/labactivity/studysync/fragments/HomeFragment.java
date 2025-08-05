@@ -24,6 +24,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.labactivity.studysync.BrowseActivity;
+import com.labactivity.studysync.GenerateSetActivity;
 import com.labactivity.studysync.MainActivity;
 import com.labactivity.studysync.NotificationsActivity;
 import com.labactivity.studysync.R;
@@ -70,11 +71,17 @@ public class HomeFragment extends Fragment {
         searchView = view.findViewById(R.id.searchView);
         notifBtn = view.findViewById(R.id.notifBtn);
         notifIndicator = view.findViewById(R.id.notifIndicator);
+        View addFlashcardBtn = view.findViewById(R.id.add_flashcard);
+        View addQuizBtn = view.findViewById(R.id.add_quiz);
+
 
         applyClickShrinkAnimation(flashcardsCard);
         applyClickShrinkAnimation(quizzesCard);
         applyClickShrinkAnimation(chatRoomsCard);
         applyClickShrinkAnimation(browseCard);
+        applyClickShrinkAnimation(addFlashcardBtn);
+        applyClickShrinkAnimation(addQuizBtn);
+
 
 
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
@@ -99,6 +106,18 @@ public class HomeFragment extends Fragment {
         notifBtn.setOnClickListener(v ->{
             startActivity(new Intent(requireContext(), NotificationsActivity.class));
         } );
+        addFlashcardBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(getContext(), GenerateSetActivity.class);
+            intent.putExtra("setType", "flashcard");
+            startActivity(intent);
+        });
+
+        addQuizBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(getContext(), GenerateSetActivity.class);
+            intent.putExtra("setType", "quiz");
+            startActivity(intent);
+        });
+
     }
 
     @Override
