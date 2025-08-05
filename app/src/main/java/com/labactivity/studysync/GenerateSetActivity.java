@@ -7,6 +7,8 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -78,6 +80,13 @@ public class GenerateSetActivity extends AppCompatActivity {
         scanDocument = findViewById(R.id.scanDocument);
         setType = getIntent().getStringExtra("setType");
         txtTitle = findViewById(R.id.txtView_title);
+
+        applyClickShrinkAnimation(selectFile);
+        applyClickShrinkAnimation(generateManually);
+        applyClickShrinkAnimation(selectImages);
+        applyClickShrinkAnimation(pasteText);
+        applyClickShrinkAnimation(scanDocument);
+
 
         if ("flashcard".equalsIgnoreCase(setType)) {
             txtTitle.setText("Create a Flashcard Set");
@@ -167,6 +176,21 @@ public class GenerateSetActivity extends AppCompatActivity {
         intent.putExtra("type", "pdf");
         intent.putExtra("setType", setType);
         startActivity(intent);
+    }
+
+    private void applyClickShrinkAnimation(View view) {
+        view.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(120).start();
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start();
+                    break;
+            }
+            return false; // Allow click to propagate
+        });
     }
 
 
