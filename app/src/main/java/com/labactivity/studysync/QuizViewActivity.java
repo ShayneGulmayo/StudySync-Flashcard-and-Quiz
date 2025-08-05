@@ -713,7 +713,7 @@
                     Map<String, Object> q = questions.get(i);
                     int questionNumber = i + 1;
 
-                    String type = String.valueOf(q.get("type"));
+                    String quizType = String.valueOf(q.get("quizType"));
                     Object selected = q.get("selectedAnswer");
                     Object correctRaw = q.get("correctAnswer");
 
@@ -729,18 +729,18 @@
                     answerObj.put("question", q.get("question"));
                     answerObj.put("choices", new JSONArray((List<?>) q.get("choices")));
                     answerObj.put("photoPath", q.getOrDefault("photoPath", ""));
-                    answerObj.put("type", type);
+                    answerObj.put("quizType", quizType);
 
                     boolean isCorrect = false;
                     boolean hasAnswer = false;
 
-                    if ("multiple choice".equalsIgnoreCase(type)) {
+                    if ("multiple choice".equalsIgnoreCase(quizType)) {
                         String selectedStr = selected != null ? selected.toString().trim() : "";
                         hasAnswer = !selectedStr.isEmpty();
                         answerObj.put("selectedAnswer", selectedStr);
                         isCorrect = hasAnswer && correctAnswers.contains(selectedStr);
 
-                    } else if ("enumeration".equalsIgnoreCase(type)) {
+                    } else if ("enumeration".equalsIgnoreCase(quizType)) {
                         List<String> selectedList = new ArrayList<>();
                         if (selected instanceof List) {
                             for (Object s : (List<?>) selected) {

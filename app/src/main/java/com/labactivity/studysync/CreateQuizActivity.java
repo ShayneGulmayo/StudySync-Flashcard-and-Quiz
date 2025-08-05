@@ -1,20 +1,7 @@
 package com.labactivity.studysync;
 
-import static android.content.Intent.getIntent;
-import com.canhub.cropper.CropImage;
-import com.canhub.cropper.CropImageContract;
-import com.canhub.cropper.CropImageContractOptions;
-import com.canhub.cropper.CropImageOptions;
-import com.canhub.cropper.CropImageView;
-import android.content.ContentResolver;
-import java.io.File;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.FileOutputStream;
-import com.canhub.cropper.CropImage;
-import com.google.firebase.storage.FirebaseStorage;
-import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -33,60 +20,61 @@ import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.DialogInterface;
-import android.widget.*;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.content.FileProvider;
+
 import com.bumptech.glide.Glide;
+import com.canhub.cropper.CropImageContract;
+import com.canhub.cropper.CropImageContractOptions;
+import com.canhub.cropper.CropImageOptions;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.firestore.*;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.DocumentReference;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.content.FileProvider;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.firebase.Timestamp;
+import com.google.firebase.storage.FirebaseStorage;
 import com.yalantis.ucrop.UCrop;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
+import java.util.Set;
 
 public class CreateQuizActivity extends AppCompatActivity {
 
-    private FirebaseFirestore db;
-    private FirebaseAuth auth;
-    private LinearLayout quizContainer;
-    private FloatingActionButton addQuizButton;
-    private ImageView backButton, checkButton;
+    private TextView roleTxt, privacyTxt;
     private EditText quizTitleInput;
+    private ImageView backButton, checkButton, privacyIcon;
+    private FloatingActionButton addQuizButton;
+
+    private ConstraintLayout privacyContainer;
+    private LinearLayout quizContainer;
+    private View currentQuizItemView;
+
+    private String ownerUid, currentUid, ownerUsername, currentUsersName;
+    private String quizId = null;
     private int questionCount = 0;
     private final int MAX_QUESTIONS = 50;
-    private String quizId = null;
-    private TextView roleTxt, privacyTxt;
-    private ImageView privacyIcon;
     private boolean isPublic = true;
-    private View currentQuizItemView;
+
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
+
     private ActivityResultLauncher<Intent> pickQuizImageLauncher;
     private Map<View, Uri> pendingUploads = new HashMap<>();
-    private String ownerUid;
-    private String currentUid;
-    private String ownerUsername;
-    private String currentUsersName;
-    private ConstraintLayout privacyContainer;
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,7 +97,7 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
-        currentUid = auth.getCurrentUser().getUid(); // ← Use for editor actions
+        currentUid = auth.getCurrentUser().getUid();
 
         if (quizId != null) {
             headerText.setText("Edit Quiz");
@@ -117,7 +105,6 @@ public class CreateQuizActivity extends AppCompatActivity {
             headerText.setText("Add Quiz");
         }
 
-        // Load current user's name (optional)
         db.collection("users")
                 .document(currentUid)
                 .get()
@@ -128,14 +115,13 @@ public class CreateQuizActivity extends AppCompatActivity {
                 });
 
         if (quizId != null) {
-            loadQuizData(quizId); // 🔁 Load and preserve quiz owner
-            //load privacy and privacy role from firebase
+            loadQuizData(quizId);
             db.collection("quiz").document(quizId)
                     .get()
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
                             Boolean publicStatus = documentSnapshot.getBoolean("isPublic");
-                            isPublic = (publicStatus != null) ? publicStatus : false; // default to false
+                            isPublic = (publicStatus != null) ? publicStatus : false;
 
                             if (isPublic) {
                                 privacyTxt.setText("Public");
@@ -145,20 +131,18 @@ public class CreateQuizActivity extends AppCompatActivity {
                                 Glide.with(this).load(R.drawable.lock).into(privacyIcon);
                             }
 
-                            // 2. Access role
                             if (isPublic) {
                                 String privacyRole = documentSnapshot.getString("privacyRole");
 
                                 if (privacyRole != null && !privacyRole.trim().isEmpty()) {
                                     roleTxt.setText(privacyRole);
                                 } else {
-                                    roleTxt.setText(""); // Do not display if null or empty
+                                    roleTxt.setText("");
                                 }
                             } else {
-                                roleTxt.setText(""); // No role shown for private quizzes
+                                roleTxt.setText("");
                             }
 
-                            // ✅ 3. Hide privacy container if not owner
                             ownerUid = documentSnapshot.getString("owner_uid");
                             if (!currentUid.equals(ownerUid)) {
                                 privacyContainer.setVisibility(View.GONE);
@@ -167,9 +151,9 @@ public class CreateQuizActivity extends AppCompatActivity {
                     })
                     .addOnFailureListener(e -> Log.e("CreateQuizActivity", "Failed to fetch privacy/role info", e));
         } else {
-            ownerUid = currentUid; // creator = owner
+            ownerUid = currentUid;
             ownerUsername = currentUsersName;
-            addQuizView(); // ➕ Add blank question for new quiz
+            addQuizView();
         }
 
         addQuizButton.setOnClickListener(v -> {
@@ -242,10 +226,8 @@ public class CreateQuizActivity extends AppCompatActivity {
                     }
                     Glide.with(this).load(R.drawable.public_icon).into(privacyIcon);
                 }
-
                 return true;
             });
-
             privacyMenu.show();
         };
 
@@ -284,15 +266,14 @@ public class CreateQuizActivity extends AppCompatActivity {
 
             Map<String, Object> questionData = new HashMap<>();
             questionData.put("question", questionInput.getText().toString().trim());
-            questionData.put("type", quizType);
+            questionData.put("quizType", quizType);
 
-            // ✅ Handle image metadata
             ImageView imageView = quizItem.findViewById(R.id.add_image_button);
             String photoUrl = null;
             String photoPath = null;
 
-            Object tagObj = imageView.getTag();               // should contain download URL
-            Object descObj = imageView.getContentDescription(); // should contain filename
+            Object tagObj = imageView.getTag();
+            Object descObj = imageView.getContentDescription();
 
             if (tagObj != null && tagObj.toString().startsWith("http")) {
                 photoUrl = tagObj.toString();
@@ -308,7 +289,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                 questionData.put("photoPath", photoPath);
             }
 
-            // ✅ Question choices and answers
             if (quizType.equals("multiple choice")) {
                 List<String> choices = new ArrayList<>();
                 String correctAnswer = "";
@@ -339,12 +319,10 @@ public class CreateQuizActivity extends AppCompatActivity {
             questionList.add(questionData);
         }
 
-        // ✅ Quiz metadata
         Map<String, Object> quizData = new HashMap<>();
 
         if (quizId == null) {
-            // New quiz — set current user as owner
-            ownerUid = auth.getCurrentUser().getUid();  // ✅ assign
+            ownerUid = auth.getCurrentUser().getUid();
             quizData.put("owner_uid", ownerUid);
             quizData.put("owner_username", ownerUsername);
             quizData.put("created_at", Timestamp.now());
@@ -368,7 +346,7 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         DocumentReference quizRef;
         if (quizId == null) {
-            quizRef = db.collection("quiz").document(); // auto-generate ID
+            quizRef = db.collection("quiz").document();
             quizId = quizRef.getId();
         } else {
             quizRef = db.collection("quiz").document(quizId);
@@ -377,18 +355,16 @@ public class CreateQuizActivity extends AppCompatActivity {
         quizRef.get().addOnSuccessListener(doc -> {
             if (doc.exists()) {
                 if (quizId != null) {
-                    // Preserve original owner
                     quizData.put("owner_uid", doc.getString("owner_uid"));
                     quizData.put("owner_username", doc.getString("owner_username"));
                 }
 
-                // Preserve accessUsers
                 Map<String, Object> existingAccess = (Map<String, Object>) doc.get("accessUsers");
                 if (existingAccess != null) {
                     quizData.put("accessUsers", existingAccess);
                 }
 
-                quizRef.set(quizData, SetOptions.merge())  // 🔥 this is the key part
+                quizRef.set(quizData, SetOptions.merge())
                         .addOnSuccessListener(unused -> {
                             resetQuizAttemptsPercentage(quizId);
                             resetOwnedSetProgressForUsers(quizId);
@@ -532,18 +508,17 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         ImageView addImageButton = quizItem.findViewById(R.id.add_image_button);
         addImageButton.setOnClickListener(v -> {
-            currentQuizItemView = quizItem; // ⬅️ THIS LINE IS MISSING IN addQuizView()!
+            currentQuizItemView = quizItem;
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.setType("image/*");
-            startActivityForResult(Intent.createChooser(intent, "Select Image"), 1010); // use any request code you like
+            startActivityForResult(Intent.createChooser(intent, "Select Image"), 1010);
 
         });
 
         quizTypeSpinner.setOnItemSelectedListener(getQuizTypeChangeListener(addOptionText, optionsContainer));
 
-        // Manually trigger default to multiple choice (or default index 0)
         quizTypeSpinner.post(() -> {
-            int defaultPosition = 0; // index for "multiple choice"
+            int defaultPosition = 0;
             quizTypeSpinner.setSelection(defaultPosition);
             getQuizTypeChangeListener(addOptionText, optionsContainer)
                     .onItemSelected(quizTypeSpinner, null, defaultPosition, 0);
@@ -651,7 +626,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                     return false;
                 }
             }
-
         }
         return true;
     }
@@ -672,26 +646,21 @@ public class CreateQuizActivity extends AppCompatActivity {
                     if (documentSnapshot.exists()) {
                         quizTitleInput.setText(documentSnapshot.getString("title"));
 
-                        // ✅ Set the original (true) owner info, not the current user
-                        ownerUid = documentSnapshot.getString("owner_uid");      // Use "owner_uid" from Firestore
-                        ownerUsername = documentSnapshot.getString("owner_username");    // Owner's name
+                        ownerUid = documentSnapshot.getString("owner_uid");
+                        ownerUsername = documentSnapshot.getString("owner_username");
 
-                        // ✅ Load the quiz questions
                         List<Map<String, Object>> questions = (List<Map<String, Object>>) documentSnapshot.get("questions");
                         if (questions != null) {
                             for (Map<String, Object> question : questions) {
                                 addQuizViewFromData(question);
                             }
                         }
-
-                        // (Optional) load and set isPublic / access info here if needed
                     }
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Failed to load quiz data", Toast.LENGTH_SHORT).show()
                 );
     }
-
 
     private void addQuizViewFromData(Map<String, Object> questionData) {
         View quizItem = LayoutInflater.from(this).inflate(R.layout.item_add_quiz, null);
@@ -709,7 +678,6 @@ public class CreateQuizActivity extends AppCompatActivity {
         LinearLayout optionsContainer = quizItem.findViewById(R.id.answer_choices_container);
         TextView addOptionText = quizItem.findViewById(R.id.add_option_text);
 
-        // Setup Spinner Adapter
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
                 this,
                 R.array.quiz_types,
@@ -718,13 +686,11 @@ public class CreateQuizActivity extends AppCompatActivity {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         quizTypeSpinner.setAdapter(adapter);
 
-        // Get question values
         String questionText = (String) questionData.get("question");
         questionInput.setText(questionText);
 
         List<String> choices = new ArrayList<>();
         Object rawChoices = questionData.get("choices");
-
         if (rawChoices instanceof List<?>) {
             for (Object obj : (List<?>) rawChoices) {
                 if (obj instanceof String) {
@@ -733,10 +699,8 @@ public class CreateQuizActivity extends AppCompatActivity {
             }
         }
 
-        Object typeObj = questionData.get("type");
-        String type = (typeObj != null) ? typeObj.toString().toLowerCase() : "multiple choice";
-        if (type == null) type = "multiple choice"; // fallback
-        type = type.toLowerCase();
+        Object quizTypeObj = questionData.get("quizType");
+        String quizType = (quizTypeObj != null) ? quizTypeObj.toString().toLowerCase() : "multiple choice";
 
         Object correctAnswerObj = questionData.get("correctAnswer");
 
@@ -754,23 +718,18 @@ public class CreateQuizActivity extends AppCompatActivity {
             correctAnswerList = null;
         }
 
-        boolean isMultipleChoice = type.equals("multiple choice");
-
-        // Initial typeChangeListener reference holder
         final AdapterView.OnItemSelectedListener[] typeChangeListenerHolder = new AdapterView.OnItemSelectedListener[1];
 
-        // Add option setup
         setupAddOptionListener(addOptionText, quizTypeSpinner, optionsContainer);
 
-        // Define listener BEFORE setting spinner position
         AdapterView.OnItemSelectedListener typeChangeListener = new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int pos, long id) {
-                String selectedType = adapterView.getItemAtPosition(pos).toString().toLowerCase();
-                addOptionText.setText(selectedType.equals("enumeration") ? "Add answer" : "Add option");
+                String selectedQuizType = adapterView.getItemAtPosition(pos).toString().toLowerCase();
+                addOptionText.setText(selectedQuizType.equals("enumeration") ? "Add answer" : "Add option");
                 optionsContainer.removeAllViews();
 
-                if (selectedType.equals("multiple choice")) {
+                if (selectedQuizType.equals("multiple choice")) {
                     for (String choice : choices) {
                         View optionView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_options, null);
                         RadioButton rb = optionView.findViewById(R.id.radioOption);
@@ -788,14 +747,11 @@ public class CreateQuizActivity extends AppCompatActivity {
                             }
                         });
 
-                        deleteOption.setOnClickListener(v -> {
-                            optionsContainer.removeView(optionView);
-                        });
+                        deleteOption.setOnClickListener(v -> optionsContainer.removeView(optionView));
 
                         optionsContainer.addView(optionView);
                     }
-
-                } else { // ENUMERATION
+                } else {
                     for (String choice : choices) {
                         View answerView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_enumerations, null);
                         EditText et = answerView.findViewById(R.id.edit_option_text);
@@ -811,22 +767,20 @@ public class CreateQuizActivity extends AppCompatActivity {
 
                         optionsContainer.addView(answerView);
                     }
-
                     renumberEnumerationInputs(optionsContainer);
                 }
             }
 
             @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
         };
 
         typeChangeListenerHolder[0] = typeChangeListener;
-
         quizTypeSpinner.setOnItemSelectedListener(typeChangeListener);
 
-        // Convert stored type to display type
         String displayType;
-        switch (type) {
+        switch (quizType) {
             case "multiple choice":
                 displayType = "Multiple Choice";
                 break;
@@ -834,7 +788,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                 displayType = "Enumeration";
                 break;
             default:
-                Toast.makeText(this, "Unknown quiz type: " + type, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Unknown quiz type: " + quizType, Toast.LENGTH_SHORT).show();
                 displayType = "Multiple Choice";
                 break;
         }
@@ -842,7 +796,6 @@ public class CreateQuizActivity extends AppCompatActivity {
         int spinnerPosition = adapter.getPosition(displayType);
         quizTypeSpinner.setSelection(spinnerPosition);
 
-        // Delete button logic
         ImageButton deleteBtn = quizItem.findViewById(R.id.delete_question_button);
         deleteBtn.setOnClickListener(v -> {
             quizContainer.removeView(quizItem);
@@ -851,11 +804,10 @@ public class CreateQuizActivity extends AppCompatActivity {
 
         ImageView addImageButton = quizItem.findViewById(R.id.add_image_button);
         addImageButton.setOnClickListener(v -> {
-            currentQuizItemView = quizItem; // ⬅️ THIS LINE IS MISSING IN addQuizView()!
             currentQuizItemView = quizItem;
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.setType("image/*");
-            startActivityForResult(Intent.createChooser(intent, "Select Image"), 1010); // use any request code you like
+            startActivityForResult(Intent.createChooser(intent, "Select Image"), 1010);
         });
 
         Object photoUrlObj = questionData.get("photoUrl");
@@ -870,10 +822,10 @@ public class CreateQuizActivity extends AppCompatActivity {
 
     private void setupAddOptionListener(TextView addOptionText, Spinner quizTypeSpinner, LinearLayout optionsContainer) {
         addOptionText.setOnClickListener(v -> {
-            String type = quizTypeSpinner.getSelectedItem().toString().toLowerCase();
+            String quizType = quizTypeSpinner.getSelectedItem().toString().toLowerCase();
             int currentCount = optionsContainer.getChildCount();
 
-            if (type.equals("multiple choice")) {
+            if (quizType.equals("multiple choice")) {
                 if (currentCount >= 4) {
                     Toast.makeText(CreateQuizActivity.this, "Maximum of 4 options allowed", Toast.LENGTH_SHORT).show();
                     return;
@@ -895,7 +847,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                 deleteOption.setOnClickListener(btn -> optionsContainer.removeView(optionView));
                 optionsContainer.addView(optionView);
 
-            } else if (type.equals("enumeration")) {
+            } else if (quizType.equals("enumeration")) {
                 if (currentCount >= 15) {
                     Toast.makeText(CreateQuizActivity.this, "Maximum of 15 answers allowed", Toast.LENGTH_SHORT).show();
                     return;
@@ -927,11 +879,11 @@ public class CreateQuizActivity extends AppCompatActivity {
                 Object item = adapterView.getItemAtPosition(pos);
                 if (item == null) return;
 
-                String type = item.toString().toLowerCase();
-                addOptionText.setText(type.equals("enumeration") ? "Add answer" : "Add option");
+                String quizType = item.toString().toLowerCase();
+                addOptionText.setText(quizType.equals("enumeration") ? "Add answer" : "Add option");
                 optionsContainer.removeAllViews();
 
-                if (type.equals("multiple choice")) {
+                if (quizType.equals("multiple choice")) {
                     for (int i = 0; i < 2; i++) {
                         addOptionView(optionsContainer);
                     }
@@ -942,10 +894,10 @@ public class CreateQuizActivity extends AppCompatActivity {
                     renumberEnumerationInputs(optionsContainer);
                 }
             }
+
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {}
         };
-
     }
 
     private void uploadQuizImage(Uri imageUri, String ownerUid, String quizId, View quizItemView) {
@@ -962,11 +914,10 @@ public class CreateQuizActivity extends AppCompatActivity {
                         ImageView imageView = quizItemView.findViewById(R.id.add_image_button);
                         if (imageView != null && !isFinishing() && !isDestroyed()) {
                             Glide.with(CreateQuizActivity.this).load(downloadUrl).into(imageView);
-                            imageView.setTag(downloadUrl.toString()); // ✅ this is correct
-                            imageView.setContentDescription(fileName); // ✅ also correct
+                            imageView.setTag(downloadUrl.toString());
+                            imageView.setContentDescription(fileName);
                         }
 
-                        // ✅ NOW update Firestore here
                         updateQuestionImageInFirestore(quizItemView, downloadUrl.toString(), fileName);
                     }).addOnFailureListener(e -> {
                         Toast.makeText(this, "Failed to get image URL", Toast.LENGTH_SHORT).show();
@@ -994,7 +945,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                                 }
                             }
 
-                            // 🔁 Write back the updated questions list
                             db.collection("quiz").document(quizId)
                                     .update("questions", questions)
                                     .addOnSuccessListener(aVoid -> Log.d("FIRESTORE", "Photo info saved"))
@@ -1029,7 +979,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                     Uri croppedUri = result.getUriContent();
 
                     if (quizId == null) {
-                        // DO NOT upload yet — save it temporarily
                         pendingUploads.put(currentQuizItemView, croppedUri);
                         Toast.makeText(this, "Image ready to upload after quiz is saved", Toast.LENGTH_SHORT).show();
                     } else {
@@ -1070,7 +1019,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                 ImageView imageView = currentQuizItemView.findViewById(R.id.add_image_button);
                 Glide.with(this).load(resultUri).into(imageView);
                 imageView.setTag(resultUri.toString());
-                imageView.setContentDescription("pending"); // optional
+                imageView.setContentDescription("pending");
 
                 if (quizId == null) {
                     pendingUploads.put(currentQuizItemView, resultUri);
