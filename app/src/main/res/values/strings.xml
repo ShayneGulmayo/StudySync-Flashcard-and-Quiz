@@ -119,7 +119,8 @@
     <string name="no_chatrooms">No chatrooms yet.\n Tap the + icon to start one!</string>
     <string name="reminders_for_upcoming_reviews">Reminders for Upcoming Reviews</string>
     <string name="no_access_deleted">The set you are trying to open \ndoes not exist.</string>
-
+    <string name="quick_actions">Quick Actions</string>
+    <string name="generate_set_disclaimer"> AI is being used for these features and can make mistakes. Double check important information.</string>
 
 </resources>
 
