@@ -29,6 +29,7 @@
     import com.google.android.material.bottomsheet.BottomSheetDialog;
     import com.google.android.material.card.MaterialCardView;
     import com.google.common.reflect.TypeToken;
+    import com.google.firebase.Timestamp;
     import com.google.firebase.auth.FirebaseAuth;
     import com.google.firebase.firestore.FieldValue;
     import com.google.firebase.firestore.FirebaseFirestore;
@@ -764,12 +765,12 @@
                         JSONArray selectedList = new JSONArray();
                         if (selected instanceof List<?>) {
                             for (Object s : (List<?>) selected) {
-                                selectedList.put(String.valueOf(s).trim());
+                                selectedList.put(String.valueOf(s).trim().toLowerCase());
                             }
                         }
                         answerObj.put("selectedAnswer", selectedList);
                     } else {
-                        answerObj.put("selectedAnswer", selected != null ? selected.toString().trim() : "");
+                        answerObj.put("selectedAnswer", selected != null ? selected.toString().trim().toLowerCase() : "");
                     }
 
                     // ✅ Add correctAnswer
@@ -788,7 +789,9 @@
                     answerObj.put("isCorrect", isCorrect);
                     answerObj.put("order", i + 1);
 
-                    newAttemptsArray.put(answerObj); // ✅ put directly, not inside wrapper
+                    JSONObject wrapped = new JSONObject();
+                    wrapped.put(String.valueOf(i), answerObj);
+                    newAttemptsArray.put(wrapped);
                 }
 
                 int total = correctCount + incorrectCount;
@@ -919,17 +922,25 @@
             }
         }
 
-
         private void goToOfflineQuizProgressActivity() {
             try {
-                String quizTitle = getIntent().getStringExtra("quizTitle");
+                String quizTitle = getIntent().getStringExtra("title");
+                String ownerUid = getIntent().getStringExtra("owner_uid");
+                String username = getIntent().getStringExtra("username");
+                String photoUrl = getIntent().getStringExtra("photoUrl");
+                String privacy = getIntent().getStringExtra("privacy");
                 String fileName = "quiz_" + quizId + ".json";
                 File file = new File(getFilesDir(), fileName);
 
+                if (userAnswersList == null || userAnswersList.isEmpty()) {
+                    Toast.makeText(this, "No answers to save.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 JSONArray previousArray = new JSONArray();
                 Map<String, JSONObject> combinedAnswers = new LinkedHashMap<>();
+                int originalQuestionCount = userAnswersList.size(); // fallback
 
-                // Load previous attempts if the file exists
                 if (file.exists()) {
                     String prevJson;
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -945,7 +956,6 @@
                     JSONObject prevData = new JSONObject(prevJson);
                     previousArray = prevData.optJSONArray("attempts");
 
-                    // Flatten "attempts" array into combinedAnswers map
                     if (previousArray != null) {
                         for (int i = 0; i < previousArray.length(); i++) {
                             JSONObject wrapped = previousArray.getJSONObject(i);
@@ -958,24 +968,57 @@
                             }
                         }
                     }
+
+                    originalQuestionCount = prevData.optInt("number_of_items", combinedAnswers.size());
                 }
 
-                // Merge current answers into combinedAnswers
                 for (int i = 0; i < userAnswersList.size(); i++) {
                     Map<String, Object> q = userAnswersList.get(i);
+                    if (q == null || !q.containsKey("question")) continue;
+
                     String questionText = String.valueOf(q.get("question"));
+                    if (questionText == null || questionText.trim().isEmpty() || questionText.equals("null")) continue;
 
                     JSONObject newQ = new JSONObject();
-                    Object number = q.get("number");
                     newQ.put("question", questionText);
-                    newQ.put("quizType", q.get("quizType"));
+                    String quizTypeStr = q.get("quizType") != null ? q.get("quizType").toString() : "";
+                    newQ.put("quizType", quizTypeStr);
 
-                    newQ.put("choices", q.get("choices") instanceof List ? new JSONArray((List<?>) q.get("choices")) : q.get("choices"));
-                    newQ.put("correctAnswer", q.get("correctAnswer") instanceof List ? new JSONArray((List<?>) q.get("correctAnswer")) : q.get("correctAnswer"));
-                    newQ.put("userAnswer", q.get("userAnswer") instanceof List ? new JSONArray((List<?>) q.get("userAnswer")) : q.get("userAnswer"));
-                    newQ.put("selectedAnswer", q.getOrDefault("selectedAnswer", ""));
+                    try {
+                        Object choicesObj = q.get("choices");
+                        newQ.put("choices", choicesObj instanceof List ? new JSONArray((List<?>) choicesObj) : new JSONArray());
+                    } catch (Exception ignored) {
+                        newQ.put("choices", new JSONArray());
+                    }
+
+                    // correctAnswer may be String or JSONArray
+                    try {
+                        Object correctObj = q.get("correctAnswer");
+                        if (correctObj instanceof List) {
+                            newQ.put("correctAnswer", new JSONArray((List<?>) correctObj));
+                        } else {
+                            newQ.put("correctAnswer", String.valueOf(correctObj));
+                        }
+                    } catch (Exception ignored) {
+                        newQ.put("correctAnswer", "");
+                    }
+
+                    // selectedAnswer may be String or JSONArray
+                    try {
+                        Object selectedObj = q.get("selectedAnswer");
+                        if (selectedObj instanceof List) {
+                            newQ.put("selectedAnswer", new JSONArray((List<?>) selectedObj));
+                        } else {
+                            newQ.put("selectedAnswer", String.valueOf(selectedObj));
+                        }
+                    } catch (Exception ignored) {
+                        newQ.put("selectedAnswer", "");
+                    }
+
                     newQ.put("photoUrl", q.getOrDefault("photoUrl", ""));
-                    newQ.put("photoPath", q.getOrDefault("localPhotoPath", ""));
+                    String localPath = String.valueOf(q.getOrDefault("localPhotoPath", ""));
+                    newQ.put("photoPath", localPath.isEmpty() ? "Add Image" : localPath);
+
                     boolean isCorrect = Boolean.TRUE.equals(q.get("isCorrect"));
                     newQ.put("isCorrect", isCorrect);
                     newQ.put("order", i + 1);
@@ -991,49 +1034,75 @@
                     }
                 }
 
-                // Count final results and build new attempt array
+                // Final formatting
                 int correct = 0;
-                int incorrect = 0;
-                JSONArray finalAttempts = new JSONArray();
                 int questionIndex = 0;
+                JSONArray finalAttemptsArray = new JSONArray();  // Array of {"0": {...}}, {"1": {...}}
+                JSONObject questionsObject = new JSONObject();   // Map of {"0": {...}, "1": {...}}
 
-                for (JSONObject mergedQ : combinedAnswers.values()) {
-                    mergedQ.put("number", questionIndex + 1);  // reassign consistent numbering
+                for (Map.Entry<String, JSONObject> entry : combinedAnswers.entrySet()) {
+                    JSONObject mergedQ = entry.getValue();
+                    mergedQ.put("order", questionIndex + 1);
+
+                    // ✅ Wrap in an object with the index key
                     JSONObject wrapped = new JSONObject();
                     wrapped.put(String.valueOf(questionIndex), mergedQ);
-                    finalAttempts.put(wrapped);
+
+                    // ✅ Add to both final arrays
+                    finalAttemptsArray.put(wrapped);
+                    questionsObject.put(String.valueOf(questionIndex), new JSONObject(mergedQ.toString()));
 
                     if (mergedQ.optBoolean("isCorrect", false)) {
                         correct++;
-                    } else {
-                        incorrect++;
                     }
+
                     questionIndex++;
                 }
 
-                // Prepare data to save
+                int incorrect = originalQuestionCount - correct;
+                if (incorrect < 0) incorrect = 0;
+
+                JSONObject createdAt = new JSONObject();
+                Timestamp now = Timestamp.now();
+                createdAt.put("seconds", now.getSeconds());
+                createdAt.put("nanoseconds", now.getNanoseconds());
+
+                JSONObject accessUsers = new JSONObject();
+                accessUsers.put(ownerUid, "Owner");
+
                 JSONObject data = new JSONObject();
                 data.put("quizId", quizId);
-                data.put("quizTitle", quizTitle);
-                data.put("attempts", finalAttempts);
+                data.put("title", quizTitle);
+                data.put("questions", questionsObject);
+                data.put("attempts", finalAttemptsArray);
+                data.put("number_of_items", originalQuestionCount);
                 data.put("correctCount", correct);
                 data.put("incorrectCount", incorrect);
-                data.put("percentage", originalQuestionCount == 0 ? 0 :
-                        (int) (((double) correct / originalQuestionCount) * 100));
+                data.put("percentage", originalQuestionCount == 0 ? 0 : (int) (((double) correct / originalQuestionCount) * 100));
+                data.put("created_at", createdAt);
+                data.put("privacy", privacy != null ? privacy : "Private");
+                data.put("owner_uid", ownerUid);
+                data.put("username", username);
+                data.put("photoUrl", photoUrl != null ? photoUrl : "");
+                data.put("accessUsers", accessUsers);
+                data.put("id", quizId);
+                data.put("fileName", fileName);
 
-                // Save file
                 FileOutputStream fos = new FileOutputStream(file);
                 fos.write(data.toString().getBytes(StandardCharsets.UTF_8));
                 fos.close();
 
-                // Navigate to progress activity
+                Log.d("QUIZ_SAVE", "Offline quiz progress saved successfully.");
+                Log.d("QUIZ_SAVE_JSON", data.toString(2));  // Pretty print JSON
+
                 Intent intent = new Intent(this, QuizProgressActivity.class);
                 intent.putExtra("progressFileName", fileName);
                 startActivity(intent);
 
             } catch (Exception e) {
                 e.printStackTrace();
-                Toast.makeText(this, "Failed to save offline quiz progress.", Toast.LENGTH_SHORT).show();
+                Log.e("QUIZ_SAVE", "Error saving offline quiz progress", e);
+                Toast.makeText(this, "Failed to save offline quiz progress: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         }
 

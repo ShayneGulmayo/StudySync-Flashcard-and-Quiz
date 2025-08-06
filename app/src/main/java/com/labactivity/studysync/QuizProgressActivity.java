@@ -49,8 +49,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class QuizProgressActivity extends AppCompatActivity {
 
@@ -234,48 +236,55 @@ public class QuizProgressActivity extends AppCompatActivity {
                     ArrayList<Map<String, Object>> incorrectAnswersOnly = new ArrayList<>();
 
                     for (int i = 0; i < answersArray.length(); i++) {
-                        JSONObject a = answersArray.getJSONObject(i);
-                        if (!a.optBoolean("isCorrect", true)) {
-                            Map<String, Object> map = new HashMap<>();
-                            map.put("question", a.optString("question", "No question"));
+                        JSONObject wrapped = answersArray.getJSONObject(i); // e.g., { "0": { ... } }
+                        Iterator<String> keys = wrapped.keys();
 
-                            if (a.has("userAnswer")) {
-                                Object ua = a.get("userAnswer");
-                                if (ua instanceof JSONArray) {
-                                    JSONArray arr = (JSONArray) ua;
-                                    List<String> userAnswerList = new ArrayList<>();
-                                    for (int j = 0; j < arr.length(); j++) {
-                                        userAnswerList.add(arr.getString(j));
+                        if (keys.hasNext()) {
+                            String key = keys.next();
+                            JSONObject a = wrapped.getJSONObject(key);
+
+                            if (a.has("isCorrect") && !a.getBoolean("isCorrect")) {
+                                Map<String, Object> map = new HashMap<>();
+                                map.put("question", a.optString("question", "No question"));
+                                map.put("quizType", a.optString("quizType", ""));
+
+                                // Handle selectedAnswer
+                                if (a.has("selectedAnswer")) {
+                                    Object selected = a.get("selectedAnswer");
+                                    if (selected instanceof JSONArray) {
+                                        JSONArray arr = (JSONArray) selected;
+                                        List<String> selectedList = new ArrayList<>();
+                                        for (int j = 0; j < arr.length(); j++) {
+                                            selectedList.add(arr.getString(j));
+                                        }
+                                        map.put("userAnswer", selectedList);
+                                    } else {
+                                        map.put("userAnswer", a.optString("selectedAnswer", ""));
                                     }
-                                    map.put("userAnswer", userAnswerList);
-                                } else {
-                                    map.put("userAnswer", a.getString("userAnswer"));
                                 }
-                            } else if (a.has("selectedAnswer")) {
-                                Object ua = a.get("selectedAnswer");
-                                if (ua instanceof JSONArray) {
-                                    JSONArray arr = (JSONArray) ua;
-                                    List<String> userAnswerList = new ArrayList<>();
-                                    for (int j = 0; j < arr.length(); j++) {
-                                        userAnswerList.add(arr.getString(j));
+
+                                // Handle correctAnswer
+                                if (a.has("correctAnswer")) {
+                                    Object correct = a.get("correctAnswer");
+                                    if (correct instanceof JSONArray) {
+                                        JSONArray arr = (JSONArray) correct;
+                                        List<String> correctList = new ArrayList<>();
+                                        for (int j = 0; j < arr.length(); j++) {
+                                            correctList.add(arr.getString(j));
+                                        }
+                                        map.put("correctAnswers", correctList);
+                                    } else {
+                                        map.put("correctAnswers", a.optString("correctAnswer", ""));
                                     }
-                                    map.put("userAnswer", userAnswerList);
-                                } else {
-                                    map.put("userAnswer", a.getString("selectedAnswer"));
                                 }
-                            }
 
-                            if (a.has("correctAnswers")) {
-                                Object correct = a.get("correctAnswers");
-                                map.put("correctAnswers", correct);
-                            }
+                                if (a.has("photoUrl")) {
+                                    map.put("photoUrl", a.optString("photoUrl", ""));
+                                }
 
-                            if (a.has("photoUrl")) {
-                                map.put("photoUrl", a.getString("photoUrl"));
+                                map.put("isCorrect", false);
+                                incorrectAnswersOnly.add(map);
                             }
-
-                            map.put("isCorrect", false);
-                            incorrectAnswersOnly.add(map);
                         }
                     }
 
@@ -298,7 +307,8 @@ public class QuizProgressActivity extends AppCompatActivity {
                     Log.e("QUIZ_REVIEW", "Exception occurred", e);
                     Toast.makeText(this, "Failed to prepare offline review data.", Toast.LENGTH_SHORT).show();
                 }
-            } else {
+            }
+            else {
                 if (FirebaseAuth.getInstance().getCurrentUser() == null) {
                     Toast.makeText(this, "User not logged in.", Toast.LENGTH_SHORT).show();
                     return;
@@ -523,8 +533,8 @@ public class QuizProgressActivity extends AppCompatActivity {
 
             JSONObject jsonObject = new JSONObject(json);
 
-            // ✅ If quizTitle is missing or empty, fetch it from Firestore and update JSON
-            String quizTitle = jsonObject.optString("quizTitle", "");
+            // ✅ Update title from Firestore if missing
+            String quizTitle = jsonObject.optString("title", "");
             if (quizTitle.isEmpty()) {
                 FirebaseFirestore.getInstance()
                         .collection("quiz")
@@ -532,39 +542,63 @@ public class QuizProgressActivity extends AppCompatActivity {
                         .get()
                         .addOnSuccessListener(doc -> {
                             String title = doc.getString("title");
-                            if (title == null || title.trim().isEmpty()) {
-                                title = "Untitled Quiz";
-                            }
+                            if (title == null || title.trim().isEmpty()) title = "Untitled Quiz";
                             try {
-                                // Put the title into the existing JSON object
-                                jsonObject.put("quizTitle", title);
-
-                                // Overwrite file with updated JSON
+                                jsonObject.put("title", title);
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                     Files.write(file.toPath(), jsonObject.toString().getBytes());
                                 }
-
-                                // Show title on UI
                                 quizTitleText.setText(title);
                             } catch (JSONException | IOException e) {
                                 e.printStackTrace();
                                 quizTitleText.setText("Untitled Quiz");
                             }
                         })
-                        .addOnFailureListener(e -> {
-                            quizTitleText.setText("Untitled Quiz");
-                        });
+                        .addOnFailureListener(e -> quizTitleText.setText("Untitled Quiz"));
             } else {
                 quizTitleText.setText(quizTitle);
             }
 
-            // ✅ Get correct/answered count from model fields
-            int totalCorrect = jsonObject.optInt("correctCount", 0);
-            int incorrectCount = jsonObject.optInt("incorrectCount", 0);
-            int totalItems = totalCorrect + incorrectCount;
-            int percentage = totalItems == 0 ? 0 : (int) (((double) totalCorrect / totalItems) * 100);
+            // ✅ Cumulative Progress Logic
+            int correctCount = 0;
+            int totalItems = 0;
 
-            correctText.setText(totalCorrect + " Items");
+            JSONArray questionsArray = jsonObject.optJSONArray("questions");
+            if (questionsArray != null) {
+                for (int i = 0; i < questionsArray.length(); i++) {
+                    JSONObject questionObj = questionsArray.getJSONObject(i);
+
+                    String quizType = questionObj.optString("quizType", "");
+                    String selected = questionObj.optString("selectedAnswer", "");
+                    JSONArray choices = questionObj.optJSONArray("choices");
+
+                    // Only check if type is multiple choice and valid choice list
+                    if ("multiple choice".equals(quizType) && choices != null && selected != null && !selected.isEmpty()) {
+                        int correctIndex = questionObj.optInt("correctAnswerIndex", -1);
+                        int selectedIndex = -1;
+
+                        // Get index of selected answer in choices
+                        for (int j = 0; j < choices.length(); j++) {
+                            if (selected.equals(choices.getString(j))) {
+                                selectedIndex = j;
+                                break;
+                            }
+                        }
+
+                        if (correctIndex != -1 && selectedIndex != -1) {
+                            if (selectedIndex == correctIndex) {
+                                correctCount++;
+                            }
+                            totalItems++;
+                        }
+                    }
+                }
+            }
+
+            int incorrectCount = totalItems - correctCount;
+            int percentage = totalItems == 0 ? 0 : (int) (((double) correctCount / totalItems) * 100);
+
+            correctText.setText(correctCount + " Items");
             incorrectText.setText(incorrectCount + " Items");
             progressCircle.setProgress(percentage);
             progressPercentageText.setText(percentage + "%");
@@ -579,6 +613,7 @@ public class QuizProgressActivity extends AppCompatActivity {
         }
     }
 
+
     @SuppressLint("ResourceAsColor")
     private void displayOfflineAnsweredQuestions(List<Map<String, Object>> userAnswersList) {
         if (userAnswersList == null || userAnswersList.isEmpty()) {
@@ -589,9 +624,11 @@ public class QuizProgressActivity extends AppCompatActivity {
         LinearLayout answersLayout = findViewById(R.id.answers_linear_layout);
         LayoutInflater inflater = LayoutInflater.from(this);
         int number = 1;
+        for (Map<String, Object> wrapped : userAnswersList) {
+            for (Map.Entry<String, Object> entry : wrapped.entrySet()) {
+                Map<String, Object> q = (Map<String, Object>) entry.getValue();
 
-        for (Map<String, Object> q : userAnswersList) {
-            View view = inflater.inflate(R.layout.item_quiz_attempt_view, answersLayout, false);
+                View view = inflater.inflate(R.layout.item_quiz_attempt_view, answersLayout, false);
 
             // View bindings
             TextView questionText = view.findViewById(R.id.question_text);
@@ -658,17 +695,23 @@ public class QuizProgressActivity extends AppCompatActivity {
 
             // Set correct answer text
             if (!correctAnswers.isEmpty()) {
-                correctAnswerText.setText(TextUtils.join(", ", correctAnswers));
+                correctAnswerText.setText(
+                        TextUtils.join(", ", correctAnswers.stream()
+                                .map(String::toLowerCase)
+                                .collect(Collectors.toList()))
+                );
             } else {
                 correctAnswerText.setText("No correct answer");
             }
 
             // Set selected wrong answer text (only if incorrect)
             if (!isCorrect && !selectedAnswers.isEmpty()) {
-                selectedWrongAnswerText.setText(TextUtils.join(", ", selectedAnswers));
+                selectedWrongAnswerText.setText(TextUtils.join(", ", selectedAnswers.stream()
+                        .map(String::toLowerCase)
+                        .collect(Collectors.toList())));
             }
 
-            if (!TextUtils.isEmpty(photoUrl) && !"Add Image".equals(photoUrl)) {
+            if (!TextUtils.isEmpty(photoUrl) && !"".equals(photoUrl)) {
                 imageCard.setVisibility(View.VISIBLE);
 
                 Glide.with(this)
@@ -679,7 +722,11 @@ public class QuizProgressActivity extends AppCompatActivity {
             } else {
                 imageCard.setVisibility(View.GONE);
             }
-            answersLayout.addView(view);
+
+            // Add view to parent layout
+                answersLayout.addView(view);
+                number++;
+            }
         }
     }
 
