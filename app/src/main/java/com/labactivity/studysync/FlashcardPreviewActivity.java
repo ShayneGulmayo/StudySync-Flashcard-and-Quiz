@@ -84,7 +84,7 @@ import java.util.UUID;
 
 public class FlashcardPreviewActivity extends AppCompatActivity {
 
-    private TextView titleTextView, ownerTextView, numberOfItemsTextView, setReminderTxt, reminderCountdownTxt, reminderTimeFormatted;
+    private TextView titleTextView, ownerTextView, numberOfItemsTextView, reminderCountdownTxt, reminderTimeFormatted;
     private ImageView ownerPhotoImageView, backButton, moreButton, saveSetBtn;
     private Button startFlashcardBtn, cancelReminderBtn, convertBtn;
     private MaterialButton downloadBtn, setReminderBtn, shareToChatBtn;
@@ -97,7 +97,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
     private String accessLevel = "none";
 
     private boolean isSaved = false;
-    private boolean isDownloaded = false;
     private boolean isRedirecting = false;
     private boolean isOffline;
     private FirebaseFirestore db;
@@ -309,149 +308,15 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
 
     }
 
-    private void showDateTimePicker() {
-        final Calendar calendar = Calendar.getInstance();
-
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View dialogView = inflater.inflate(R.layout.reminder_picker, null);
-        DatePicker datePicker = dialogView.findViewById(R.id.datePicker);
-        CheckBox repeatDailyCheckBox = dialogView.findViewById(R.id.repeatDailyCheckBox);
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setView(dialogView)
-                .setTitle("Select Date")
-                .setPositiveButton("Next", (dialog, which) -> {
-                    calendar.set(Calendar.YEAR, datePicker.getYear());
-                    calendar.set(Calendar.MONTH, datePicker.getMonth());
-                    calendar.set(Calendar.DAY_OF_MONTH, datePicker.getDayOfMonth());
-
-                    TimePickerDialog timePickerDialog = new TimePickerDialog(this,
-                            (view1, hour, minute) -> {
-                                calendar.set(Calendar.HOUR_OF_DAY, hour);
-                                calendar.set(Calendar.MINUTE, minute);
-                                calendar.set(Calendar.SECOND, 0);
-                                calendar.set(Calendar.MILLISECOND, 0);
-
-                                boolean isRepeating = repeatDailyCheckBox.isChecked();
-                                long currentTimeMillis = System.currentTimeMillis();
-
-
-                                if (isRepeating) {
-                                    while (calendar.getTimeInMillis() <= currentTimeMillis) {
-                                        calendar.add(Calendar.DAY_OF_YEAR, 1);
-                                    }
-                                } else {
-                                    if (calendar.getTimeInMillis() <= currentTimeMillis) {
-                                        Toast.makeText(this, "Time has already passed.", Toast.LENGTH_SHORT).show();
-                                        return;
-                                    }
-                                }
-
-                                AlarmHelper.setAlarm(this, calendar, userId, setId, title, isRepeating);
-
-                                SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
-                                prefs.edit()
-                                        .putLong(userId + "_" + setId + "_reminderTime", calendar.getTimeInMillis())
-                                        .putBoolean(userId + "_" + setId + "_isRepeating", isRepeating)
-                                        .apply();
-
-                                String ampm = (hour >= 12) ? "PM" : "AM";
-                                int displayHour = (hour % 12 == 0) ? 12 : hour % 12;
-                                String displayTime = String.format("%02d:%02d %s on %d/%d/%d",
-                                        displayHour, minute, ampm,
-                                        calendar.get(Calendar.MONTH) + 1,
-                                        calendar.get(Calendar.DAY_OF_MONTH),
-                                        calendar.get(Calendar.YEAR));
-
-                                reminderTimeFormatted.setText(displayTime);
-                                reminderCountdownTxt.setText(getCountdownText(calendar.getTimeInMillis()));
-                                reminderLayout.setVisibility(View.VISIBLE);
-                                loadReminderText();
-
-
-
-                            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
-
-                    timePickerDialog.show();
-
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+    private boolean canNavigate() {
+        return !isRedirecting && !isFinishing() && !isDestroyed();
     }
 
-    private void loadReminderText() {
-        SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
-        long reminderTime = prefs.getLong(userId + "_" + setId + "_reminderTime", -1);
-        boolean isRepeating = prefs.getBoolean(userId + "_" + setId + "_isRepeating", false);
-
-        if (reminderTime != -1) {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(reminderTime);
-
-            long currentTimeMillis = System.currentTimeMillis();
-
-            if (isRepeating && reminderTime <= currentTimeMillis) {
-                do {
-                    calendar.add(Calendar.DAY_OF_YEAR, 1);
-                } while (calendar.getTimeInMillis() <= currentTimeMillis);
-
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putLong(userId + "_" + setId + "_reminderTime", calendar.getTimeInMillis());
-                editor.apply();
-            }
-
-            int hour = calendar.get(Calendar.HOUR_OF_DAY);
-            int minute = calendar.get(Calendar.MINUTE);
-            String ampm = (hour >= 12) ? "PM" : "AM";
-            int displayHour = (hour % 12 == 0) ? 12 : hour % 12;
-
-            String display = String.format("%02d:%02d %s on %d/%d/%d%s",
-                    displayHour, minute, ampm,
-                    calendar.get(Calendar.MONTH) + 1,
-                    calendar.get(Calendar.DAY_OF_MONTH),
-                    calendar.get(Calendar.YEAR),
-                    isRepeating ? " (Daily)" : "");
-
-            reminderTimeFormatted.setText(display);
-            reminderCountdownTxt.setText(getCountdownText(calendar.getTimeInMillis()));
-
-            reminderTimeFormatted.setVisibility(View.VISIBLE);
-            reminderCountdownTxt.setVisibility(View.VISIBLE);
-            cancelReminderBtn.setVisibility(View.VISIBLE);
-            reminderLayout.setVisibility(View.VISIBLE);
-            setReminderBtn.setVisibility(View.VISIBLE);
-        } else {
-            reminderTimeFormatted.setText("No reminder set");
-            reminderCountdownTxt.setText("");
-            cancelReminderBtn.setVisibility(View.GONE);
-
-            reminderLayout.setVisibility(View.VISIBLE);
-            setReminderBtn.setVisibility(View.VISIBLE);
+    private void showToast(String msg) {
+        if (canNavigate()) {
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         }
     }
-
-    private String getCountdownText(long futureTimeMillis) {
-        long now = System.currentTimeMillis();
-        long diff = futureTimeMillis - now;
-
-        if (diff <= 0) return "Reminder time passed";
-
-        long seconds = diff / 1000;
-        long minutes = seconds / 60;
-        long hours = minutes / 60;
-        long days = hours / 24;
-
-        hours %= 24;
-        minutes %= 60;
-
-        StringBuilder builder = new StringBuilder("In ");
-        if (days > 0) builder.append(days).append(" day").append(days > 1 ? "s, " : ", ");
-        if (hours > 0) builder.append(hours).append(" hour").append(hours > 1 ? "s, " : ", ");
-        builder.append(minutes).append(" minute").append(minutes != 1 ? "s" : "");
-
-        return builder.toString();
-    }
-
 
     private void openUserProfile() {
         if (ownerUid != null) {
@@ -465,8 +330,55 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
     }
 
-    private boolean canNavigate() {
-        return !isRedirecting && !isFinishing() && !isDestroyed();
+    private void fetchSetFromFirestore(String setId) {
+        db.collection("flashcards").document(setId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        setData = documentSnapshot.getData();
+                        if (setData != null) {
+                            setData.put("id", setId);
+                            setData.put("type", "flashcard");
+                            String ownerUid = documentSnapshot.getString("owner_uid");
+
+                            if (ownerUid != null) {
+                                db.collection("users").document(ownerUid)
+                                        .get()
+                                        .addOnSuccessListener(userDoc -> {
+                                            if (userDoc.exists()) {
+                                                String username = userDoc.getString("username");
+                                                setData.put("username", username != null ? username : "Unknown User");
+                                                String photoUrl = userDoc.getString("photoUrl");
+                                                setData.put("photoUrl", photoUrl != null ? photoUrl : "");
+                                            } else {
+                                                setData.put("username", "Unknown User");
+                                                setData.put("photoUrl", "");
+                                            }
+                                            loadFlashcardSet();
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            setData.put("username", "Unknown User");
+                                            setData.put("photoUrl", "");
+                                            loadFlashcardSet();
+                                        });
+                            } else {
+                                setData.put("username", "Unknown User");
+                                setData.put("photoUrl", "");
+                                loadFlashcardSet();
+                            }
+                        } else {
+                            Toast.makeText(this, "Set data is empty.", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(this, "Set not found.", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    e.printStackTrace();
+                    Toast.makeText(this, "Failed to fetch set.", Toast.LENGTH_SHORT).show();
+                    finish();
+                });
     }
 
     private void showMoreBottomSheet() {
@@ -593,116 +505,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         bottomSheetDialog.show();
     }
 
-    private void showToast(String msg) {
-        if (canNavigate()) {
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void sendAccessRequest(String requestedRole) {
-        FirebaseUser currentUser = auth.getCurrentUser();
-        if (currentUser == null || setId == null || ownerUid == null || !canNavigate()) return;
-
-        String senderUid = currentUser.getUid();
-
-        db.collection("users")
-                .document(ownerUid)
-                .collection("notifications")
-                .whereEqualTo("senderId", senderUid)
-                .whereEqualTo("setId", setId)
-                .whereEqualTo("setType", "flashcard")
-                .whereEqualTo("type", "request")
-                .whereEqualTo("status", "pending")
-                .limit(1)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (!canNavigate()) return;
-
-                    if (!querySnapshot.isEmpty()) {
-                        showToast("You already sent a request. Please wait for a response.");
-                        return;
-                    }
-
-                    db.collection("users").document(senderUid)
-                            .get()
-                            .addOnSuccessListener(userDoc -> {
-                                if (!canNavigate()) return;
-
-                                String firstName = userDoc.getString("firstName");
-                                String lastName = userDoc.getString("lastName");
-                                String senderPhoto = userDoc.getString("photoUrl") != null ? userDoc.getString("photoUrl") : "";
-
-                                String senderName = "";
-                                if (firstName != null) senderName += firstName;
-                                if (lastName != null) senderName += (senderName.isEmpty() ? "" : " ") + lastName;
-                                if (senderName.isEmpty()) senderName = "Unknown User";
-
-                                String finalSenderName = senderName;
-
-                                db.collection("flashcards").document(setId)
-                                        .get()
-                                        .addOnSuccessListener(setDoc -> {
-                                            if (!canNavigate()) return;
-
-                                            if (!setDoc.exists()) {
-                                                showToast("Flashcard set not found.");
-                                                return;
-                                            }
-
-                                            String setTitle = setDoc.getString("title");
-                                            if (setTitle == null || setTitle.isEmpty()) setTitle = "Untitled";
-
-                                            String messageText = finalSenderName + " has requested access to your flashcard set \"" + setTitle + "\".";
-
-                                            Map<String, Object> requestNotification = new HashMap<>();
-                                            requestNotification.put("senderId", senderUid);
-                                            requestNotification.put("senderName", finalSenderName);
-                                            requestNotification.put("senderPhotoUrl", senderPhoto);
-                                            requestNotification.put("setId", setId);
-                                            requestNotification.put("setType", "flashcard");
-                                            requestNotification.put("requestedRole", requestedRole);
-                                            requestNotification.put("text", messageText);
-                                            requestNotification.put("type", "request");
-                                            requestNotification.put("status", "pending");
-                                            requestNotification.put("timestamp", FieldValue.serverTimestamp());
-                                            requestNotification.put("read", false);
-
-                                            DocumentReference notifRef = db.collection("users")
-                                                    .document(ownerUid)
-                                                    .collection("notifications")
-                                                    .document();
-
-                                            requestNotification.put("notificationId", notifRef.getId());
-
-                                            notifRef.set(requestNotification)
-                                                    .addOnSuccessListener(unused -> {
-                                                        showToast("Access request sent!");
-                                                        if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) {
-                                                            bottomSheetDialog.dismiss();
-                                                        }
-                                                        finish();
-                                                    })
-                                                    .addOnFailureListener(e -> {
-                                                        showToast("Failed to send request.");
-                                                        Log.e(TAG, "Request send failed", e);
-                                                    });
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            showToast("Failed to fetch flashcard set.");
-                                            Log.e(TAG, "Set fetch error", e);
-                                        });
-                            })
-                            .addOnFailureListener(e -> {
-                                showToast("Failed to fetch user info.");
-                                Log.e(TAG, "User fetch error", e);
-                            });
-                })
-                .addOnFailureListener(e -> {
-                    showToast("Failed to check existing requests.");
-                    Log.e(TAG, "Query error", e);
-                });
-    }
-
     private void showDownloadOptionsDialog() {
         String[] options = {"Download as PDF", "Download for Offline Use"};
 
@@ -717,57 +519,6 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
-    }
-
-    private void fetchSetFromFirestore(String setId) {
-        db.collection("flashcards").document(setId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        setData = documentSnapshot.getData();
-                        if (setData != null) {
-                            setData.put("id", setId);
-                            setData.put("type", "flashcard");
-                            String ownerUid = documentSnapshot.getString("owner_uid");
-
-                            if (ownerUid != null) {
-                                db.collection("users").document(ownerUid)
-                                        .get()
-                                        .addOnSuccessListener(userDoc -> {
-                                            if (userDoc.exists()) {
-                                                String username = userDoc.getString("username");
-                                                setData.put("username", username != null ? username : "Unknown User");
-                                                String photoUrl = userDoc.getString("photoUrl");
-                                                setData.put("photoUrl", photoUrl != null ? photoUrl : "");
-                                            } else {
-                                                setData.put("username", "Unknown User");
-                                                setData.put("photoUrl", "");
-                                            }
-                                            loadFlashcardSet();
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            setData.put("username", "Unknown User");
-                                            setData.put("photoUrl", "");
-                                            loadFlashcardSet();
-                                        });
-                            } else {
-                                setData.put("username", "Unknown User");
-                                setData.put("photoUrl", "");
-                                loadFlashcardSet();
-                            }
-                        } else {
-                            Toast.makeText(this, "Set data is empty.", Toast.LENGTH_SHORT).show();
-                        }
-                    } else {
-                        Toast.makeText(this, "Set not found.", Toast.LENGTH_SHORT).show();
-                        finish();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    e.printStackTrace();
-                    Toast.makeText(this, "Failed to fetch set.", Toast.LENGTH_SHORT).show();
-                    finish();
-                });
     }
 
     private void downloadSet() {
@@ -1072,26 +823,17 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         }
     }
 
-    private Bitmap getRoundedCornerBitmap(Bitmap bitmap, int cornerRadius) {
-        Bitmap output = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(output);
+    private void openPdfFile(Uri uri) throws ActivityNotFoundException {
+        if (uri == null) {
+            Toast.makeText(this, "File not found.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        final Paint paint = new Paint();
-        final Rect rect = new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight());
-        final RectF rectF = new RectF(rect);
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, "application/pdf");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-        paint.setAntiAlias(true);
-        canvas.drawRoundRect(rectF, cornerRadius, cornerRadius, paint);
-
-        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
-        canvas.drawBitmap(bitmap, rect, rect, paint);
-
-        return output;
-    }
-
-    private int dpToPx(int dp) {
-        float density = getResources().getDisplayMetrics().density;
-        return Math.round(dp * density);
+        startActivity(Intent.createChooser(intent, "Open PDF File"));
     }
 
     private int drawWrappedText(Canvas canvas, String text, Paint paint, int x, int y, int rightMargin) {
@@ -1113,17 +855,26 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
         return y;
     }
 
-    private void openPdfFile(Uri uri) throws ActivityNotFoundException {
-        if (uri == null) {
-            Toast.makeText(this, "File not found.", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private Bitmap getRoundedCornerBitmap(Bitmap bitmap, int cornerRadius) {
+        Bitmap output = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(output);
 
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(uri, "application/pdf");
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        final Paint paint = new Paint();
+        final Rect rect = new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight());
+        final RectF rectF = new RectF(rect);
 
-        startActivity(Intent.createChooser(intent, "Open PDF File"));
+        paint.setAntiAlias(true);
+        canvas.drawRoundRect(rectF, cornerRadius, cornerRadius, paint);
+
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+        canvas.drawBitmap(bitmap, rect, rect, paint);
+
+        return output;
+    }
+
+    private int dpToPx(int dp) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dp * density);
     }
 
     private void makeCopy() {
@@ -1273,6 +1024,253 @@ public class FlashcardPreviewActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to copy flashcard set.", Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void sendAccessRequest(String requestedRole) {
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null || setId == null || ownerUid == null || !canNavigate()) return;
+
+        String senderUid = currentUser.getUid();
+
+        db.collection("users")
+                .document(ownerUid)
+                .collection("notifications")
+                .whereEqualTo("senderId", senderUid)
+                .whereEqualTo("setId", setId)
+                .whereEqualTo("setType", "flashcard")
+                .whereEqualTo("type", "request")
+                .whereEqualTo("status", "pending")
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!canNavigate()) return;
+
+                    if (!querySnapshot.isEmpty()) {
+                        showToast("You already sent a request. Please wait for a response.");
+                        return;
+                    }
+
+                    db.collection("users").document(senderUid)
+                            .get()
+                            .addOnSuccessListener(userDoc -> {
+                                if (!canNavigate()) return;
+
+                                String firstName = userDoc.getString("firstName");
+                                String lastName = userDoc.getString("lastName");
+                                String senderPhoto = userDoc.getString("photoUrl") != null ? userDoc.getString("photoUrl") : "";
+
+                                String senderName = "";
+                                if (firstName != null) senderName += firstName;
+                                if (lastName != null) senderName += (senderName.isEmpty() ? "" : " ") + lastName;
+                                if (senderName.isEmpty()) senderName = "Unknown User";
+
+                                String finalSenderName = senderName;
+
+                                db.collection("flashcards").document(setId)
+                                        .get()
+                                        .addOnSuccessListener(setDoc -> {
+                                            if (!canNavigate()) return;
+
+                                            if (!setDoc.exists()) {
+                                                showToast("Flashcard set not found.");
+                                                return;
+                                            }
+
+                                            String setTitle = setDoc.getString("title");
+                                            if (setTitle == null || setTitle.isEmpty()) setTitle = "Untitled";
+
+                                            String messageText = finalSenderName + " has requested access to your flashcard set \"" + setTitle + "\".";
+
+                                            Map<String, Object> requestNotification = new HashMap<>();
+                                            requestNotification.put("senderId", senderUid);
+                                            requestNotification.put("senderName", finalSenderName);
+                                            requestNotification.put("senderPhotoUrl", senderPhoto);
+                                            requestNotification.put("setId", setId);
+                                            requestNotification.put("setType", "flashcard");
+                                            requestNotification.put("requestedRole", requestedRole);
+                                            requestNotification.put("text", messageText);
+                                            requestNotification.put("type", "request");
+                                            requestNotification.put("status", "pending");
+                                            requestNotification.put("timestamp", FieldValue.serverTimestamp());
+                                            requestNotification.put("read", false);
+
+                                            DocumentReference notifRef = db.collection("users")
+                                                    .document(ownerUid)
+                                                    .collection("notifications")
+                                                    .document();
+
+                                            requestNotification.put("notificationId", notifRef.getId());
+
+                                            notifRef.set(requestNotification)
+                                                    .addOnSuccessListener(unused -> {
+                                                        showToast("Access request sent!");
+                                                        if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) {
+                                                            bottomSheetDialog.dismiss();
+                                                        }
+                                                        finish();
+                                                    })
+                                                    .addOnFailureListener(e -> {
+                                                        showToast("Failed to send request.");
+                                                        Log.e(TAG, "Request send failed", e);
+                                                    });
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            showToast("Failed to fetch flashcard set.");
+                                            Log.e(TAG, "Set fetch error", e);
+                                        });
+                            })
+                            .addOnFailureListener(e -> {
+                                showToast("Failed to fetch user info.");
+                                Log.e(TAG, "User fetch error", e);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    showToast("Failed to check existing requests.");
+                    Log.e(TAG, "Query error", e);
+                });
+    }
+
+    private void showDateTimePicker() {
+        final Calendar calendar = Calendar.getInstance();
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View dialogView = inflater.inflate(R.layout.reminder_picker, null);
+        DatePicker datePicker = dialogView.findViewById(R.id.datePicker);
+        CheckBox repeatDailyCheckBox = dialogView.findViewById(R.id.repeatDailyCheckBox);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView)
+                .setTitle("Select Date")
+                .setPositiveButton("Next", (dialog, which) -> {
+                    calendar.set(Calendar.YEAR, datePicker.getYear());
+                    calendar.set(Calendar.MONTH, datePicker.getMonth());
+                    calendar.set(Calendar.DAY_OF_MONTH, datePicker.getDayOfMonth());
+
+                    TimePickerDialog timePickerDialog = new TimePickerDialog(this,
+                            (view1, hour, minute) -> {
+                                calendar.set(Calendar.HOUR_OF_DAY, hour);
+                                calendar.set(Calendar.MINUTE, minute);
+                                calendar.set(Calendar.SECOND, 0);
+                                calendar.set(Calendar.MILLISECOND, 0);
+
+                                boolean isRepeating = repeatDailyCheckBox.isChecked();
+                                long currentTimeMillis = System.currentTimeMillis();
+
+
+                                if (isRepeating) {
+                                    while (calendar.getTimeInMillis() <= currentTimeMillis) {
+                                        calendar.add(Calendar.DAY_OF_YEAR, 1);
+                                    }
+                                } else {
+                                    if (calendar.getTimeInMillis() <= currentTimeMillis) {
+                                        Toast.makeText(this, "Time has already passed.", Toast.LENGTH_SHORT).show();
+                                        return;
+                                    }
+                                }
+
+                                AlarmHelper.setAlarm(this, calendar, userId, setId, title, isRepeating);
+
+                                SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
+                                prefs.edit()
+                                        .putLong(userId + "_" + setId + "_reminderTime", calendar.getTimeInMillis())
+                                        .putBoolean(userId + "_" + setId + "_isRepeating", isRepeating)
+                                        .apply();
+
+                                String ampm = (hour >= 12) ? "PM" : "AM";
+                                int displayHour = (hour % 12 == 0) ? 12 : hour % 12;
+                                String displayTime = String.format("%02d:%02d %s on %d/%d/%d",
+                                        displayHour, minute, ampm,
+                                        calendar.get(Calendar.MONTH) + 1,
+                                        calendar.get(Calendar.DAY_OF_MONTH),
+                                        calendar.get(Calendar.YEAR));
+
+                                reminderTimeFormatted.setText(displayTime);
+                                reminderCountdownTxt.setText(getCountdownText(calendar.getTimeInMillis()));
+                                reminderLayout.setVisibility(View.VISIBLE);
+                                loadReminderText();
+
+
+
+                            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
+
+                    timePickerDialog.show();
+
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void loadReminderText() {
+        SharedPreferences prefs = getSharedPreferences("ReminderPrefs", MODE_PRIVATE);
+        long reminderTime = prefs.getLong(userId + "_" + setId + "_reminderTime", -1);
+        boolean isRepeating = prefs.getBoolean(userId + "_" + setId + "_isRepeating", false);
+
+        if (reminderTime != -1) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(reminderTime);
+
+            long currentTimeMillis = System.currentTimeMillis();
+
+            if (isRepeating && reminderTime <= currentTimeMillis) {
+                do {
+                    calendar.add(Calendar.DAY_OF_YEAR, 1);
+                } while (calendar.getTimeInMillis() <= currentTimeMillis);
+
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putLong(userId + "_" + setId + "_reminderTime", calendar.getTimeInMillis());
+                editor.apply();
+            }
+
+            int hour = calendar.get(Calendar.HOUR_OF_DAY);
+            int minute = calendar.get(Calendar.MINUTE);
+            String ampm = (hour >= 12) ? "PM" : "AM";
+            int displayHour = (hour % 12 == 0) ? 12 : hour % 12;
+
+            String display = String.format("%02d:%02d %s on %d/%d/%d%s",
+                    displayHour, minute, ampm,
+                    calendar.get(Calendar.MONTH) + 1,
+                    calendar.get(Calendar.DAY_OF_MONTH),
+                    calendar.get(Calendar.YEAR),
+                    isRepeating ? " (Daily)" : "");
+
+            reminderTimeFormatted.setText(display);
+            reminderCountdownTxt.setText(getCountdownText(calendar.getTimeInMillis()));
+
+            reminderTimeFormatted.setVisibility(View.VISIBLE);
+            reminderCountdownTxt.setVisibility(View.VISIBLE);
+            cancelReminderBtn.setVisibility(View.VISIBLE);
+            reminderLayout.setVisibility(View.VISIBLE);
+            setReminderBtn.setVisibility(View.VISIBLE);
+        } else {
+            reminderTimeFormatted.setText("No reminder set");
+            reminderCountdownTxt.setText("");
+            cancelReminderBtn.setVisibility(View.GONE);
+
+            reminderLayout.setVisibility(View.VISIBLE);
+            setReminderBtn.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private String getCountdownText(long futureTimeMillis) {
+        long now = System.currentTimeMillis();
+        long diff = futureTimeMillis - now;
+
+        if (diff <= 0) return "Reminder time passed";
+
+        long seconds = diff / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+
+        hours %= 24;
+        minutes %= 60;
+
+        StringBuilder builder = new StringBuilder("In ");
+        if (days > 0) builder.append(days).append(" day").append(days > 1 ? "s, " : ", ");
+        if (hours > 0) builder.append(hours).append(" hour").append(hours > 1 ? "s, " : ", ");
+        builder.append(minutes).append(" minute").append(minutes != 1 ? "s" : "");
+
+        return builder.toString();
     }
 
     private void showDeleteConfirmationDialog() {
