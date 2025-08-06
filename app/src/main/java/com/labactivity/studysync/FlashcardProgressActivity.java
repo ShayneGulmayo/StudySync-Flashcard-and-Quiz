@@ -13,14 +13,17 @@ import android.widget.TextView;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
+
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.gson.Gson;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,10 +37,12 @@ import java.util.Map;
 public class FlashcardProgressActivity extends AppCompatActivity {
 
     FirebaseFirestore db;
-    ProgressBar backgroundProgressBar, statsProgressBar;
+
     TextView progressPercentage, knowItems, stillLearningItems, flashcardTitleTxt, retakeFlashcardBtn;
-    Button reviewQuestionsBtn;
     ImageView backButton;
+    Button reviewQuestionsBtn;
+    ProgressBar backgroundProgressBar, statsProgressBar;
+
     String setId, offlineFileName, flashcardId;
     int knowCount, totalItems;
     private boolean isOffline;
