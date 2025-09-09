@@ -113,7 +113,6 @@ public class LiveQuizViewActivity extends AppCompatActivity {
                                     // Optional: Also write to a "start trigger" collection if needed by listener logic
                                     Intent intent = new Intent(this, ChatRoomActivity.class);
                                     intent.putExtra("roomId", roomId);
-                                    intent.putExtra("startLiveQuizId", quizId);
                                     startActivity(intent);
                                     finish();
                                 })

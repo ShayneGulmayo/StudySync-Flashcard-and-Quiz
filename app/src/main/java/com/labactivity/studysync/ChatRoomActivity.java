@@ -149,10 +149,6 @@
 
 
             listenForLiveQuizTriggers();
-            String startLiveQuizId = getIntent().getStringExtra("startLiveQuizId");
-            if (startLiveQuizId != null && !triggeredQuizIds.contains(startLiveQuizId)) {
-                launchLiveQuiz(startLiveQuizId);
-            }
 
             fetchChatRoomDetails(this::setUpRecyclerView);
 
@@ -200,9 +196,6 @@
                     });
         }
         private void fetchAndRunLiveQuiz(String quizId) {
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
-            String roomId = getIntent().getStringExtra("roomId");
-
             db.collection("chat_rooms")
                     .document(roomId)
                     .collection("live_quiz")
@@ -211,10 +204,12 @@
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
                             String title = documentSnapshot.getString("title");
-                            List<Map<String, Object>> questions = (List<Map<String, Object>>) documentSnapshot.get("questions");
+                            List<Map<String, Object>> questions =
+                                    (List<Map<String, Object>>) documentSnapshot.get("questions");
                             Long durationPerQuestion = documentSnapshot.getLong("duration");
 
                             if (questions != null && durationPerQuestion != null) {
+                                announceQuizStarted(roomId); // 🚨 Only here
                                 runQuizPopup(title, questions, durationPerQuestion.intValue(), roomId, quizId);
                             } else {
                                 Toast.makeText(this, "Invalid quiz data.", Toast.LENGTH_SHORT).show();
@@ -312,12 +307,20 @@
                                             if (answerListener[0] != null) answerListener[0].remove();
                                             if (timer[0] != null) timer[0].cancel();
                                             quizStopped[0] = true;
+
+                                            handler.removeCallbacks(nextQuestion[0]);
+
                                             runOnUiThread(() -> {
                                                 Toast.makeText(getApplicationContext(), "Live Quiz stopped.", Toast.LENGTH_LONG).show();
                                                 quizContainer.setVisibility(View.GONE);
                                             });
+
+                                            db.collection("chat_rooms").document(roomId)
+                                                    .collection("live_quiz").document(quizId)
+                                                    .update("isStarted", false);
                                             return;
                                         }
+
 
                                         if (!answered[0] && isAnswerCloseEnough(correctAnswer, text)) {
                                             answered[0] = true;
@@ -457,7 +460,6 @@
         }
 
         private void listenForLiveQuizTriggers() {
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
             db.collection("chat_rooms")
                     .document(roomId)
                     .collection("live_quiz")
