@@ -39,7 +39,7 @@ public class HomeFragment extends Fragment {
 
     private TextView userGreetingTxt;
     private ImageView profileImage, notifBtn;
-    private View flashcardsCard, quizzesCard, chatRoomsCard, browseCard, notifIndicator;
+    private View flashcardsCard, chatRoomsCard, browseCard, notifIndicator;
 
     private EditText searchView;
     private RecyclerView continueRecyclerView;
@@ -64,7 +64,6 @@ public class HomeFragment extends Fragment {
         userGreetingTxt = view.findViewById(R.id.userGreetingTxt);
         profileImage = view.findViewById(R.id.profileImage);
         flashcardsCard = view.findViewById(R.id.flashcardsCard);
-        quizzesCard = view.findViewById(R.id.quizzesCard);
         chatRoomsCard = view.findViewById(R.id.chatRoomsCard);
         browseCard = view.findViewById(R.id.browseCard);
         continueRecyclerView = view.findViewById(R.id.continueRecyclerView);
@@ -76,7 +75,6 @@ public class HomeFragment extends Fragment {
 
 
         applyClickShrinkAnimation(flashcardsCard);
-        applyClickShrinkAnimation(quizzesCard);
         applyClickShrinkAnimation(chatRoomsCard);
         applyClickShrinkAnimation(browseCard);
         applyClickShrinkAnimation(addFlashcardBtn);
@@ -215,10 +213,7 @@ public class HomeFragment extends Fragment {
         flashcardsCard.setOnClickListener(v -> {
             navigateToSetFragment("flashcard");
         });
-
-        quizzesCard.setOnClickListener(v -> {
-            navigateToSetFragment("quiz");
-        });
+        
 
         chatRoomsCard.setOnClickListener(v -> {
             if (getActivity() instanceof MainActivity) {
