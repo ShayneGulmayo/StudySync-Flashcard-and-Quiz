@@ -57,8 +57,21 @@
             android:textOn="Hide Answers"
             android:textOff="Show Answers"
             android:checked="true"
-            android:layout_marginLeft="20dp"
-            android:layout_marginRight="20dp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:buttonTint="@color/primary"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:layout_marginBottom="5dp"
+            android:backgroundTint="@color/primary"
+            android:background="@drawable/green_stroke_bg"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tap to toggle"
+            android:textAlignment="center"
+            android:textColor="@color/text_gray"
+            android:textSize="10sp"
             android:layout_marginBottom="10dp"/>
 
     </LinearLayout>
