@@ -146,12 +146,7 @@
             recyclerView.setLayoutManager(layoutManager);
 
             messagesRef = db.collection("chat_rooms").document(roomId).collection("messages");
-
-
-            listenForLiveQuizTriggers();
-
             fetchChatRoomDetails(this::setUpRecyclerView);
-
             sendButton.setOnClickListener(v -> sendMessage());
             sendImg.setOnClickListener(v -> openImagePicker());
             sendFlashcardsandQuiz.setOnClickListener(v -> showSendMorePopup());
@@ -162,7 +157,7 @@
             chatRoomNameText.setOnClickListener(v -> openEditChatRoom());
         }
 
-        private void launchLiveQuiz(String quizId) {
+        /*private void launchLiveQuiz(String quizId) {
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             String roomId = getIntent().getStringExtra("roomId");
             CollectionReference messageRef = db.collection("chat_rooms").document(roomId).collection("messages");
@@ -184,7 +179,6 @@
                             Long durationPerQuestion = documentSnapshot.getLong("duration");
 
                             if (questions != null && durationPerQuestion != null) {
-                                announceQuizStarted(roomId);
                                 runQuizPopup(title, questions, durationPerQuestion.intValue(), roomId, quizId);
                             } else {
                                 Toast.makeText(this, "Invalid quiz data.", Toast.LENGTH_SHORT).show();
@@ -195,6 +189,7 @@
                         Toast.makeText(this, "Failed to load quiz.", Toast.LENGTH_SHORT).show();
                     });
         }
+        */
         private void fetchAndRunLiveQuiz(String quizId) {
             db.collection("chat_rooms")
                     .document(roomId)
@@ -209,7 +204,7 @@
                             Long durationPerQuestion = documentSnapshot.getLong("duration");
 
                             if (questions != null && durationPerQuestion != null) {
-                                announceQuizStarted(roomId); // 🚨 Only here
+                                announceQuizStarted(roomId);
                                 runQuizPopup(title, questions, durationPerQuestion.intValue(), roomId, quizId);
                             } else {
                                 Toast.makeText(this, "Invalid quiz data.", Toast.LENGTH_SHORT).show();
