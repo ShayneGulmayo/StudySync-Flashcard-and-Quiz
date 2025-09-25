@@ -214,7 +214,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
 
         shareToChatBtn.setOnClickListener(view -> {
             Intent intent = new Intent(this, ChatRoomPickerActivity.class);
-            intent.putExtra("quizId", quizId);
+            intent.putExtra("setId", quizId);
             intent.putExtra("setType", "quiz");
             startActivity(intent);
         });
