@@ -129,7 +129,8 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
 
         GenerativeModelFutures model = GenerativeModelFutures.from(ai);
 
-        String prompt = "From the following source content, generate a Firestore-compatible JSON object strictly in the format:\n" +
+        // 🔹 Unified prompt (works for both topics or detailed text)
+        String prompt = "From the following source content or topic, generate a Firestore-compatible JSON object strictly in this format:\n" +
                 "{\n" +
                 "  \"title\": \"<Descriptive title>\",\n" +
                 "  \"questions\": [\n" +
@@ -141,22 +142,64 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                 "  ]\n" +
                 "}\n\n" +
                 "Requirements:\n" +
-                "- The number of questions generated must exactly match the number of entries (e.g., terms or facts) from the source.\n" +
-                "- Ensure each question is meaningful and derived from its corresponding source entry.\n" +
-                "- The correctAnswer must be accurate and match the intent of the source.\n" +
-                "- Do not combine multiple facts into one question.\n" +
-                "- Only include the JSON object as the output — no explanations, markdown, or commentary.\n" +
-                "- The JSON must be Firestore-compatible and ready for direct insertion.";
-
+                "- Generate at least 5 quiz questions.\n" +
+                "- Ensure each question is meaningful and derived from the source or topic.\n" +
+                "- Each question must have a valid 'question', 'correctAnswer', and 'type'.\n" +
+                "- Do not include explanations, markdown, or commentary.\n" +
+                "- Output only the JSON object (no extra text).\n" +
+                "- The JSON must be Firestore-compatible and ready for direct insertion.\n\n" +
+                "Source:\n" + inputText;
 
         Content content = new Content.Builder()
-                .addText(prompt + "\nSource:\n" + inputText)
+                .addText(prompt)
                 .build();
 
         Futures.addCallback(model.generateContent(content), new FutureCallback<GenerateContentResponse>() {
             @Override
             public void onSuccess(GenerateContentResponse result) {
-                handleAIResponse(result.getText());
+                String aiOutput = result.getText();
+
+                if (aiOutput == null || aiOutput.trim().isEmpty()) {
+                    showError("No response from AI. Please try again.");
+                    return;
+                }
+
+                try {
+                    // 🔹 Clean response (remove junk before/after JSON)
+                    aiOutput = extractJson(aiOutput);
+
+                    JSONObject json = new JSONObject(aiOutput);
+
+                    // 🔹 Validate required fields
+                    if (!json.has("questions")) {
+                        showError("Invalid quiz format. Please try again.");
+                        return;
+                    }
+
+                    JSONArray questions = json.getJSONArray("questions");
+
+                    // 🔹 Ensure there are at least 5 valid questions
+                    if (questions.length() < 5) {
+                        showError("Generated quiz has too few questions. Please try again.");
+                        return;
+                    }
+
+                    // 🔹 Validate each question entry
+                    for (int i = 0; i < questions.length(); i++) {
+                        JSONObject q = questions.getJSONObject(i);
+                        if (!q.has("question") || !q.has("correctAnswer") || !q.has("type")) {
+                            showError("Some questions are incomplete. Please try again.");
+                            return;
+                        }
+                    }
+
+                    // ✅ Passed validation — handle as normal
+                    handleAIResponse(aiOutput);
+
+                } catch (JSONException e) {
+                    Log.e(TAG, "Invalid JSON from AI: " + aiOutput, e);
+                    showError("AI returned invalid data. Please try again.");
+                }
             }
 
             @Override
@@ -166,6 +209,19 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
             }
         }, executor);
     }
+
+    /**
+     * Removes any extra characters or text before/after the actual JSON object.
+     */
+    private String extractJson(String text) {
+        int start = text.indexOf("{");
+        int end = text.lastIndexOf("}");
+        if (start != -1 && end != -1 && end > start) {
+            return text.substring(start, end + 1).trim();
+        }
+        return text.trim();
+    }
+
 
     private void handleAIResponse(String response) {
         try {

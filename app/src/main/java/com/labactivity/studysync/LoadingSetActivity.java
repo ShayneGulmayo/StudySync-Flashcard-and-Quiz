@@ -426,17 +426,24 @@ public class LoadingSetActivity extends AppCompatActivity {
     }
 
     private String getQuizPrompt(String source) {
-        return "From the contents of this " + source + ", generate a JSON object ONLY in the following structure:\n" +
+        return "From the contents of this " + source + ", generate a Firestore-compatible JSON object ONLY in the following structure:\n" +
                 "{\n" +
                 "  \"title\": \"<Descriptive title>\",\n" +
                 "  \"questions\": [\n" +
                 "    {\n" +
                 "      \"question\": \"<Question text>\",\n" +
-                "      \"type\": \"multiple choice\" or \"enumeration\",\n" +
-                "      \"choices\": [\"Option 1\", \"Option 2\", ...],\n" +
-                "      \"correctAnswer\": \"Correct Answer\" or [\"Answer1\", \"Answer2\"]\n" +
+                "      \"type\": \"multiple choice\",\n" +
+                "      \"choices\": [\"Option 1\", \"Option 2\", \"Option 3\", \"Option 4\"],\n" +
+                "      \"correctAnswer\": \"Correct Answer\",\n" +
                 "    }\n" +
                 "  ]\n" +
-                "}\nReturn only this JSON object. No explanation or markdown.";
+                "}\n\n" +
+                "Important rules:\n" +
+                "- Use ONLY \"multiple choice\" questions. DO NOT use enumeration.\n" +
+                "- The `choices` array must contain 4 plausible but incorrect answers, except for one correct one.\n" +
+                "- The `correctAnswer` string must exactly match one of the values in the `choices` array.\n" +
+                "- `photoPath` must always be set to \"Add Image\".\n" +
+                "- If there's no image, set `photoUrl` to an empty string.\n" +
+                "- Return only the JSON object with no explanation or extra commentary.";
     }
 }

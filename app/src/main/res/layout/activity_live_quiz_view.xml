@@ -108,27 +108,7 @@
             android:prompt="@string/select_time_prompt"
             android:layout_marginBottom="20dp"/>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/leaderboardsBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="15dp"
-            android:layout_gravity="center"
-            android:layout_marginTop="10dp"
-            android:text="View Leaderboards History"
-            android:textAlignment="textStart"
-            android:textColor="@color/primary"
-            android:textSize="16sp"
-            app:backgroundTint="@color/white"
-            app:cornerRadius="40dp"
-            app:icon="@drawable/livequiz"
-            app:iconGravity="start"
-            app:iconPadding="20dp"
-            app:iconSize="24dp"
-            app:iconTint="@color/primary"
-            app:strokeColor="@color/primary"
-            app:strokeWidth="2dp" />
-        <Button
+               <Button
             android:id="@+id/startLiveQuizBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

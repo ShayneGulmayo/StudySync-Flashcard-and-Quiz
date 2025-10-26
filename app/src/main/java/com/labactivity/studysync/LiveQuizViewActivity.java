@@ -55,7 +55,6 @@ public class LiveQuizViewActivity extends AppCompatActivity {
         liveQuizTitleTxt = findViewById(R.id.liveQuizTitleTxt);
         spinnerTimePerQuestion = findViewById(R.id.spinnerTimePerQuestion);
         startLiveQuizBtn = findViewById(R.id.startLiveQuizBtn);
-        leaderboardsBtn = findViewById(R.id.leaderboardsBtn);
         recyclerView = findViewById(R.id.recyclerView);
         toggleHideAnswers = findViewById(R.id.toggleHideAnswers);
 
@@ -119,14 +118,6 @@ public class LiveQuizViewActivity extends AppCompatActivity {
                                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to start quiz", Toast.LENGTH_SHORT).show());
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to check quiz status", Toast.LENGTH_SHORT).show());
-        });
-
-
-        leaderboardsBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(this, LiveQuizLeaderboardsActivity.class);
-            intent.putExtra("roomId", roomId);
-            intent.putExtra("quizId", quizId);
-            startActivity(intent);
         });
     }
 
