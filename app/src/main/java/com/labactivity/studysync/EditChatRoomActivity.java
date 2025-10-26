@@ -93,7 +93,8 @@ public class EditChatRoomActivity extends AppCompatActivity {
         chatroomNameTextView = findViewById(R.id.chatroom_name);
         moreBtn = findViewById(R.id.more_button);
         notifToggle = findViewById(R.id.notif_btn);
-        notifToggle.setChecked(false);
+        final boolean[] isUserChangingToggle = {false};
+
         sharedSets = findViewById(R.id.shared_sets_btn);
         deleteChatRoom = findViewById(R.id.delete_chatroom_btn);
         sharedMedia = findViewById(R.id.media_files_btn);
@@ -133,7 +134,27 @@ public class EditChatRoomActivity extends AppCompatActivity {
             intent.putExtra("chatRoomId", roomId);
             startActivity(intent);
         });
+        userRef.get().addOnSuccessListener(documentSnapshot -> {
+            if (documentSnapshot.exists()) {
+                Map<String, Object> chatPrefs = (Map<String, Object>) documentSnapshot.get("chatNotificationPrefs");
+                boolean isEnabled = false;
+
+                if (chatPrefs != null && chatPrefs.containsKey(roomId)) {
+                    isEnabled = Boolean.TRUE.equals(chatPrefs.get(roomId));
+                } else {
+                    userRef.update("chatNotificationPrefs." + roomId, true);
+                    isEnabled = true;
+                }
+
+                isUserChangingToggle[0] = false;
+                notifToggle.setChecked(isEnabled);
+                notifToggle.jumpDrawablesToCurrentState();
+                isUserChangingToggle[0] = true;
+            }
+        });
         notifToggle.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!isUserChangingToggle[0]) return;
+
             userRef.get().addOnSuccessListener(documentSnapshot -> {
                 if (documentSnapshot.exists()) {
                     Map<String, Object> chatPrefs = (Map<String, Object>) documentSnapshot.get("chatNotificationPrefs");
@@ -143,10 +164,14 @@ public class EditChatRoomActivity extends AppCompatActivity {
 
                     userRef.update("chatNotificationPrefs", chatPrefs)
                             .addOnSuccessListener(aVoid -> {
-                                Toast.makeText(EditChatRoomActivity.this, "Notifications " + (isChecked ? "enabled" : "disabled"), Toast.LENGTH_SHORT).show();
+                                Toast.makeText(EditChatRoomActivity.this,
+                                        "Notifications " + (isChecked ? "enabled" : "disabled"),
+                                        Toast.LENGTH_SHORT).show();
                             })
                             .addOnFailureListener(e -> {
-                                Toast.makeText(EditChatRoomActivity.this, "Failed to update preferences", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(EditChatRoomActivity.this,
+                                        "Failed to update preferences",
+                                        Toast.LENGTH_SHORT).show();
                                 notifToggle.setChecked(!isChecked);
                             });
                 }
