@@ -44,6 +44,19 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
+    <TextView
+        android:id="@+id/clearBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/consLayout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:text="Clear All"
+        android:textAlignment="textEnd"
+        android:textColor="@color/primary"
+        android:textStyle="bold"
+        android:paddingRight="20dp"
+        android:textSize="18sp" />
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
@@ -51,7 +64,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/consLayout"/>
+        app:layout_constraintTop_toBottomOf="@id/clearBtn"/>
 
     <TextView
         android:id="@+id/emptyTextView"
@@ -63,12 +76,11 @@
         android:textColor="@color/text_gray"
         android:textSize="16sp"
         android:textStyle="bold"
-        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/consLayout"
+        app:layout_constraintTop_toBottomOf="@id/clearBtn"
         app:layout_constraintVertical_bias="0.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
