@@ -39,13 +39,14 @@
             android:gravity="center"
             android:maxLines="1"
             android:text="@string/flashcard_name"
+            android:paddingHorizontal="20dp"
             android:textAlignment="center"
             android:textColor="@color/black"
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toStartOf="@id/back_button"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
