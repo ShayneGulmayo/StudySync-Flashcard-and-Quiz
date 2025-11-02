@@ -3,110 +3,129 @@
     android:id="@+id/messageContainer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginRight="120dp"
-    android:orientation="horizontal"
-    android:padding="5dp">
-
-    <ImageView
-        android:id="@+id/senderImage"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_gravity="bottom"
-        android:layout_marginEnd="8dp"
-        android:contentDescription="Sender Photo"
-        android:scaleType="centerCrop"
-        android:src="@drawable/user_profile" />
-
-    <LinearLayout
-        android:layout_width="0dp"
+    android:orientation="vertical"
+>
+    <TextView
+        android:id="@+id/timeSeparatorText"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:text="SAT AT 1:00PM"
+        android:textAlignment="center"
+        android:textSize="12sp"
+        android:visibility="gone"
+        android:paddingVertical="10dp"
 
-        <TextView
-            android:id="@+id/senderName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="5dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="Full Name"
-            android:textColor="@color/black"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+        />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="5dp"
+        android:layout_marginRight="120dp">
+        <ImageView
+            android:id="@+id/senderImage"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="bottom"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="Sender Photo"
+            android:scaleType="centerCrop"
+            android:src="@drawable/user_profile" />
 
         <LinearLayout
-            android:id="@+id/fileLayout"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:background="@drawable/bg_message_other_user"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="15dp">
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-            <ImageView
-                android:id="@+id/fileIcon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginEnd="10dp"
-                android:contentDescription="File Icon"
-                android:src="@drawable/attach_file" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/fileName"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="example.pdf"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/fileDetails"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="PDF · 120 KB"
-                    android:textColor="@color/text_gray"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-            <LinearLayout
+            <TextView
+                android:id="@+id/senderName"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:gravity="center">
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginTop="5dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Full Name"
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/fileLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:background="@drawable/bg_message_other_user"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="15dp">
 
                 <ImageView
-                    android:id="@+id/saveFileButton"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:layout_gravity="center"
-                    android:clickable="true"
-                    android:contentDescription="Save File"
-                    android:focusable="true"
-                    android:src="@drawable/download" />
+                    android:id="@+id/fileIcon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="10dp"
+                    android:contentDescription="File Icon"
+                    android:src="@drawable/attach_file" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/fileName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="example.pdf"
+                        android:textColor="@android:color/black"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/fileDetails"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="PDF · 120 KB"
+                        android:textColor="@color/text_gray"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center">
+
+                    <ImageView
+                        android:id="@+id/saveFileButton"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_gravity="center"
+                        android:clickable="true"
+                        android:contentDescription="Save File"
+                        android:focusable="true"
+                        android:src="@drawable/download" />
+                </LinearLayout>
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/timestampText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="12:00 PM"
+                android:textColor="@color/text_gray"
+                android:textSize="14sp"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/timestampText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:text="12:00 PM"
-            android:textColor="@color/text_gray"
-            android:textSize="14sp"
-            android:visibility="gone" />
     </LinearLayout>
+
+
 </LinearLayout>

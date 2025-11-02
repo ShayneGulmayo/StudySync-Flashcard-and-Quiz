@@ -3,137 +3,153 @@
     android:id="@+id/messageContainer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="3dp"
+    android:orientation="vertical"
+
     android:descendantFocusability="afterDescendants">
-
-    <ImageView
-        android:id="@+id/senderImage"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_gravity="bottom"
-        android:layout_marginEnd="8dp"
-        android:contentDescription="Sender Photo"
-        android:scaleType="centerCrop"
-        android:src="@drawable/user_profile" />
-
-    <LinearLayout
-        android:layout_width="0dp"
+    <TextView
+        android:id="@+id/timeSeparatorText"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/senderName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:layout_marginTop="5dp"
-            android:layout_marginBottom="5dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="Full Name"
-            android:textColor="@color/black"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+        android:text="SAT AT 1:00PM"
+        android:textAlignment="center"
+        android:paddingVertical="10dp"
+        android:visibility="gone"
+        android:textSize="12sp" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="3dp">
+        <ImageView
+            android:id="@+id/senderImage"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="bottom"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="Sender Photo"
+            android:scaleType="centerCrop"
+            android:src="@drawable/user_profile" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/senderName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:layout_marginTop="5dp"
+                android:layout_marginBottom="5dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Full Name"
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
             <LinearLayout
-                android:id="@+id/sharedCardLayout"
-                android:layout_width="230dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_message_other_user"
-                android:orientation="vertical"
-                android:padding="15dp">
-
-                <TextView
-                    android:id="@+id/sharedTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="Study Guide: Chemistry"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/sharedType"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp"
-                    android:text="Flashcard Set"
-                    android:textColor="@color/text_gray"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/sharedDescription"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp"
-                    android:text="12 cards | Created by username"
-                    android:textColor="@color/text_gray"
-                    android:textSize="14sp"
-                    android:maxLines="2"
-                    android:ellipsize="end"
-                    android:inputType="textMultiLine"
-                    android:singleLine="false"
-                    android:breakStrategy="simple"
-                    />
-
+                android:orientation="horizontal">
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:id="@+id/sharedCardLayout"
+                    android:layout_width="230dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    android:weightSum="2">
+                    android:background="@drawable/bg_message_other_user"
+                    android:orientation="vertical"
+                    android:padding="15dp">
 
-                    <Button
-                        android:id="@+id/btnViewSet"
-                        android:layout_width="0dp"
+                    <TextView
+                        android:id="@+id/sharedTitle"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1.9"
-                        android:backgroundTint="@color/primary"
-                        android:text="View Set"
-                        android:textColor="@color/light_gray"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Study Guide: Chemistry"
+                        android:textColor="@android:color/black"
                         android:textSize="16sp"
-                        app:cornerRadius="15dp" />
+                        android:textStyle="bold" />
 
-                    <ImageView
-                        android:id="@+id/saveQuizBtn"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:layout_weight=".1"
-                        android:src="@drawable/bookmark"
-                        app:tint="@color/primary" />
+                    <TextView
+                        android:id="@+id/sharedType"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:text="Flashcard Set"
+                        android:textColor="@color/text_gray"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/sharedDescription"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:text="12 cards | Created by username"
+                        android:textColor="@color/text_gray"
+                        android:textSize="14sp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:inputType="textMultiLine"
+                        android:singleLine="false"
+                        android:breakStrategy="simple"
+                        />
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:weightSum="2">
+
+                        <Button
+                            android:id="@+id/btnViewSet"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1.9"
+                            android:backgroundTint="@color/primary"
+                            android:text="View Set"
+                            android:textColor="@color/light_gray"
+                            android:textSize="16sp"
+                            app:cornerRadius="15dp" />
+
+                        <ImageView
+                            android:id="@+id/saveQuizBtn"
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:layout_weight=".1"
+                            android:src="@drawable/bookmark"
+                            app:tint="@color/primary" />
+                    </LinearLayout>
+
                 </LinearLayout>
-
+                <ImageView
+                    android:id="@+id/savedIndicator"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/check"
+                    app:tint="@color/primary"
+                    android:layout_marginLeft="10dp"
+                    android:visibility="gone"/>
             </LinearLayout>
-            <ImageView
-                android:id="@+id/savedIndicator"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_gravity="center"
-                android:src="@drawable/check"
-                app:tint="@color/primary"
-                android:layout_marginLeft="10dp"
-                android:visibility="gone"/>
-        </LinearLayout>
 
-        <TextView
-            android:id="@+id/timestampText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="12:00 PM"
-            android:textColor="@color/text_gray"
-            android:textSize="12sp"
-            android:visibility="gone" />
+            <TextView
+                android:id="@+id/timestampText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="12:00 PM"
+                android:textColor="@color/text_gray"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
     </LinearLayout>
+
+
 </LinearLayout>

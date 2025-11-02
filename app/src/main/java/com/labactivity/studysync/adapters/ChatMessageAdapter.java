@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.icu.text.DateFormat;
 import android.net.Uri;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -49,12 +50,19 @@ import com.labactivity.studysync.models.User;
 
 import java.text.DecimalFormat;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
+
+
+
+
 
 
 public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, RecyclerView.ViewHolder> {
@@ -114,26 +122,50 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
     @Override
     protected void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, @NonNull ChatMessage message) {
+
+        Date previousTimestamp = null;
+        if (position > 0) {
+            previousTimestamp = getItem(position - 1).getTimestamp();
+        }
+        Context context = holder.itemView.getContext();
+        String separatorText = formatTimeSeparator(context, message.getTimestamp(), previousTimestamp);
+
+        TextView timeSeparatorView = null;
+
         if (holder instanceof CurrentUserViewHolder) {
             ((CurrentUserViewHolder) holder).bind(message);
+            timeSeparatorView = ((CurrentUserViewHolder) holder).timeSeparator;
         } else if (holder instanceof OtherUserViewHolder) {
             boolean isSameSender = position > 0 && getItem(position - 1).getSenderId().equals(message.getSenderId());
             ((OtherUserViewHolder) holder).bind(message, isSameSender);
+            timeSeparatorView = ((OtherUserViewHolder) holder).timeSeparator;
         } else if (holder instanceof SystemMessageViewHolder) {
             ((SystemMessageViewHolder) holder).bind(message);
         } else if (holder instanceof SharedSetViewHolder) {
             ((SharedSetViewHolder) holder).bind(message);
+            timeSeparatorView = ((SharedSetViewHolder) holder).timeSeparator;
         } else if (holder instanceof SharedSetCurrentUserViewHolder) {
             ((SharedSetCurrentUserViewHolder) holder).bind(message);
+            timeSeparatorView = ((SharedSetCurrentUserViewHolder) holder).timeSeparator;
         } else if (holder instanceof FileCurrentUserViewHolder) {
             ((FileCurrentUserViewHolder) holder).bind(message);
+            timeSeparatorView = ((FileCurrentUserViewHolder) holder).timeSeparator;
         } else if (holder instanceof FileOtherUserViewHolder) {
             ((FileOtherUserViewHolder) holder).bind(message);
+            timeSeparatorView = ((FileOtherUserViewHolder) holder).timeSeparator;
+        }
+        if (timeSeparatorView != null) {
+            if (separatorText != null) {
+                timeSeparatorView.setText(separatorText);
+                timeSeparatorView.setVisibility(View.VISIBLE);
+            } else {
+                timeSeparatorView.setVisibility(View.GONE);
+            }
         }
     }
 
     public class SharedSetViewHolder extends RecyclerView.ViewHolder {
-        TextView senderName, sharedTitle, sharedType, sharedDescription, timestampText;
+        TextView senderName, sharedTitle, sharedType, sharedDescription, timestampText, timeSeparator;
         ImageView senderImage, saveSetBtn, savedIndicator;
         Button btnViewSet;
 
@@ -148,6 +180,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             saveSetBtn = itemView.findViewById(R.id.saveQuizBtn);
             savedIndicator = itemView.findViewById(R.id.savedIndicator);
             btnViewSet = itemView.findViewById(R.id.btnViewSet);
+            timeSeparator = itemView.findViewById(R.id.timeSeparatorText);
 
             itemView.setOnClickListener(v -> {
                 timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? GONE : VISIBLE);
@@ -319,7 +352,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     }
 
     static class FileCurrentUserViewHolder extends RecyclerView.ViewHolder {
-        TextView fileName, fileDetails, timestampText;
+        TextView fileName, fileDetails, timestampText, timeSeparator;
         ImageView saveFileButton;
 
         public FileCurrentUserViewHolder(@NonNull View itemView) {
@@ -328,6 +361,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             fileDetails = itemView.findViewById(R.id.fileDetails);
             timestampText = itemView.findViewById(R.id.timestampText);
             saveFileButton = itemView.findViewById(R.id.saveFileButton);
+            timeSeparator = itemView.findViewById(R.id.timeSeparatorText);
         }
 
         public void bind(ChatMessage message) {
@@ -347,7 +381,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     }
 
     static class FileOtherUserViewHolder extends RecyclerView.ViewHolder {
-        TextView fileName, fileDetails, timestampText, senderName;
+        TextView fileName, fileDetails, timestampText, senderName, timeSeparator;
         ImageView saveFileButton, senderImage;
 
         public FileOtherUserViewHolder(@NonNull View itemView) {
@@ -358,6 +392,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             saveFileButton = itemView.findViewById(R.id.saveFileButton);
             senderName = itemView.findViewById(R.id.senderName);
             senderImage = itemView.findViewById(R.id.senderImage);
+            timeSeparator = itemView.findViewById(R.id.timeSeparatorText);
         }
 
         public void bind(ChatMessage message) {
@@ -392,7 +427,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     }
 
     static class SharedSetCurrentUserViewHolder extends RecyclerView.ViewHolder {
-        TextView sharedTitle, sharedType, sharedDescription, timestampText;
+        TextView sharedTitle, sharedType, sharedDescription, timestampText, timeSeparator;
         Button btnViewSet;
         ImageView saveSetBtn, savedIndicator;
 
@@ -405,6 +440,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             btnViewSet = itemView.findViewById(R.id.btnViewSet);
             saveSetBtn = itemView.findViewById(R.id.saveQuizBtn);
             savedIndicator = itemView.findViewById(R.id.savedIndicator);
+            timeSeparator = itemView.findViewById(R.id.timeSeparatorText);
 
             itemView.setOnClickListener(v -> {
                 timestampText.setVisibility(timestampText.getVisibility() == VISIBLE ? GONE : VISIBLE);
@@ -428,7 +464,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 sharedDescription.setText("This set reference is missing.");
                 btnViewSet.setVisibility(View.GONE);
                 saveSetBtn.setVisibility(GONE);
-                return; // stop binding further
+                return;
             }
 
             if ("flashcard".equals(setType)) {
@@ -485,7 +521,6 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
                 });
             }
 
-            // Saved/Owned check (only run if setId is valid)
             db.collection("users").document(currentUserId).get().addOnSuccessListener(userDoc -> {
                 AtomicBoolean isSaved = new AtomicBoolean(false);
                 boolean isOwned = false;
@@ -581,7 +616,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     }
 
     static class CurrentUserViewHolder extends RecyclerView.ViewHolder {
-        TextView messageText, timestampText;
+        TextView messageText, timestampText, timeSeparator;
         ImageView imageView, videoPreview;
         boolean timestampVisible = false;
 
@@ -591,11 +626,13 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             timestampText = itemView.findViewById(R.id.timestampText);
             imageView = itemView.findViewById(R.id.imageView);
             videoPreview = itemView.findViewById(R.id.videoPreview);
+            timeSeparator = itemView.findViewById(R.id.timeSeparatorText);
         }
 
         public void bind(ChatMessage message) {
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
             timestampText.setVisibility(GONE);
+
 
             if ("image".equals(message.getType())) {
                 messageText.setVisibility(GONE);
@@ -645,7 +682,7 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
     }
 
     static class OtherUserViewHolder extends RecyclerView.ViewHolder {
-        TextView messageText, senderName, timestampText;
+        TextView messageText, senderName, timestampText, timeSeparator;
         ImageView senderImage, imageView, videoPreview;
         LinearLayout messageHolder;
         boolean timestampVisible = false;
@@ -659,11 +696,13 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             imageView = itemView.findViewById(R.id.imageView);
             videoPreview = itemView.findViewById(R.id.videoPreview);
             messageHolder = itemView.findViewById(R.id.messageHolder);
+            timeSeparator = itemView.findViewById(R.id.timeSeparatorText);
         }
 
         public void bind(ChatMessage message, boolean isSameSender) {
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
             timestampText.setVisibility(GONE);
+
 
             if ("image".equals(message.getType())) {
                 messageText.setVisibility(GONE);
@@ -756,6 +795,45 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         public void bind(ChatMessage message) {
             systemMessageText.setText(message.getText());
         }
+    }
+    private String formatTimeSeparator(Context context, Date currentTimestamp, Date previousTimestamp) {
+        long TEN_MINUTES_MILLIS = 10 * 60 * 1000;
+        if (previousTimestamp != null && currentTimestamp.getTime() - previousTimestamp.getTime() < TEN_MINUTES_MILLIS) {
+            return null;
+        }
+
+        Calendar now = Calendar.getInstance();
+        Calendar messageCal = Calendar.getInstance();
+        messageCal.setTime(currentTimestamp);
+
+        String timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT).format(currentTimestamp);
+
+        if (now.get(Calendar.YEAR) == messageCal.get(Calendar.YEAR) &&
+                now.get(Calendar.DAY_OF_YEAR) == messageCal.get(Calendar.DAY_OF_YEAR)) {
+            return timeFormat;
+        }
+
+        Calendar yesterday = Calendar.getInstance();
+        yesterday.add(Calendar.DAY_OF_YEAR, -1);
+        if (yesterday.get(Calendar.YEAR) == messageCal.get(Calendar.YEAR) &&
+                yesterday.get(Calendar.DAY_OF_YEAR) == messageCal.get(Calendar.DAY_OF_YEAR)) {
+            return "Yesterday at " + timeFormat;
+        }
+
+
+        long sevenDaysAgo = System.currentTimeMillis() - (7L * 24 * 60 * 60 * 1000);
+        if (currentTimestamp.getTime() >= sevenDaysAgo && !DateUtils.isToday(currentTimestamp.getTime())) {
+            String dayOfWeek = new SimpleDateFormat("EEE", Locale.getDefault()).format(currentTimestamp); // EEE for Sat
+            return dayOfWeek + " at " + timeFormat;
+        }
+
+        if (now.get(Calendar.YEAR) == messageCal.get(Calendar.YEAR)) {
+            String monthDay = new SimpleDateFormat("MMM dd", Locale.getDefault()).format(currentTimestamp); // e.g., Oct 27
+            return monthDay + " at " + timeFormat;
+        }
+
+        String fullDate = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(currentTimestamp); // e.g., Oct 27, 2024
+        return fullDate + " at " + timeFormat;
     }
 
 }

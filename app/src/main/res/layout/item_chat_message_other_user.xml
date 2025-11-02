@@ -4,136 +4,155 @@
     android:id="@+id/messageContainer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginRight="50dp"
-    android:orientation="horizontal"
-    android:padding="5dp">
-
-    <ImageView
-        android:id="@+id/senderImage"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_gravity="bottom"
-        android:layout_marginEnd="10dp"
-        android:contentDescription="Sender Photo"
-        android:scaleType="centerCrop"
-        android:src="@drawable/user_profile" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
+    android:orientation="vertical"
+    >
+    <TextView
+        android:id="@+id/timeSeparatorText"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:text="SAT AT 1:00PM"
+        android:textAlignment="center"
+        android:textSize="12sp"
+        android:paddingVertical="10dp"
+        android:visibility="gone"
 
-        <TextView
-            android:id="@+id/senderName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="5dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="Full Name"
-            android:textColor="@color/black"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+        />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="50dp"
+        android:orientation="horizontal"
+        android:padding="5dp"
+        >
+        <ImageView
+            android:id="@+id/senderImage"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="bottom"
+            android:layout_marginEnd="10dp"
+            android:contentDescription="Sender Photo"
+            android:scaleType="centerCrop"
+            android:src="@drawable/user_profile" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="bottom"
+            android:layout_weight="1"
             android:orientation="vertical">
 
-
-            <ImageView
-                android:id="@+id/videoPreview"
-                android:layout_width="200dp"
-                android:layout_height="300dp"
+            <TextView
+                android:id="@+id/senderName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
                 android:layout_marginTop="5dp"
-                android:scaleType="centerCrop"
-                android:visibility="gone" />
-
-            <ImageView
-                android:id="@+id/imageView"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
-                android:layout_marginTop="5dp"
-                android:scaleType="centerCrop"
-                android:visibility="gone" />
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Full Name"
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
             <LinearLayout
-                android:id="@+id/messageHolder"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_message_other_user"
-                android:orientation="vertical"
-                android:padding="15dp">
+                android:layout_marginTop="4dp"
+                android:gravity="bottom"
+                android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/messageText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Message"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp" />
 
-                <Button
-                    android:id="@+id/viewSetButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                <ImageView
+                    android:id="@+id/videoPreview"
+                    android:layout_width="200dp"
+                    android:layout_height="300dp"
                     android:layout_marginTop="5dp"
-                    android:backgroundTint="@color/primary"
-                    android:gravity="center"
-                    android:text="View Set"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    android:visibility="gone"
-                    app:cornerRadius="15dp" />
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/imageView"
+                    android:layout_width="200dp"
+                    android:layout_height="200dp"
+                    android:layout_marginTop="5dp"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
 
                 <LinearLayout
-                    android:id="@+id/button_holder"
+                    android:id="@+id/messageHolder"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp"
-                    android:orientation="horizontal"
-                    android:visibility="gone">
+                    android:background="@drawable/bg_message_other_user"
+                    android:orientation="vertical"
+                    android:padding="15dp">
 
-                    <Button
-                        android:id="@+id/accept_btn"
+                    <TextView
+                        android:id="@+id/messageText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="5dp"
-                        android:layout_weight="1"
+                        android:text="Message"
+                        android:textColor="@android:color/black"
+                        android:textSize="16sp" />
+
+                    <Button
+                        android:id="@+id/viewSetButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
                         android:backgroundTint="@color/primary"
-                        android:text="Accept"
+                        android:gravity="center"
+                        android:text="View Set"
                         android:textColor="@color/white"
                         android:textSize="16sp"
+                        android:visibility="gone"
                         app:cornerRadius="15dp" />
 
-                    <Button
-                        android:id="@+id/denied_btn"
+                    <LinearLayout
+                        android:id="@+id/button_holder"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="5dp"
-                        android:layout_weight="1"
-                        android:backgroundTint="@color/warning"
-                        android:text="Denied"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        app:cornerRadius="15dp" />
+                        android:layout_marginTop="5dp"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <Button
+                            android:id="@+id/accept_btn"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="5dp"
+                            android:layout_weight="1"
+                            android:backgroundTint="@color/primary"
+                            android:text="Accept"
+                            android:textColor="@color/white"
+                            android:textSize="16sp"
+                            app:cornerRadius="15dp" />
+
+                        <Button
+                            android:id="@+id/denied_btn"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="5dp"
+                            android:layout_weight="1"
+                            android:backgroundTint="@color/warning"
+                            android:text="Denied"
+                            android:textColor="@color/white"
+                            android:textSize="16sp"
+                            app:cornerRadius="15dp" />
+                    </LinearLayout>
                 </LinearLayout>
+
+
+                <TextView
+                    android:id="@+id/timestampText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:layout_marginStart="10dp"
+                    android:text="12:00 PM"
+                    android:textColor="@color/text_gray"
+                    android:textSize="14sp" />
             </LinearLayout>
-
-
-            <TextView
-                android:id="@+id/timestampText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:layout_marginStart="10dp"
-                android:text="12:00 PM"
-                android:textColor="@color/text_gray"
-                android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
+
+
 </LinearLayout>

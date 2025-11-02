@@ -5,88 +5,108 @@
     android:id="@+id/messageContainer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="3dp"
-    android:gravity="end"
-    android:layout_marginStart="120dp">
-
-    <LinearLayout
-        android:layout_width="wrap_content"
+    android:orientation="vertical"
+    >
+    <TextView
+        android:id="@+id/timeSeparatorText"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="end"
-        android:orientation="horizontal">
+        android:text="SAT AT 1:00PM"
+        android:textAlignment="center"
+        android:textSize="12sp"
+        android:paddingVertical="10dp"
 
+        android:visibility="gone"
+
+        />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="3dp"
+        android:gravity="end"
+        >
         <LinearLayout
-            android:id="@+id/fileLayout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:background="@drawable/bg_message_current_user"
-            android:padding="15dp">
-
-            <ImageView
-                android:id="@+id/fileIcon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="start|center_vertical"
-                android:contentDescription="File Icon"
-                android:src="@drawable/attach_file" />
+            android:gravity="end"
+            android:orientation="horizontal"
+            >
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:id="@+id/fileLayout"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="start|center_vertical"
-                android:orientation="vertical">
+                android:layout_marginTop="5dp"
+                android:background="@drawable/bg_message_current_user"
+                android:padding="15dp">
 
-                <TextView
-                    android:id="@+id/fileName"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="10dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="example.pdf"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                <ImageView
+                    android:id="@+id/fileIcon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:contentDescription="File Icon"
+                    android:src="@drawable/attach_file" />
 
-                <TextView
-                    android:id="@+id/fileDetails"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginTop="2dp"
-                    android:layout_marginEnd="10dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="PDF · 120 KB"
-                    android:textColor="@color/light_gray"
-                    android:textSize="14sp" />
+                    android:layout_weight="1"
+                    android:gravity="start|center_vertical"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/fileName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="example.pdf"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/fileDetails"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginEnd="10dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="PDF · 120 KB"
+                        android:textColor="@color/light_gray"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/saveFileButton"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="center_vertical|end"
+                    android:clickable="true"
+                    android:contentDescription="Save File"
+                    android:focusable="true"
+                    android:src="@drawable/download" />
+
             </LinearLayout>
 
-            <ImageView
-                android:id="@+id/saveFileButton"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_gravity="center_vertical|end"
-                android:clickable="true"
-                android:contentDescription="Save File"
-                android:focusable="true"
-                android:src="@drawable/download" />
-
+            <TextView
+                android:id="@+id/timestampText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginEnd="10dp"
+                android:text="12:00 PM"
+                android:textColor="@color/text_gray"
+                android:textSize="14sp"
+                android:visibility="gone" />
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/timestampText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:layout_marginEnd="10dp"
-            android:text="12:00 PM"
-            android:textColor="@color/text_gray"
-            android:textSize="14sp"
-            android:visibility="gone" />
     </LinearLayout>
+
+
 </LinearLayout>
