@@ -48,6 +48,7 @@ public class HomeFragment extends Fragment {
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private String currentUserId;
+    private View noRecentSetsView;
 
 
 
@@ -72,6 +73,7 @@ public class HomeFragment extends Fragment {
         notifIndicator = view.findViewById(R.id.notifIndicator);
         View addFlashcardBtn = view.findViewById(R.id.add_flashcard);
         View addQuizBtn = view.findViewById(R.id.add_quiz);
+        noRecentSetsView = view.findViewById(R.id.noRecentSetsView);
 
 
         applyClickShrinkAnimation(flashcardsCard);
@@ -260,29 +262,42 @@ public class HomeFragment extends Fragment {
         db.collection("users").document(currentUserId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
+                    recentSets.clear();
+
                     List<Map<String, Object>> owned = (List<Map<String, Object>>) documentSnapshot.get("owned_sets");
                     List<Map<String, Object>> saved = (List<Map<String, Object>>) documentSnapshot.get("saved_sets");
 
-                    recentSets.clear();
-                    if (owned != null) {
-                        for (Map<String, Object> item : owned) {
-                            loadSetFromItem(item);
-                        }
+                    List<Map<String, Object>> allSets = new ArrayList<>();
+                    if (owned != null) allSets.addAll(owned);
+                    if (saved != null) allSets.addAll(saved);
+
+                    if (allSets.isEmpty()) {
+                        updateContinueRecycler();
+                        return;
                     }
-                    if (saved != null) {
-                        for (Map<String, Object> item : saved) {
-                            loadSetFromItem(item);
-                        }
+
+                    final int totalSetsToLoad = allSets.size();
+                    final int[] loadedCount = {0};
+
+                    for (Map<String, Object> item : allSets) {
+                        loadSetFromItem(item, totalSetsToLoad, loadedCount);
                     }
                 });
     }
 
-    private void loadSetFromItem(Map<String, Object> item) {
+    private void loadSetFromItem(Map<String, Object> item, int totalSetsToLoad, int[] loadedCount) {
         String id = (String) item.get("id");
         String type = (String) item.get("type");
+
         Long lastAccessed = item.get("lastAccessed") instanceof Number ? ((Number) item.get("lastAccessed")).longValue() : 0;
 
-        if (id == null || type == null) return;
+        if (id == null || type == null) {
+            loadedCount[0]++;
+            if (loadedCount[0] == totalSetsToLoad) {
+                updateContinueRecycler();
+            }
+            return;
+        }
 
         String collection = type.equals("quiz") ? "quiz" : "flashcards";
 
@@ -290,34 +305,58 @@ public class HomeFragment extends Fragment {
                 .document(id)
                 .get()
                 .addOnSuccessListener(doc -> {
-                    if (!doc.exists()) return;
+                    if (doc.exists()) {
+                        Flashcard set = doc.toObject(Flashcard.class);
+                        if (set != null) {
+                            set.setId(doc.getId());
+                            set.setType(type);
+                            set.setLastAccessed(lastAccessed);
 
-                    Flashcard set = doc.toObject(Flashcard.class);
-                    if (set == null) return;
+                            Object rawProgress = item.get("progress");
+                            if (rawProgress instanceof Number) {
+                                set.setProgress(((Number) rawProgress).intValue());
+                            } else {
+                                set.setProgress(0);
+                            }
 
-                    set.setId(doc.getId());
-                    set.setType(type);
-                    set.setLastAccessed(lastAccessed);
-
-                    Object rawProgress = item.get("progress");
-                    if (rawProgress instanceof Number) {
-                        set.setProgress(((Number) rawProgress).intValue());
-                    } else {
-                        set.setProgress(0);
+                            recentSets.add(set);
+                        }
                     }
 
-                    recentSets.add(set);
-                    updateContinueRecycler();
+                    loadedCount[0]++;
+                    if (loadedCount[0] == totalSetsToLoad) {
+                        updateContinueRecycler();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    loadedCount[0]++;
+                    if (loadedCount[0] == totalSetsToLoad) {
+                        updateContinueRecycler();
+                    }
+                    Log.e("HomeFragment", "Error loading set: " + id, e);
                 });
     }
 
 
     private void updateContinueRecycler() {
+        if (!isAdded()) return;
+
         recentSets.sort((a, b) -> Long.compare(b.getLastAccessed(), a.getLastAccessed()));
-        setAdapter = new SetAdapter(getContext(), new ArrayList<>(recentSets), set -> {
-            openPreviewActivity(set);
-        });
-        continueRecyclerView.setAdapter(setAdapter);
+
+        if (recentSets.isEmpty()) {
+            continueRecyclerView.setVisibility(View.GONE);
+            if (noRecentSetsView != null) {
+                noRecentSetsView.setVisibility(View.VISIBLE);
+            }
+        } else {
+            continueRecyclerView.setVisibility(View.VISIBLE);
+            if (noRecentSetsView != null) {
+                noRecentSetsView.setVisibility(View.GONE);
+            }
+
+            setAdapter = new SetAdapter(getContext(), new ArrayList<>(recentSets), this::openPreviewActivity);
+            continueRecyclerView.setAdapter(setAdapter);
+        }
     }
 
     private void openPreviewActivity(Flashcard set) {

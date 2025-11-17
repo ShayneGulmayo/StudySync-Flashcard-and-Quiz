@@ -268,6 +268,13 @@
             android:minHeight="180dp"
             android:nestedScrollingEnabled="false"
             android:overScrollMode="never" />
+        <include
+            android:id="@+id/noRecentSetsView"
+            layout="@layout/item_no_recent_sets"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" />
 
         <TextView
             android:id="@+id/quick_actions_txtview"
