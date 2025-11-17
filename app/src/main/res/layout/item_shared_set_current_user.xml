@@ -121,6 +121,7 @@
             android:layout_marginStart="8dp"
             android:paddingRight="10dp"
             android:text="12:00 PM"
+            android:visibility="gone"
             android:textColor="@color/text_gray"
             android:textSize="14sp" />
     </LinearLayout>

@@ -194,6 +194,19 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
 
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
 
+            final String setId = message.getSetId();
+            final String setType = message.getSetType();
+
+            if (setId == null || setId.trim().isEmpty() || setType == null || setType.trim().isEmpty()) {
+                sharedTitle.setText("Shared Set Unavailable");
+                sharedType.setText("Error: Missing Data");
+                sharedDescription.setText("This set link is corrupted and cannot be loaded.");
+                btnViewSet.setVisibility(View.GONE);
+                saveSetBtn.setVisibility(View.GONE);
+                savedIndicator.setVisibility(View.GONE);
+                return;
+            }
+
             db.collection("users").document(message.getSenderId()).get().addOnSuccessListener(userSnap -> {
                 User user = userSnap.toObject(User.class);
                 if (user != null) {
@@ -365,6 +378,16 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         }
 
         public void bind(ChatMessage message) {
+            final String fileUrl = message.getFileUrl();
+            final String fileType = message.getFileType();
+
+            if (fileUrl == null || fileUrl.trim().isEmpty() || fileType == null || message.getFileName() == null) {
+                fileName.setText("File Data Missing");
+                fileDetails.setText("Error: Cannot load file information.");
+                saveFileButton.setVisibility(View.GONE);
+                itemView.setOnClickListener(null); // Disable click
+                return; // Stop execution
+            }
             fileName.setText(message.getFileName());
             fileDetails.setText(message.getFileType().toUpperCase() + " · " + readableFileSize(message.getFileSize()));
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
@@ -396,9 +419,21 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         }
 
         public void bind(ChatMessage message) {
+
+            final String fileUrl = message.getFileUrl();
+            final String fileType = message.getFileType();
+
+            if (fileUrl == null || fileUrl.trim().isEmpty() || fileType == null || message.getFileName() == null) {
+                fileName.setText("File Data Missing");
+                fileDetails.setText("Error: Cannot load file information.");
+                saveFileButton.setVisibility(View.GONE);
+                itemView.setOnClickListener(null); // Disable click
+                return; // Stop execution
+            }
             fileName.setText(message.getFileName());
             fileDetails.setText(message.getFileType().toUpperCase() + " · " + readableFileSize(message.getFileSize()));
             timestampText.setText(DateFormat.getTimeInstance(DateFormat.SHORT).format(message.getTimestamp()));
+
 
 
             senderName.setText(message.getSenderName());
@@ -458,10 +493,9 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
             String setType = message.getSetType();
 
             if (setId == null || setId.trim().isEmpty()) {
-                // Prevent crash – handle gracefully
-                sharedTitle.setText("Set Unavailable");
-                sharedType.setText(setType != null ? setType : "Unknown Set");
-                sharedDescription.setText("This set reference is missing.");
+                sharedTitle.setText("Shared Set Unavailable");
+                sharedType.setText("Error: Missing Data");
+                sharedDescription.setText("This set link is corrupted and cannot be loaded.");
                 btnViewSet.setVisibility(View.GONE);
                 saveSetBtn.setVisibility(GONE);
                 return;
