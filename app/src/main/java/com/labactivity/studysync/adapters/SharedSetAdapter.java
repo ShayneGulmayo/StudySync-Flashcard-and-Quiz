@@ -47,7 +47,7 @@ public class SharedSetAdapter extends RecyclerView.Adapter<SharedSetAdapter.SetV
             intent.putExtra("setId", set.getId());
             intent.putExtra("roomId", set.getRoomId());
             intent.putExtra("secondsPerQuestion", selectedSeconds);
-            intent.putExtra("type", "set");
+            intent.putExtra("type", set.getSetType());
             context.startActivity(intent);
         });
     }

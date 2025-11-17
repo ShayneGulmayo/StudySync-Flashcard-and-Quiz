@@ -1,5 +1,6 @@
 package com.labactivity.studysync;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -95,8 +96,7 @@ public class ChatRoomSharedSetsActivity extends AppCompatActivity {
                                             .get()
                                             .addOnSuccessListener(ownerDoc -> {
                                                 String ownerName = ownerDoc.exists() ? ownerDoc.getString("username") : "Unknown";
-                                                sharedSetList.add(new SharedSet(title, setType, itemCount.intValue(), ownerName, senderName));
-                                                adapter.notifyItemInserted(sharedSetList.size() - 1);
+                                                sharedSetList.add(new SharedSet(setId, title, setType, itemCount.intValue(), ownerName, senderName));                                                adapter.notifyItemInserted(sharedSetList.size() - 1);
                                             });
                                 });
                     }
@@ -109,10 +109,11 @@ public class ChatRoomSharedSetsActivity extends AppCompatActivity {
     }
 
     static class SharedSet {
-        String title, type, ownerName, senderName;
+        String setId, title, type, ownerName, senderName;
         int count;
 
-        public SharedSet(String title, String type, int count, String ownerName, String senderName) {
+        public SharedSet(String setId, String title, String type, int count, String ownerName, String senderName) {
+            this.setId = setId;
             this.title = title;
             this.type = type;
             this.count = count;
@@ -142,7 +143,23 @@ public class ChatRoomSharedSetsActivity extends AppCompatActivity {
             holder.setTitle.setText(set.title);
             String description = set.type + " · " + set.count + " items · by " + set.ownerName + " · shared by " + set.senderName;
             holder.description.setText(description);
+
+            holder.itemView.setOnClickListener(v-> {
+                Intent intent;
+                if ("quiz".equals(set.type)) {
+                    intent = new Intent(ChatRoomSharedSetsActivity.this, QuizPreviewActivity.class);
+                } else if ("flashcard".equals(set.type)) {
+                    intent = new Intent(ChatRoomSharedSetsActivity.this, FlashcardPreviewActivity.class);
+                } else {
+                    Toast.makeText(ChatRoomSharedSetsActivity.this, "Unknown set type: " + set.type, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                intent.putExtra("setId", set.setId);
+                startActivity(intent);
+            });
         }
+
 
         @Override
         public int getItemCount() {

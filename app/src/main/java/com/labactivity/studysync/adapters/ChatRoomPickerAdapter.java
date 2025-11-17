@@ -64,7 +64,9 @@ public class ChatRoomPickerAdapter extends RecyclerView.Adapter<ChatRoomPickerAd
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .placeholder(R.drawable.user_profile)
                     .error(R.drawable.user_profile)
-                    .into(holder.groupPhoto);
+                    .circleCrop()
+                    .into(holder.groupPhoto)
+                    ;
         } else {
             holder.groupPhoto.setImageResource(R.drawable.user_profile);
         }

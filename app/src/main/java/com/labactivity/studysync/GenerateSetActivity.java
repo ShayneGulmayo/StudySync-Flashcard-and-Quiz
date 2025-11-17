@@ -102,18 +102,17 @@ public class GenerateSetActivity extends AppCompatActivity {
             Intent intent = new Intent(this, InputPromptActivity.class);
             intent.putExtra("setType", setType);
             startActivity(intent);
-            finish();
         });
         backBtn.setOnClickListener(v -> finish());
         generateManually.setOnClickListener(view -> {
             if ("flashcard".equalsIgnoreCase(setType)){
                 Intent intent = new Intent(this, CreateFlashcardActivity.class);
                 startActivity(intent);
-                finish();
+
             } else if ("quiz".equalsIgnoreCase(setType)) {
                 Intent intent = new Intent(this, CreateQuizActivity.class);
                 startActivity(intent);
-                finish();
+
             }else{
                 Toast.makeText(this, "No Set Type Entered", Toast.LENGTH_SHORT).show();
             }
@@ -189,7 +188,7 @@ public class GenerateSetActivity extends AppCompatActivity {
                     v.animate().scaleX(1f).scaleY(1f).setDuration(120).start();
                     break;
             }
-            return false; // Allow click to propagate
+            return false;
         });
     }
 

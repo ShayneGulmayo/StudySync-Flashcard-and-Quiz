@@ -66,7 +66,7 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
 
         if (getIntent().hasExtra("prompt")) {
             String prompt = getIntent().getStringExtra("prompt");
-            runGeminiTextPrompt(prompt);
+            runGeminiTextPrompt(prompt, 0);
         } else if (getIntent().hasExtra("setId") && getIntent().hasExtra("type")) {
             String setId = getIntent().getStringExtra("setId");
             String setType = getIntent().getStringExtra("type");
@@ -91,9 +91,12 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                     StringBuilder input = new StringBuilder();
                     input.append("Title: ").append(doc.getString("title")).append("\n");
 
+                    int itemCount = 0;
+
                     if (setType.equals("quiz")) {
                         List<Map<String, Object>> questions = (List<Map<String, Object>>) doc.get("questions");
                         if (questions != null) {
+                            itemCount = questions.size();
                             for (Map<String, Object> q : questions) {
                                 input.append("Q: ").append(q.get("question")).append("\n");
                                 Object correct = q.get("correctAnswer");
@@ -107,6 +110,7 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                     } else {
                         Map<String, Map<String, String>> terms = (Map<String, Map<String, String>>) doc.get("terms");
                         if (terms != null) {
+                            itemCount = terms.size();
                             for (Map<String, String> entry : terms.values()) {
                                 input.append("Q: ").append(entry.get("term")).append("\n");
                                 input.append("A: ").append(entry.get("definition")).append("\n");
@@ -114,7 +118,7 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                         }
                     }
 
-                    runGeminiTextPrompt(input.toString());
+                    runGeminiTextPrompt(input.toString(), itemCount);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading set", e);
@@ -122,12 +126,18 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                 });
     }
 
-    private void runGeminiTextPrompt(String inputText) {
+    private void runGeminiTextPrompt(String inputText, int requiredCount) {
         GenerativeModel ai = FirebaseAI.getInstance(
                 GenerativeBackend.vertexAI("global")
         ).generativeModel("gemini-2.5-flash");
 
         GenerativeModelFutures model = GenerativeModelFutures.from(ai);
+        String countRequirement;
+        if (requiredCount > 0) {
+            countRequirement = "- Generate exactly " + requiredCount + " quiz questions, one for each item in the source content.\n";
+        } else {
+            countRequirement = "- Generate at least 3 quiz questions.\n";
+        }
 
         String prompt = "From the following source content or topic, generate a Firestore-compatible JSON object strictly in this format:\n" +
                 "{\n" +
@@ -141,6 +151,7 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                 "  ]\n" +
                 "}\n\n" +
                 "Requirements:\n" +
+                countRequirement +
                 "- Generate at least 3 quiz questions.\n" +
                 "- Ensure each question is meaningful and derived from the source or topic.\n" +
                 "- Each question must have a valid 'question', 'correctAnswer', and 'type'.\n" +
