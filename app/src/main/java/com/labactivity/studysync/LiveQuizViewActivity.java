@@ -12,6 +12,7 @@ import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -27,12 +28,11 @@ import java.util.Map;
 
 public class LiveQuizViewActivity extends AppCompatActivity {
 
-    private ImageView backButton;
+    private ImageView backButton, moreBtn;
     private TextView liveQuizTitleTxt;
     private Spinner spinnerTimePerQuestion;
     private Button startLiveQuizBtn;
     private ToggleButton toggleHideAnswers;
-    private Button showQuestionsBtn;
     private RecyclerView recyclerView;
 
     private FirebaseFirestore db;
@@ -41,7 +41,7 @@ public class LiveQuizViewActivity extends AppCompatActivity {
     private List<Map<String, Object>> questionList = new ArrayList<>();
     private LiveQuizQuestionAdapter adapter;
 
-    private boolean isAnswersHidden = true; // Default to hidden
+    private boolean isAnswersHidden = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +51,7 @@ public class LiveQuizViewActivity extends AppCompatActivity {
         roomId = getIntent().getStringExtra("roomId");
         quizId = getIntent().getStringExtra("quizId");
 
+        moreBtn = findViewById(R.id.more_button);
         backButton = findViewById(R.id.backButton);
         liveQuizTitleTxt = findViewById(R.id.liveQuizTitleTxt);
         spinnerTimePerQuestion = findViewById(R.id.spinnerTimePerQuestion);
@@ -59,6 +60,7 @@ public class LiveQuizViewActivity extends AppCompatActivity {
         toggleHideAnswers = findViewById(R.id.toggleHideAnswers);
 
         backButton.setOnClickListener(v -> finish());
+        moreBtn.setOnClickListener(this::showPopupMenu);
 
         db = FirebaseFirestore.getInstance();
 
@@ -121,6 +123,37 @@ public class LiveQuizViewActivity extends AppCompatActivity {
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to check quiz status", Toast.LENGTH_SHORT).show());
             startLiveQuizBtn.setEnabled(true);
         });
+    }
+    private void showPopupMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(this, anchor);
+        popup.getMenuInflater().inflate(R.menu.live_quiz_view_menu, popup.getMenu());
+        popup.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.menu_live_quiz) {
+                deleteLiveQuiz();
+            }
+            return false;
+        });
+        popup.show();
+    }
+    private void deleteLiveQuiz() {
+        if (roomId == null || quizId == null) {
+            Toast.makeText(this, "Error: Quiz or Room ID missing.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        db.collection("chat_rooms")
+                .document(roomId)
+                .collection("live_quiz")
+                .document(quizId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Live Quiz deleted successfully.", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to delete Live Quiz: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
     }
 
     private void setupRecycler() {
