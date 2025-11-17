@@ -41,6 +41,7 @@ public class InputPromptActivity extends AppCompatActivity {
                 intent.putExtra("type", "text");
                 intent.putExtra("setType", setType);
                 startActivity(intent);
+                finish();
             } else {
                 Toast.makeText(this, "Input cannot be empty", Toast.LENGTH_SHORT).show();
             }

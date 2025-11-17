@@ -41,6 +41,7 @@ public class InputLiveQuizActivity extends AppCompatActivity {
                 intent.putExtra("prompt", userInput);
                 intent.putExtra("roomId", roomId);
                 startActivity(intent);
+                finish();
             } else {
                 Toast.makeText(this, "Input cannot be empty", Toast.LENGTH_SHORT).show();
             }

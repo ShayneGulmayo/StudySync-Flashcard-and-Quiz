@@ -156,40 +156,6 @@
             chatRoomPhoto.setOnClickListener(v -> openEditChatRoom());
             chatRoomNameText.setOnClickListener(v -> openEditChatRoom());
         }
-
-        /*private void launchLiveQuiz(String quizId) {
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
-            String roomId = getIntent().getStringExtra("roomId");
-            CollectionReference messageRef = db.collection("chat_rooms").document(roomId).collection("messages");
-
-            if (triggeredQuizIds.contains(quizId)) {
-                return;
-            }
-
-            triggeredQuizIds.add(quizId);
-            db.collection("chat_rooms")
-                    .document(roomId)
-                    .collection("live_quiz")
-                    .document(quizId)
-                    .get()
-                    .addOnSuccessListener(documentSnapshot -> {
-                        if (documentSnapshot.exists()) {
-                            String title = documentSnapshot.getString("title");
-                            List<Map<String, Object>> questions = (List<Map<String, Object>>) documentSnapshot.get("questions");
-                            Long durationPerQuestion = documentSnapshot.getLong("duration");
-
-                            if (questions != null && durationPerQuestion != null) {
-                                runQuizPopup(title, questions, durationPerQuestion.intValue(), roomId, quizId);
-                            } else {
-                                Toast.makeText(this, "Invalid quiz data.", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Failed to load quiz.", Toast.LENGTH_SHORT).show();
-                    });
-        }
-        */
         private void fetchAndRunLiveQuiz(String quizId) {
             db.collection("chat_rooms")
                     .document(roomId)
@@ -330,9 +296,7 @@
 
                                             String[] messages = {
                                                     "%s crushed it! 💥 The answer to \"%s\" was \"%s\".",
-                                                    "🔥 %s got it right first! \"%s\" was the correct answer to \"%s\".",
                                                     "%s just scored! 🎯 The correct answer to \"%s\" was \"%s\".",
-                                                    "🏆 %s was the fastest! \"%s\" is the right answer to \"%s\".",
                                                     "%s earned a point! The answer to \"%s\" was \"%s\"."
                                             };
                                             String msg = String.format(messages[new Random().nextInt(messages.length)], senderName, correctAnswer, questionText);
@@ -466,7 +430,7 @@
                             String quizId = doc.getId();
                             Boolean isStarted = doc.getBoolean("isStarted");
 
-                            if ((dc.getType() == DocumentChange.Type.MODIFIED || dc.getType() == DocumentChange.Type.ADDED)
+                            if ((dc.getType() == DocumentChange.Type.ADDED )
                                     && Boolean.TRUE.equals(isStarted)
                                     && !triggeredQuizIds.contains(quizId)) {
 

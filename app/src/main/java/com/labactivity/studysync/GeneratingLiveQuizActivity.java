@@ -129,7 +129,6 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
 
         GenerativeModelFutures model = GenerativeModelFutures.from(ai);
 
-        // 🔹 Unified prompt (works for both topics or detailed text)
         String prompt = "From the following source content or topic, generate a Firestore-compatible JSON object strictly in this format:\n" +
                 "{\n" +
                 "  \"title\": \"<Descriptive title>\",\n" +
@@ -142,7 +141,7 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                 "  ]\n" +
                 "}\n\n" +
                 "Requirements:\n" +
-                "- Generate at least 5 quiz questions.\n" +
+                "- Generate at least 3 quiz questions.\n" +
                 "- Ensure each question is meaningful and derived from the source or topic.\n" +
                 "- Each question must have a valid 'question', 'correctAnswer', and 'type'.\n" +
                 "- Do not include explanations, markdown, or commentary.\n" +
@@ -165,12 +164,10 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                 }
 
                 try {
-                    // 🔹 Clean response (remove junk before/after JSON)
                     aiOutput = extractJson(aiOutput);
 
                     JSONObject json = new JSONObject(aiOutput);
 
-                    // 🔹 Validate required fields
                     if (!json.has("questions")) {
                         showError("Invalid quiz format. Please try again.");
                         return;
@@ -178,13 +175,11 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
 
                     JSONArray questions = json.getJSONArray("questions");
 
-                    // 🔹 Ensure there are at least 5 valid questions
-                    if (questions.length() < 5) {
+                    if (questions.length() < 3) {
                         showError("Generated quiz has too few questions. Please try again.");
                         return;
                     }
 
-                    // 🔹 Validate each question entry
                     for (int i = 0; i < questions.length(); i++) {
                         JSONObject q = questions.getJSONObject(i);
                         if (!q.has("question") || !q.has("correctAnswer") || !q.has("type")) {
@@ -193,7 +188,6 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
                         }
                     }
 
-                    // ✅ Passed validation — handle as normal
                     handleAIResponse(aiOutput);
 
                 } catch (JSONException e) {
@@ -210,9 +204,6 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
         }, executor);
     }
 
-    /**
-     * Removes any extra characters or text before/after the actual JSON object.
-     */
     private String extractJson(String text) {
         int start = text.indexOf("{");
         int end = text.lastIndexOf("}");
@@ -258,6 +249,7 @@ public class GeneratingLiveQuizActivity extends AppCompatActivity {
         data.put("created_at", Timestamp.now());
         data.put("duration", duration);
         data.put("isStarted", false);
+
 
 
         db.collection("chat_rooms")

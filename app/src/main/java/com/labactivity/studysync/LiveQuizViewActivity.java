@@ -30,7 +30,7 @@ public class LiveQuizViewActivity extends AppCompatActivity {
     private ImageView backButton;
     private TextView liveQuizTitleTxt;
     private Spinner spinnerTimePerQuestion;
-    private Button startLiveQuizBtn, leaderboardsBtn;
+    private Button startLiveQuizBtn;
     private ToggleButton toggleHideAnswers;
     private Button showQuestionsBtn;
     private RecyclerView recyclerView;
@@ -84,6 +84,7 @@ public class LiveQuizViewActivity extends AppCompatActivity {
         });
 
         startLiveQuizBtn.setOnClickListener(v -> {
+            startLiveQuizBtn.setEnabled(false);
             String selected = spinnerTimePerQuestion.getSelectedItem().toString();
             int duration = selected.equals("1 minute") ? 60 : Integer.parseInt(selected.replace("s", ""));
 
@@ -97,6 +98,7 @@ public class LiveQuizViewActivity extends AppCompatActivity {
                             Toast.makeText(this, "Quiz already started.", Toast.LENGTH_SHORT).show();
                             return;
                         }
+                        startLiveQuizBtn.setEnabled(true);
 
                         Map<String, Object> updateData = new HashMap<>();
                         updateData.put("duration", duration);
@@ -109,7 +111,6 @@ public class LiveQuizViewActivity extends AppCompatActivity {
                                 .document(quizId)
                                 .update(updateData)
                                 .addOnSuccessListener(unused -> {
-                                    // Optional: Also write to a "start trigger" collection if needed by listener logic
                                     Intent intent = new Intent(this, ChatRoomActivity.class);
                                     intent.putExtra("roomId", roomId);
                                     startActivity(intent);
@@ -118,6 +119,7 @@ public class LiveQuizViewActivity extends AppCompatActivity {
                                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to start quiz", Toast.LENGTH_SHORT).show());
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Failed to check quiz status", Toast.LENGTH_SHORT).show());
+            startLiveQuizBtn.setEnabled(true);
         });
     }
 
