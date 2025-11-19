@@ -717,6 +717,9 @@
                     Object selected = q.get("selectedAnswer");
                     Object correctRaw = q.get("correctAnswer");
                     String quizType = String.valueOf(q.get("quizType"));
+                    if (quizType == null || quizType.equals("null") || quizType.trim().isEmpty()) {
+                        quizType = "multiple choice"; // default type
+                    }
 
                     List<String> correctAnswers = new ArrayList<>();
                     if (correctRaw instanceof List) {
@@ -730,19 +733,32 @@
                     boolean hasAnswer = false;
 
                     if ("multiple choice".equalsIgnoreCase(quizType)) {
-                        String selectedStr = selected != null ? selected.toString().trim() : "";
+                        String selectedStr = selected != null ? selected.toString().trim().toLowerCase() : "";
                         hasAnswer = !selectedStr.isEmpty();
-                        isCorrect = hasAnswer && correctAnswers.contains(selectedStr);
+
+                        // Convert correct answers to lowercase
+                        List<String> lowerCorrectAnswers = new ArrayList<>();
+                        for (String c : correctAnswers) {
+                            lowerCorrectAnswers.add(c.toLowerCase());
+                        }
+
+                        isCorrect = hasAnswer && lowerCorrectAnswers.contains(selectedStr);
+
                     } else if ("enumeration".equalsIgnoreCase(quizType)) {
                         List<String> selectedList = new ArrayList<>();
                         if (selected instanceof List<?>) {
                             for (Object s : (List<?>) selected) {
-                                selectedList.add(String.valueOf(s).trim());
+                                selectedList.add(String.valueOf(s).trim().toLowerCase());
                             }
                         }
                         hasAnswer = !selectedList.isEmpty();
+
                         Set<String> selSet = new HashSet<>(selectedList);
-                        Set<String> corrSet = new HashSet<>(correctAnswers);
+                        Set<String> corrSet = new HashSet<>();
+                        for (String c : correctAnswers) {
+                            corrSet.add(c.toLowerCase());
+                        }
+
                         isCorrect = hasAnswer && selSet.equals(corrSet);
                     }
 
@@ -1069,6 +1085,11 @@
 
                 JSONObject accessUsers = new JSONObject();
                 accessUsers.put(ownerUid, "Owner");
+                if (accessUsers == null) {
+                    Log.e("QUIZ_SAVE", "❌ JSON keyName is null, skipping entry to prevent crash.");
+                    return; // or skip this item
+                }
+
 
                 JSONObject data = new JSONObject();
                 data.put("quizId", quizId);
