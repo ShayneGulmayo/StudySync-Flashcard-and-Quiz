@@ -96,6 +96,7 @@
     <string-array name="quiz_types">
         <item>Multiple Choice</item>
         <item>Enumeration</item>
+        <item>True or False</item>
     </string-array>
     <string name="check">Check</string>
     <string name="question">Question</string>

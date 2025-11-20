@@ -312,9 +312,28 @@ public class CreateQuizActivity extends AppCompatActivity {
                     EditText answerInput = answer.findViewById(R.id.edit_option_text);
                     answers.add(answerInput.getText().toString().trim());
                 }
-                questionData.put("choices", answers);
-                questionData.put("correctAnswer", answers);
             }
+            else if (quizType.equals("true or false")) {
+                List<String> choices = new ArrayList<>();
+                String correctAnswer = "";
+
+                for (int j = 0; j < optionsContainer.getChildCount(); j++) {
+                    View option = optionsContainer.getChildAt(j);
+                    EditText et = option.findViewById(R.id.edit_option_text);
+                    RadioButton rb = option.findViewById(R.id.radioOption);
+
+                    String text = et.getText().toString().trim();
+                    choices.add(text);
+
+                    if (rb != null && rb.isChecked()) {
+                        correctAnswer = text;
+                    }
+                }
+
+                questionData.put("choices", choices);        // ["True", "False"]
+                questionData.put("correctAnswer", correctAnswer); // either "True" or "False"
+            }
+
 
             questionList.add(questionData);
         }
@@ -722,8 +741,19 @@ public class CreateQuizActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int pos, long id) {
                 String selectedQuizType = adapterView.getItemAtPosition(pos).toString().toLowerCase();
-                addOptionText.setText(selectedQuizType.equals("enumeration") ? "Add answer" : "Add option");
                 optionsContainer.removeAllViews();
+
+                // Set Add Option text
+                if (selectedQuizType.equals("enumeration")) {
+                    addOptionText.setText("Add answer");
+                    addOptionText.setVisibility(View.VISIBLE);
+                } else if (selectedQuizType.equals("multiple choice")) {
+                    addOptionText.setText("Add option");
+                    addOptionText.setVisibility(View.VISIBLE);
+                } else if (selectedQuizType.equals("true or false")) {
+                    addOptionText.setText("Add option");
+                    //addOptionText.setVisibility(View.GONE); // hide for true/false
+                }
 
                 if (selectedQuizType.equals("multiple choice")) {
                     for (String choice : choices) {
@@ -747,7 +777,8 @@ public class CreateQuizActivity extends AppCompatActivity {
 
                         optionsContainer.addView(optionView);
                     }
-                } else {
+
+                } else if (selectedQuizType.equals("enumeration")) {
                     for (String choice : choices) {
                         View answerView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_enumerations, null);
                         EditText et = answerView.findViewById(R.id.edit_option_text);
@@ -764,13 +795,46 @@ public class CreateQuizActivity extends AppCompatActivity {
                         optionsContainer.addView(answerView);
                     }
                     renumberEnumerationInputs(optionsContainer);
+
+                } else if (selectedQuizType.equals("true or false")) {
+                    // TRUE option
+                    View trueOption = LayoutInflater.from(CreateQuizActivity.this)
+                            .inflate(R.layout.item_add_quiz_options, optionsContainer, false);
+                    EditText etTrue = trueOption.findViewById(R.id.edit_option_text);
+                    etTrue.setText("True");
+                    trueOption.findViewById(R.id.delete_option).setVisibility(View.GONE);
+                    RadioButton rbTrue = trueOption.findViewById(R.id.radioOption);
+                    rbTrue.setChecked("True".equals(correctAnswerString));
+                    rbTrue.setOnClickListener(btn -> {
+                        for (int i = 0; i < optionsContainer.getChildCount(); i++) {
+                            RadioButton other = optionsContainer.getChildAt(i).findViewById(R.id.radioOption);
+                            if (other != rbTrue) other.setChecked(false);
+                        }
+                    });
+                    optionsContainer.addView(trueOption);
+
+                    // FALSE option
+                    View falseOption = LayoutInflater.from(CreateQuizActivity.this)
+                            .inflate(R.layout.item_add_quiz_options, optionsContainer, false);
+                    EditText etFalse = falseOption.findViewById(R.id.edit_option_text);
+                    etFalse.setText("False");
+                    falseOption.findViewById(R.id.delete_option).setVisibility(View.GONE);
+                    RadioButton rbFalse = falseOption.findViewById(R.id.radioOption);
+                    rbFalse.setChecked("False".equals(correctAnswerString));
+                    rbFalse.setOnClickListener(btn -> {
+                        for (int i = 0; i < optionsContainer.getChildCount(); i++) {
+                            RadioButton other = optionsContainer.getChildAt(i).findViewById(R.id.radioOption);
+                            if (other != rbFalse) other.setChecked(false);
+                        }
+                    });
+                    optionsContainer.addView(falseOption);
                 }
             }
 
             @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
+            public void onNothingSelected(AdapterView<?> parent) {}
         };
+
 
         typeChangeListenerHolder[0] = typeChangeListener;
         quizTypeSpinner.setOnItemSelectedListener(typeChangeListener);
@@ -782,6 +846,9 @@ public class CreateQuizActivity extends AppCompatActivity {
                 break;
             case "enumeration":
                 displayType = "Enumeration";
+                break;
+            case "true or false":
+                displayType = "True or False";
                 break;
             default:
                 Toast.makeText(this, "Unknown quiz type: " + quizType, Toast.LENGTH_SHORT).show();
@@ -843,7 +910,55 @@ public class CreateQuizActivity extends AppCompatActivity {
                 deleteOption.setOnClickListener(btn -> optionsContainer.removeView(optionView));
                 optionsContainer.addView(optionView);
 
-            } else if (quizType.equals("enumeration")) {
+            }
+            else if (quizType.equals("true or false")) {
+                // Clear existing options
+                optionsContainer.removeAllViews();
+
+                // Hide Add Option button
+                //addOptionText.setVisibility(View.GONE);
+
+                Toast.makeText(CreateQuizActivity.this,
+                        "Cannot add options for True/False question",
+                        Toast.LENGTH_SHORT).show();
+
+                // TRUE option
+                View trueOption = LayoutInflater.from(CreateQuizActivity.this)
+                        .inflate(R.layout.item_add_quiz_options, optionsContainer, false);
+                EditText etTrue = trueOption.findViewById(R.id.edit_option_text);
+                etTrue.setText("True"); // content immediately set
+                RadioButton rbTrue = trueOption.findViewById(R.id.radioOption);
+                ImageButton deleteTrue = trueOption.findViewById(R.id.delete_option);
+                deleteTrue.setVisibility(View.GONE); // hide delete button
+
+                rbTrue.setOnClickListener(btn -> {
+                    for (int i = 0; i < optionsContainer.getChildCount(); i++) {
+                        RadioButton other = optionsContainer.getChildAt(i).findViewById(R.id.radioOption);
+                        if (other != rbTrue) other.setChecked(false);
+                    }
+                });
+
+                optionsContainer.addView(trueOption);
+
+                // FALSE option
+                View falseOption = LayoutInflater.from(CreateQuizActivity.this)
+                        .inflate(R.layout.item_add_quiz_options, optionsContainer, false);
+                EditText etFalse = falseOption.findViewById(R.id.edit_option_text);
+                etFalse.setText("False"); // content immediately set
+                RadioButton rbFalse = falseOption.findViewById(R.id.radioOption);
+                ImageButton deleteFalse = falseOption.findViewById(R.id.delete_option);
+                deleteFalse.setVisibility(View.GONE); // hide delete button
+
+                rbFalse.setOnClickListener(btn -> {
+                    for (int i = 0; i < optionsContainer.getChildCount(); i++) {
+                        RadioButton other = optionsContainer.getChildAt(i).findViewById(R.id.radioOption);
+                        if (other != rbFalse) other.setChecked(false);
+                    }
+                });
+
+                optionsContainer.addView(falseOption);
+            }
+            else if (quizType.equals("enumeration")) {
                 if (currentCount >= 15) {
                     Toast.makeText(CreateQuizActivity.this, "Maximum of 15 answers allowed", Toast.LENGTH_SHORT).show();
                     return;
@@ -861,6 +976,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                 });
 
                 optionsContainer.addView(answerView);
+
             }
         });
     }
@@ -880,13 +996,60 @@ public class CreateQuizActivity extends AppCompatActivity {
                 optionsContainer.removeAllViews();
 
                 if (quizType.equals("multiple choice")) {
+                    addOptionText.setEnabled(true);
                     for (int i = 0; i < 2; i++) {
                         addOptionView(optionsContainer);
                     }
-                } else {
+                }
+                // 🔵 TRUE OR FALSE
+                else if (quizType.equals("true or false")) {
+                    TextView addOptionText = findViewById(R.id.add_option_text);
+
+                    // Show a toast when Add Option text is clicked
+                    addOptionText.setOnClickListener(v ->
+                                    Toast.makeText(CreateQuizActivity.this,
+                                            "Cannot add options for True/False question",
+                                            Toast.LENGTH_SHORT).show()
+                    );
+
+                    // TRUE
+                    View trueOption = LayoutInflater.from(CreateQuizActivity.this)
+                            .inflate(R.layout.item_add_quiz_options, optionsContainer, false);
+                    EditText etTrue = trueOption.findViewById(R.id.edit_option_text);
+                    etTrue.setText("True");
+                    trueOption.findViewById(R.id.delete_option).setVisibility(View.GONE);
+                    RadioButton rbTrue = trueOption.findViewById(R.id.radioOption);
+                    rbTrue.setOnClickListener(btn -> {
+                        for (int i = 0; i < optionsContainer.getChildCount(); i++) {
+                            RadioButton other = optionsContainer.getChildAt(i).findViewById(R.id.radioOption);
+                            if (other != rbTrue) other.setChecked(false);
+                        }
+                    });
+                    optionsContainer.addView(trueOption);
+
+                    // FALSE
+                    View falseOption = LayoutInflater.from(CreateQuizActivity.this)
+                            .inflate(R.layout.item_add_quiz_options, optionsContainer, false);
+                    EditText etFalse = falseOption.findViewById(R.id.edit_option_text);
+                    etFalse.setText("False");
+                    falseOption.findViewById(R.id.delete_option).setVisibility(View.GONE);
+                    RadioButton rbFalse = falseOption.findViewById(R.id.radioOption);
+                    rbFalse.setOnClickListener(btn -> {
+                        for (int i = 0; i < optionsContainer.getChildCount(); i++) {
+                            RadioButton other = optionsContainer.getChildAt(i).findViewById(R.id.radioOption);
+                            if (other != rbFalse) other.setChecked(false);
+                        }
+                    });
+                    optionsContainer.addView(falseOption);
+                }
+                // 🔵 ENUMERATION
+                else if (quizType.equals("enumeration")) {
+                    addOptionText.setEnabled(true);
+
                     View answerView = LayoutInflater.from(CreateQuizActivity.this)
                             .inflate(R.layout.item_add_quiz_enumerations, null);
                     optionsContainer.addView(answerView);
+
                     renumberEnumerationInputs(optionsContainer);
                 }
             }
