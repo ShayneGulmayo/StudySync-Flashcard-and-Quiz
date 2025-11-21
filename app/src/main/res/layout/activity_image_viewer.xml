@@ -5,7 +5,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:background="#000000"
-    tools:context=".ImageViewerActivity">
+    tools:context=".ImageViewerActivity"
+    android:fitsSystemWindows="true"
+    >
 
     <com.github.chrisbanes.photoview.PhotoView
         android:id="@+id/fullscreenImage"
