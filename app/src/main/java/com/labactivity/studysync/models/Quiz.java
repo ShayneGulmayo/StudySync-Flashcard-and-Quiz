@@ -173,6 +173,16 @@ public class Quiz {
             }
         }
 
+        private List<String> correctAnswersList; // for enumeration
+
+        public void setCorrectAnswersList(List<String> answers) {
+            this.correctAnswersList = answers;
+        }
+
+        public List<String> getCorrectAnswersList() {
+            return correctAnswersList;
+        }
+
         public boolean isMultipleChoice() {
             return "multiple choice".equalsIgnoreCase(type);
         }
