@@ -925,10 +925,6 @@ public class CreateQuizActivity extends AppCompatActivity {
                 // Hide Add Option button
                 //addOptionText.setVisibility(View.GONE);
 
-                Toast.makeText(CreateQuizActivity.this,
-                        "Cannot add options for True/False question",
-                        Toast.LENGTH_SHORT).show();
-
                 // TRUE option
                 View trueOption = LayoutInflater.from(CreateQuizActivity.this)
                         .inflate(R.layout.item_add_quiz_options, optionsContainer, false);
