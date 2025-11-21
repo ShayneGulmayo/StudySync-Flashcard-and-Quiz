@@ -95,7 +95,7 @@
     <string name="stats_quiz">Start Quiz</string>
     <string-array name="quiz_types">
         <item>Multiple Choice</item>
-        <item>Enumeration</item>
+        <item>Enumeration/Identification</item>
         <item>True or False</item>
     </string-array>
     <string name="check">Check</string>
