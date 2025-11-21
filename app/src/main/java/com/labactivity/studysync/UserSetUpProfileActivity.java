@@ -1,6 +1,7 @@
 
 package com.labactivity.studysync;
 
+import android.content.Context;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -19,8 +20,10 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.DialogInterface;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
@@ -47,9 +50,10 @@ public class UserSetUpProfileActivity extends AppCompatActivity {
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
 
     private EditText usernameEditText, firstNameEditText, lastNameEditText;
-    private ImageView usernameCheckIcon, usernameXIcon;
+    private ImageView usernameCheckIcon, usernameXIcon, backButton;
     private CircleImageView profileImageView;
     private TextView usernameWarningText;
+
     private Button saveButton;
     private Uri selectedImageUri;
 
@@ -75,6 +79,9 @@ public class UserSetUpProfileActivity extends AppCompatActivity {
         usernameWarningText = findViewById(R.id.username_warning_text);
         profileImageView = findViewById(R.id.user_photo);
         saveButton = findViewById(R.id.button);
+        backButton = findViewById(R.id.back_button);
+
+        backButton.setOnClickListener(v -> showLogoutConfirmationDialog());
 
         usernameEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -94,6 +101,30 @@ public class UserSetUpProfileActivity extends AppCompatActivity {
         });
 
         saveButton.setOnClickListener(v -> saveProfile());
+    }
+
+    private void showLogoutConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Exit Setup and Logout")
+                .setMessage("Are you sure you want to exit the profile setup? You will be logged out and lose any unsaved profile data.")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    mAuth.signOut();
+
+                    Intent intent = new Intent(UserSetUpProfileActivity.this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK); // Clear the back stack
+                    startActivity(intent);
+                    finish();
+
+                    Toast.makeText(UserSetUpProfileActivity.this, "Logged out successfully.", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> {
+                    dialog.dismiss();
+                })
+                .show();
+    }
+    @Override
+    public void onBackPressed() {
+        showLogoutConfirmationDialog();
     }
 
     private void validateUsername(String username) {
@@ -162,6 +193,15 @@ public class UserSetUpProfileActivity extends AppCompatActivity {
                     .start();
         }
     }
+    private void setSavingState(boolean isSaving) {
+        if (isSaving) {
+            saveButton.setText("Saving...");
+            saveButton.setEnabled(false);
+        } else {
+            saveButton.setText("Save"); // Change back to original text
+            saveButton.setEnabled(true);
+        }
+    }
 
     private void saveProfile() {
         String username = usernameEditText.getText().toString().trim();
@@ -173,10 +213,11 @@ public class UserSetUpProfileActivity extends AppCompatActivity {
             return;
         }
 
-        if (TextUtils.isEmpty(firstName) || TextUtils.isEmpty(lastName)) {
-            Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+        if (TextUtils.isEmpty(username) || TextUtils.isEmpty(firstName) || TextUtils.isEmpty(lastName)) {
+            Toast.makeText(this, "All fields (Username, First Name, Last Name) are required.", Toast.LENGTH_LONG).show();
             return;
         }
+        setSavingState(true);
 
         db.collection("users").whereEqualTo("username", username)
                 .get()
@@ -187,10 +228,15 @@ public class UserSetUpProfileActivity extends AppCompatActivity {
                     if (taken) {
                         showIcon(usernameXIcon, false);
                         Toast.makeText(this, "Username already taken", Toast.LENGTH_SHORT).show();
+                        setSavingState(false);
                     } else {
                         showIcon(usernameCheckIcon, true);
                         saveUserToFirestore(currentUser.getUid(), username, firstName, lastName);
                     }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error checking username: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    setSavingState(false);
                 });
     }
 

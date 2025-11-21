@@ -23,6 +23,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:layout_marginLeft="100dp"
         android:padding="3dp"
         android:gravity="end"
         >
@@ -47,6 +48,7 @@
                     android:layout_height="24dp"
                     android:layout_gravity="start|center_vertical"
                     android:contentDescription="File Icon"
+                    app:tint="@color/white"
                     android:src="@drawable/attach_file" />
 
                 <LinearLayout
@@ -91,6 +93,7 @@
                     android:clickable="true"
                     android:contentDescription="Save File"
                     android:focusable="true"
+                    app:tint="@color/white"
                     android:src="@drawable/download" />
 
             </LinearLayout>

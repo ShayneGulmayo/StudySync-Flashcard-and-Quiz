@@ -295,9 +295,13 @@
                                             if (timer[0] != null) timer[0].cancel();
 
                                             String[] messages = {
-                                                    "%s crushed it! 💥 The answer to \"%s\" was \"%s\".",
-                                                    "%s just scored! 🎯 The correct answer to \"%s\" was \"%s\".",
-                                                    "%s earned a point! The answer to \"%s\" was \"%s\"."
+                                                    "%s knew it! The correct response was \"%s\" for \"%s\". 🎉",
+                                                    "A brilliant solve by %s! They provided \"%s\" as the answer to \"%s\". 🧠",
+                                                    "%s with the flawless response! \"%s\" is exactly what we were looking for on \"%s\". 💯",
+                                                    "Victory for %s! They answered \"%s\" to the query \"%s\". 🏆",
+                                                    "It was %s who had the magic touch! The solution \"%s\" solved \"%s\". ✨",
+                                                    "%s rings the bell! The answer is \"%s\" for the question \"%s\". 🔔",
+                                                    "Give it up for %s! They correctly identified \"%s\" as the answer to \"%s\". ✅"
                                             };
                                             String msg = String.format(messages[new Random().nextInt(messages.length)], senderName, correctAnswer, questionText);
 
@@ -374,7 +378,7 @@
             List<Map.Entry<String, Integer>> sortedScores = new ArrayList<>(scores.entrySet());
             sortedScores.sort((a, b) -> Integer.compare(b.getValue(), a.getValue())); // Descending
 
-            StringBuilder sb = new StringBuilder("🏆 **Final Leaderboard** 🏆\n\n");
+            StringBuilder sb = new StringBuilder("🏆 Final Leaderboard 🏆\n\n");
             for (int i = 0; i < sortedScores.size(); i++) {
                 Map.Entry<String, Integer> entry = sortedScores.get(i);
                 String userId = entry.getKey();

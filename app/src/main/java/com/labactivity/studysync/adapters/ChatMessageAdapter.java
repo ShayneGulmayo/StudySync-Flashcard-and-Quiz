@@ -421,14 +421,17 @@ public class ChatMessageAdapter extends FirestoreRecyclerAdapter<ChatMessage, Re
         public void bind(ChatMessage message) {
 
             final String fileUrl = message.getFileUrl();
-            final String fileType = message.getFileType();
+            String fileType = message.getFileType();
+            if (fileType == null){
+                fileType = "Unknown File Type";
+            }
 
             if (fileUrl == null || fileUrl.trim().isEmpty() || fileType == null || message.getFileName() == null) {
                 fileName.setText("File Data Missing");
                 fileDetails.setText("Error: Cannot load file information.");
                 saveFileButton.setVisibility(View.GONE);
-                itemView.setOnClickListener(null); // Disable click
-                return; // Stop execution
+                itemView.setOnClickListener(null);
+                return;
             }
             fileName.setText(message.getFileName());
             fileDetails.setText(message.getFileType().toUpperCase() + " · " + readableFileSize(message.getFileSize()));

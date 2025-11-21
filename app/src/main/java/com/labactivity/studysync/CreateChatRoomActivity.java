@@ -2,6 +2,7 @@ package com.labactivity.studysync;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import androidx.appcompat.widget.SearchView;
@@ -199,6 +200,7 @@ public class CreateChatRoomActivity extends AppCompatActivity {
                 .document(chatRoomId)
                 .set(chatRoomData)
                 .addOnSuccessListener(unused -> {
+                    sendChatRoomCreatedSystemMessage(chatRoomId, chatRoomName, currentUser.getUid());
                     Toast.makeText(this, "Chat room created", Toast.LENGTH_SHORT).show();
                     finish();
                 })
@@ -206,4 +208,26 @@ public class CreateChatRoomActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to create chat room: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
+    private void sendChatRoomCreatedSystemMessage(String chatRoomId, String chatRoomName, String senderId) {
+        Map<String, Object> messageData = new HashMap<>();
+
+        String messageText = chatRoomName + " chat room was created.";
+        messageData.put("text", messageText);
+        messageData.put("timestamp", Timestamp.now());
+        messageData.put("type", "system");
+        messageData.put("senderId", senderId);
+
+
+        db.collection("chat_rooms")
+                .document(chatRoomId)
+                .collection("messages")
+                .add(messageData)
+                .addOnSuccessListener(documentReference -> {
+
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("CreateChatRoomActivity", "Failed to send system message: " + e.getMessage());
+                });
+    }
 }
+

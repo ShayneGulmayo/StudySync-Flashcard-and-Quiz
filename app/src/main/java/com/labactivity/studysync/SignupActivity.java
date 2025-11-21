@@ -78,6 +78,19 @@ public class SignupActivity extends AppCompatActivity {
                 .build();
     }
 
+    private void setLoadingState(boolean isLoading) {
+        btnSignup.setEnabled(!isLoading);
+        googleSignupBtn.setEnabled(!isLoading);
+        editTxtEmail.setEnabled(!isLoading);
+        editTxtPassword.setEnabled(!isLoading);
+
+        if (isLoading) {
+            btnSignup.setText("Signing up...");
+        } else {
+            btnSignup.setText("SIGN UP");
+        }
+    }
+
     private void setupPasswordToggle(EditText passwordField) {
         passwordField.setOnTouchListener((v, event) -> {
             final int DRAWABLE_END = 2;
@@ -107,6 +120,7 @@ public class SignupActivity extends AppCompatActivity {
 
         boolean isValid = true;
 
+
         if (TextUtils.isEmpty(email)) {
             editTxtEmail.setError("Email is required");
             isValid = false;
@@ -124,16 +138,32 @@ public class SignupActivity extends AppCompatActivity {
         }
 
         if (!isValid) return;
+        setLoadingState(true);
 
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(SignupActivity.this, task -> {
                     if (task.isSuccessful()) {
+                        setLoadingState(false);
                         FirebaseUser user = mAuth.getCurrentUser();
                         if (user != null) {
-                            checkUserProfileAndRedirect(user);
-                            Toast.makeText(SignupActivity.this, "Registration Successful", Toast.LENGTH_SHORT).show();
+                            user.sendEmailVerification()
+                                    .addOnCompleteListener(verificationTask -> {
+                                        setLoadingState(false);
+                                        if (verificationTask.isSuccessful()) {
+                                            Toast.makeText(SignupActivity.this, "Registration Successful. Please check your email for verification.", Toast.LENGTH_LONG).show();
+                                            startActivity(new Intent(SignupActivity.this, EmailVerificationActivity.class));
+                                            finish();
+                                        } else {
+                                            Log.e("SignupActivity", "Failed to send verification email: " + verificationTask.getException().getMessage());
+                                            Toast.makeText(SignupActivity.this, "Registration successful, but failed to send verification email.", Toast.LENGTH_LONG).show();
+                                            startActivity(new Intent(SignupActivity.this, LoginActivity.class));
+                                            finish();
+                                        }
+                                    });
                         }
                     } else {
+                        setLoadingState(false);
+
                         if (task.getException() instanceof FirebaseAuthUserCollisionException) {
                             editTxtEmail.setError("This email is already registered");
                             editTxtEmail.requestFocus();
@@ -145,6 +175,7 @@ public class SignupActivity extends AppCompatActivity {
     }
 
     private void signUpWithGoogle() {
+        setLoadingState(true);
         oneTapClient.beginSignIn(signInRequest)
                 .addOnSuccessListener(this, result -> {
                     try {
@@ -154,10 +185,14 @@ public class SignupActivity extends AppCompatActivity {
                         );
                     } catch (Exception e) {
                         Log.e("SignupActivity", "Couldn't start One Tap UI: " + e.getLocalizedMessage());
+                        setLoadingState(false);
+
                     }
                 })
                 .addOnFailureListener(this, e -> {
                     Log.d("SignupActivity", "Google Sign-Up failed: " + e.getLocalizedMessage());
+                    setLoadingState(false);
+
                 });
     }
 
@@ -181,61 +216,79 @@ public class SignupActivity extends AppCompatActivity {
                                     }
                                 } else {
                                     Toast.makeText(this, "Google Sign-Up failed.", Toast.LENGTH_SHORT).show();
+                                    setLoadingState(false);
+
                                 }
                             });
                 }
             } catch (Exception e) {
                 Log.e("SignupActivity", "Google Sign-Up Exception: " + e.getLocalizedMessage());
+                setLoadingState(false);
+
             }
         }
     }
 
     private void checkUserProfileAndRedirect(FirebaseUser user) {
-        String uid = user.getUid();
-        String email = user.getEmail();
+        user.reload().addOnCompleteListener(reloadTask -> {
+            FirebaseUser reloadedUser = mAuth.getCurrentUser();
+            if (reloadedUser != null) {
 
-        db.collection("users").document(uid).get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        Map<String, Object> data = documentSnapshot.getData();
-                        if (data != null &&
-                                data.containsKey("username") &&
-                                data.containsKey("firstName") &&
-                                data.containsKey("lastName")) {
-                            startActivity(new Intent(SignupActivity.this, MainActivity.class));
-                            finish();
-                        } else {
-                            startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
-                            finish();
-                        }
-                    } else {
-                        Map<String, Object> userData = new HashMap<>();
-                        userData.put("email", email);
 
-                        db.collection("users").document(uid).set(userData, SetOptions.merge())
-                                .addOnSuccessListener(unused -> {
-                                    if (documentSnapshot.exists()) {
-                                        Map<String, Object> data = documentSnapshot.getData();
-                                        if (data != null &&
-                                                data.containsKey("username") &&
-                                                data.containsKey("firstName") &&
-                                                data.containsKey("lastName")) {
-                                            startActivity(new Intent(SignupActivity.this, MainActivity.class));
-                                        } else {
-                                            startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
-                                        }
-                                    } else {
-                                        startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
-                                    }
+                String uid = user.getUid();
+                String email = user.getEmail();
+
+                db.collection("users").document(uid).get()
+                        .addOnSuccessListener(documentSnapshot -> {
+                            setLoadingState(false);
+                            if (documentSnapshot.exists()) {
+                                Map<String, Object> data = documentSnapshot.getData();
+                                if (data != null &&
+                                        data.containsKey("username") &&
+                                        data.containsKey("firstName") &&
+                                        data.containsKey("lastName")) {
+                                    startActivity(new Intent(SignupActivity.this, MainActivity.class));
                                     finish();
-                                })
-                                .addOnFailureListener(e -> {
-                                    Toast.makeText(SignupActivity.this, "Error saving user email", Toast.LENGTH_SHORT).show();
-                                });
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(SignupActivity.this, "Error loading user data", Toast.LENGTH_SHORT).show();
-                });
+                                } else {
+                                    startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
+                                    finish();
+                                }
+                            } else {
+                                Map<String, Object> userData = new HashMap<>();
+                                userData.put("email", email);
+
+                                db.collection("users").document(uid).set(userData, SetOptions.merge())
+                                        .addOnSuccessListener(unused -> {
+                                            if (documentSnapshot.exists()) {
+                                                Map<String, Object> data = documentSnapshot.getData();
+                                                if (data != null &&
+                                                        data.containsKey("username") &&
+                                                        data.containsKey("firstName") &&
+                                                        data.containsKey("lastName")) {
+                                                    startActivity(new Intent(SignupActivity.this, MainActivity.class));
+                                                } else {
+                                                    startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
+                                                }
+                                            } else {
+                                                startActivity(new Intent(SignupActivity.this, UserSetUpProfileActivity.class));
+                                            }
+                                            finish();
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Toast.makeText(SignupActivity.this, "Error saving user email", Toast.LENGTH_SHORT).show();
+                                            setLoadingState(false);
+
+                                        });
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(SignupActivity.this, "Error loading user data", Toast.LENGTH_SHORT).show();
+                            setLoadingState(false);
+
+                        });
+            }
+
+
+        });
     }
 }

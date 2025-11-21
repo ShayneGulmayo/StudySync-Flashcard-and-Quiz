@@ -683,7 +683,7 @@ public class QuizPreviewActivity extends AppCompatActivity {
         sendToChatBtn.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
             Intent intent = new Intent(this, ChatRoomPickerActivity.class);
-            intent.putExtra("quizId", quizId);
+            intent.putExtra("setId", quizId);
             intent.putExtra("setType", "quiz");
             startActivity(intent);
         });
@@ -1415,7 +1415,9 @@ public class QuizPreviewActivity extends AppCompatActivity {
                 }
 
                 String questionTypeRaw = q.getType();
-                String questionType = questionTypeRaw.substring(0, 1).toUpperCase() + questionTypeRaw.substring(1).toLowerCase();
+                String questionType = (questionTypeRaw != null && !questionTypeRaw.isEmpty()) ?
+                        questionTypeRaw.substring(0, 1).toUpperCase() + questionTypeRaw.substring(1).toLowerCase() :
+                        "Unknown";
                 String questionLine = "Q" + (i + 1) + ": " + q.getQuestion();
                 if ("enumeration".equalsIgnoreCase(questionType)) {
                     int expected = q.getChoices() != null ? q.getChoices().size() : 0;

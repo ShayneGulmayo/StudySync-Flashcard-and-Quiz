@@ -21,6 +21,9 @@
         android:theme="@style/Theme.StudySync"
         tools:targetApi="31">
         <activity
+            android:name=".EmailVerificationActivity"
+            android:exported="false" />
+        <activity
             android:name=".ViewQuizActivity"
             android:exported="false" />
         <activity
@@ -30,11 +33,6 @@
             tools:ignore="LockedOrientationActivity,DiscouragedApi" />
         <activity
             android:name=".LiveQuizViewActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity,DiscouragedApi" />
-        <activity
-            android:name=".LiveQuizLeaderboardsActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity,DiscouragedApi" />
@@ -87,11 +85,7 @@
         <receiver android:name=".receivers.ReminderReceiver" />
         <receiver android:name=".receivers.ReminderReceiver" />
 
-        <activity
-            android:name=".VerificationCodeActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity,DiscouragedApi" />
+
         <activity
             android:name=".InputPromptActivity"
             android:exported="false"

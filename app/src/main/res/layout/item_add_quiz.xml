@@ -126,6 +126,7 @@
                 android:orientation="vertical" />
 
             <LinearLayout
+                android:id="@+id/add_option_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
@@ -133,6 +134,7 @@
                 android:orientation="horizontal">
 
                 <RadioButton
+                    android:id="@+id/add_option_radio_btn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:clickable="false"

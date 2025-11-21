@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    android:paddingBottom="16dp">
+    android:paddingBottom="16dp"
+    android:fitsSystemWindows="true">
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
