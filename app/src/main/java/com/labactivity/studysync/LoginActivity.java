@@ -1,13 +1,16 @@
 package com.labactivity.studysync;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +35,7 @@ public class LoginActivity extends AppCompatActivity {
     private Button loginButton, googleButton;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
+    private ProgressBar loginProgressBar;
 
     private boolean isPasswordVisible = false;
 
@@ -54,6 +58,8 @@ public class LoginActivity extends AppCompatActivity {
         googleButton = findViewById(R.id.googleLogin);
         forgotPassRedirect = findViewById(R.id.txtForgotPass);
         signUpRedirect = findViewById(R.id.txtSignupRedirect);
+        loginProgressBar = findViewById(R.id.login_progress_bar);
+        loginProgressBar.setVisibility(View.GONE);
 
         setupPasswordToggle(passwordEditText, () -> isPasswordVisible = !isPasswordVisible, () -> isPasswordVisible);
 
@@ -78,6 +84,22 @@ public class LoginActivity extends AppCompatActivity {
                         .setFilterByAuthorizedAccounts(false)
                         .build())
                 .build();
+    }
+
+    private void setLoadingState(boolean isLoading) {
+        if (isLoading) {
+            loginProgressBar.setVisibility(View.VISIBLE);
+            loginButton.setEnabled(false);
+            googleButton.setEnabled(false);
+            emailEditText.setEnabled(false);
+            passwordEditText.setEnabled(false);
+        } else {
+            loginProgressBar.setVisibility(View.GONE);
+            loginButton.setEnabled(true);
+            googleButton.setEnabled(true);
+            emailEditText.setEnabled(true);
+            passwordEditText.setEnabled(true);
+        }
     }
 
     private void setupPasswordToggle(EditText editText, Runnable toggleState, Supplier<Boolean> isVisibleSupplier) {
@@ -131,32 +153,58 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        setLoadingState(true);
+        loginProgressBar.setVisibility(View.VISIBLE);
+
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
+                    loginProgressBar.setVisibility(View.GONE);
+                    setLoadingState(false);
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
-                        checkUserProfileCompletion(user);
-                    } else {
+                        if (user != null) {
+                            if (user.isEmailVerified()) {
+                                Toast.makeText(this, "Login Successful", Toast.LENGTH_SHORT).show();
+                                checkUserProfileCompletion(user);
+                            } else {
+                                Toast.makeText(this, "Please verify your email address to continue.", Toast.LENGTH_LONG).show();
+                                user.sendEmailVerification()
+                                        .addOnCompleteListener(sendTask -> {
+                                            if (sendTask.isSuccessful()) {
+                                                Toast.makeText(this, "Verification email sent again.", Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+                                mAuth.signOut();
+                                setLoadingState(false);
+                            }
+                        }                    } else {
+                        setLoadingState(false);
                         String errorMessage;
                         try {
                             throw task.getException();
                         } catch (Exception e) {
                             errorMessage = e.getMessage();
-                            if (errorMessage.contains("There is no user record")) {
-                                emailEditText.setError("No account found with this email");
-                                emailEditText.requestFocus();
-                            } else if (errorMessage.contains("The password is invalid")) {
-                                passwordEditText.setError("Incorrect password");
-                                passwordEditText.requestFocus();
+                            if (errorMessage != null) {
+                                if (errorMessage.contains("There is no user record")) {
+                                    emailEditText.setError("No account found with this email");
+                                    emailEditText.requestFocus();
+                                } else if (errorMessage.contains("The password is invalid")) {
+                                    passwordEditText.setError("Incorrect password");
+                                    passwordEditText.requestFocus();
+                                } else {
+                                    Toast.makeText(this, "Login failed: " + errorMessage, Toast.LENGTH_LONG).show();
+                                }
                             } else {
-                                Toast.makeText(this, "Login failed: " + errorMessage, Toast.LENGTH_LONG).show();
+                                Toast.makeText(this, "Login failed: An unknown error occurred.", Toast.LENGTH_LONG).show();
                             }
                         }
+
                     }
                 });
     }
 
     private void signInWithGoogle() {
+        setLoadingState(true);
         oneTapClient = Identity.getSignInClient(this);
 
         signInRequest = BeginSignInRequest.builder()
@@ -178,11 +226,13 @@ public class LoginActivity extends AppCompatActivity {
                     } catch (Exception e) {
                         Log.e("LoginActivity", "Couldn't start One Tap UI: " + e.getLocalizedMessage());
                         Toast.makeText(this, "Error starting Google Sign-In.", Toast.LENGTH_SHORT).show();
+                        setLoadingState(false);
                     }
                 })
                 .addOnFailureListener(this, e -> {
                     Log.e("LoginActivity", "Google Sign-In failed: " + e.getLocalizedMessage());
                     Toast.makeText(this, "Google Sign-In not available: " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                    setLoadingState(false);
                 });
     }
 
@@ -204,20 +254,32 @@ public class LoginActivity extends AppCompatActivity {
                                     checkUserProfileCompletion(user);
                                 } else {
                                     Toast.makeText(this, "Google Sign-In failed.", Toast.LENGTH_SHORT).show();
+                                    setLoadingState(false);
                                 }
                             });
                 }
             } catch (Exception e) {
                 Log.e("LoginActivity", "Google Sign-In Exception: " + e.getLocalizedMessage());
+                setLoadingState(false);
             }
         }
     }
 
     private void checkUserProfileCompletion(FirebaseUser user) {
-        if (user == null) return;
+        if (user == null){
+            setLoadingState(false);
+            return;
+        }
+
+        final Context context = getApplicationContext();
+        if (context == null) {
+            setLoadingState(false);
+            return;
+        }
 
         db.collection("users").document(user.getUid()).get()
                 .addOnSuccessListener(document -> {
+                    setLoadingState(false);
                     if (document.exists()) {
                         String firstName = document.getString("firstName");
                         String lastName = document.getString("lastName");
@@ -225,8 +287,10 @@ public class LoginActivity extends AppCompatActivity {
 
                         if (TextUtils.isEmpty(firstName) || TextUtils.isEmpty(lastName) || TextUtils.isEmpty(username)) {
                             startActivity(new Intent(LoginActivity.this, UserSetUpProfileActivity.class));
+                            finish();
                         } else {
                             startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                            finish();
                         }
                         finish();
                     } else {
@@ -235,6 +299,7 @@ public class LoginActivity extends AppCompatActivity {
                     }
                 })
                 .addOnFailureListener(e -> {
+                    setLoadingState(false);
                     Toast.makeText(LoginActivity.this, "Error checking profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
