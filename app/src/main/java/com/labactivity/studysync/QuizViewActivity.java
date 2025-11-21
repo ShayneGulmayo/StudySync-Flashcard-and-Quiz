@@ -257,7 +257,10 @@
                 displayMultipleChoice(currentQuestion);
             } else if (quizType.equals("enumeration")) {
                 displayEnumeration(currentQuestion);
-            } else {
+            } else if (quizType.equals("true or false")) {
+                displayTrueOrFalse(currentQuestion);
+            }
+            else {
                 Toast.makeText(this, "Unsupported or missing question type. Skipping...", Toast.LENGTH_SHORT).show();
                 currentQuestionIndex++;
                 displayNextValidQuestion();
@@ -273,6 +276,25 @@
         }
 
         private String detectFallbackType(Map<String, Object> question) {
+
+            if (question.containsKey("choices")) {
+                Object rawChoices = question.get("choices");
+
+                if (rawChoices instanceof List) {
+                    List<?> choicesList = (List<?>) rawChoices;
+
+                    if (choicesList.size() == 2) {
+                        String c1 = choicesList.get(0).toString().toLowerCase();
+                        String c2 = choicesList.get(1).toString().toLowerCase();
+
+                        // If choices are exactly true/false → TRUE OR FALSE
+                        if ((c1.equals("true") && c2.equals("false")) ||
+                                (c1.equals("false") && c2.equals("true"))) {
+                            return "true or false";
+                        }
+                    }
+                }
+            }
             if (question.containsKey("correctAnswer")) {
                 return "multiple choice";
             } else if (question.containsKey("choices")) {
@@ -420,6 +442,64 @@
             }
         }
 
+        private void displayTrueOrFalse(Map<String, Object> questionData) {
+
+            chooseAnswerLabel.setText("Choose your answer");
+            selectedAnswer = null;
+            hasAnswered = false;
+
+            // 1. Display question text
+            String questionText = questionData.get("question") != null
+                    ? questionData.get("question").toString()
+                    : "No question text";
+
+            quizQuestionTextView.setText(questionText);
+
+            // 2. Display image if present
+            if (questionData.containsKey("photoUrl") && questionData.get("photoUrl") != null) {
+                String photoUrl = questionData.get("photoUrl").toString();
+
+                if (!photoUrl.trim().isEmpty()) {
+                    questionCard.setVisibility(View.VISIBLE);
+                    Glide.with(this)
+                            .load(photoUrl)
+                            .centerCrop()
+                            .into(questionImage);
+                } else {
+                    questionCard.setVisibility(View.GONE);
+                }
+            } else {
+                questionCard.setVisibility(View.GONE);
+            }
+
+            // 3. Clear previous options
+            linearLayoutOptions.removeAllViews();
+
+            // 4. Validate correctAnswer exists
+            if (!questionData.containsKey("correctAnswer") || questionData.get("correctAnswer") == null) {
+                Toast.makeText(this, "Missing correct answer. Skipping question.", Toast.LENGTH_SHORT).show();
+                currentQuestionIndex++;
+                displayNextValidQuestion();
+                return;
+            }
+
+            correctAnswer = questionData.get("correctAnswer").toString().trim().toLowerCase();
+
+            // 5. Create the two TRUE/FALSE choices
+            List<String> tfChoices = Arrays.asList("true", "false");
+
+            // Optional shuffle if enabled
+            if (shouldShuffle) {
+                Collections.shuffle(tfChoices);
+            }
+
+            // 6. Add the two choice buttons to the UI
+            for (String optionText : tfChoices) {
+                addOptionView(optionText, correctAnswer);
+            }
+        }
+
+
         private void handleAnswerCheck() {
             Button btnCheck = findViewById(R.id.btn_check_answer);
             btnCheck.setEnabled(false);
@@ -484,7 +564,59 @@
                     selectedAnswer = null;
                 }, 1000);
 
-            } else if ("enumeration".equals(quizType)) {
+            } else if ("true or false".equals(quizType)) {
+
+                if (selectedAnswer == null || selectedAnswer.trim().isEmpty()) {
+                    Toast.makeText(this, "Please select True or False.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                hasAnswered = true;
+
+                boolean isCorrect = selectedAnswer.equalsIgnoreCase(correctAnswer);
+
+                // Color options
+                for (int i = 0; i < linearLayoutOptions.getChildCount(); i++) {
+                    View child = linearLayoutOptions.getChildAt(i);
+                    TextView tv = child.findViewById(R.id.tvOptionText);
+                    MaterialCardView card = child.findViewById(R.id.cardOption);
+                    String option = tv.getText().toString().toLowerCase();
+
+                    if (option.equals(correctAnswer.toLowerCase())) {
+                        card.setCardBackgroundColor(ContextCompat.getColor(this, R.color.vibrant_green));
+                    } else if (option.equals(selectedAnswer.toLowerCase())) {
+                        card.setCardBackgroundColor(ContextCompat.getColor(this, R.color.light_red));
+                    } else {
+                        card.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.white));
+                    }
+                }
+
+                // Save answer
+                Map<String, Object> answer = new HashMap<>();
+                answer.put("question", currentQuestion.get("question"));
+                answer.put("quizType", "true or false");
+                answer.put("selected", selectedAnswer);
+                answer.put("correct", correctAnswer);
+                answer.put("isCorrect", isCorrect);
+                answer.put("choices", Arrays.asList("true", "false"));
+                answer.put("order", currentQuestionIndex);
+                answer.put("photoUrl", currentQuestion.get("photoUrl"));
+
+                userAnswersList.add(answer);
+                questions.get(currentQuestionIndex).put("selectedAnswer", selectedAnswer);
+
+                saveUserAnswersOffline();
+
+                if (isCorrect) score++;
+
+                // Move to next question
+                linearLayoutOptions.postDelayed(() -> {
+                    currentQuestionIndex++;
+                    displayNextValidQuestion();
+                    selectedAnswer = null;
+                }, 1000);
+            }
+            else if ("enumeration".equals(quizType)) {
                 List<String> userAnswers = new ArrayList<>();
                 List<String> rawUserAnswers = new ArrayList<>();
 

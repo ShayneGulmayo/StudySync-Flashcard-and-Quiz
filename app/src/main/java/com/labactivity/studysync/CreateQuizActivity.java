@@ -267,6 +267,7 @@ public class CreateQuizActivity extends AppCompatActivity {
             Map<String, Object> questionData = new HashMap<>();
             questionData.put("question", questionInput.getText().toString().trim());
             questionData.put("quizType", quizType);
+            questionData.put("type", quizType); // <--- add this line
 
             ImageView imageView = quizItem.findViewById(R.id.add_image_button);
             String photoUrl = null;
@@ -312,6 +313,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                     EditText answerInput = answer.findViewById(R.id.edit_option_text);
                     answers.add(answerInput.getText().toString().trim());
                 }
+                questionData.put("correctAnswer", answers);
             }
             else if (quizType.equals("true or false")) {
                 List<String> choices = new ArrayList<>();
@@ -366,6 +368,7 @@ public class CreateQuizActivity extends AppCompatActivity {
         if (quizId == null) {
             quizRef = db.collection("quiz").document();
             quizId = quizRef.getId();
+            quizData.put("quizId", quizId);
         } else {
             quizRef = db.collection("quiz").document(quizId);
         }
@@ -779,13 +782,17 @@ public class CreateQuizActivity extends AppCompatActivity {
                     }
 
                 } else if (selectedQuizType.equals("enumeration")) {
-                    for (String choice : choices) {
-                        View answerView = LayoutInflater.from(CreateQuizActivity.this).inflate(R.layout.item_add_quiz_enumerations, null);
+                    // Use correctAnswerList if available, fallback to choices
+                    List<String> enumAnswersToLoad = (correctAnswerList != null) ? correctAnswerList : choices;
+
+                    for (String answer : enumAnswersToLoad) {
+                        View answerView = LayoutInflater.from(CreateQuizActivity.this)
+                                .inflate(R.layout.item_add_quiz_enumerations, null);
                         EditText et = answerView.findViewById(R.id.edit_option_text);
                         TextView numberLabel = answerView.findViewById(R.id.enumeration_number);
                         ImageButton deleteAnswer = answerView.findViewById(R.id.delete_option);
 
-                        et.setText(choice);
+                        et.setText(answer); // set the saved answer
                         numberLabel.setText(String.valueOf(optionsContainer.getChildCount() + 1));
                         deleteAnswer.setOnClickListener(v -> {
                             optionsContainer.removeView(answerView);
@@ -917,10 +924,6 @@ public class CreateQuizActivity extends AppCompatActivity {
 
                 // Hide Add Option button
                 //addOptionText.setVisibility(View.GONE);
-
-                Toast.makeText(CreateQuizActivity.this,
-                        "Cannot add options for True/False question",
-                        Toast.LENGTH_SHORT).show();
 
                 // TRUE option
                 View trueOption = LayoutInflater.from(CreateQuizActivity.this)
