@@ -138,8 +138,6 @@
         </androidx.cardview.widget.CardView>
     </LinearLayout>
 
-
-
     <ProgressBar
         android:id="@+id/login_progress_bar"
         style="?android:attr/progressBarStyleLarge"
