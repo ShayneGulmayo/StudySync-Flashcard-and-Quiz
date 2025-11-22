@@ -1219,7 +1219,7 @@
                 if (ownerUid != null && !ownerUid.isEmpty()) {
                     accessUsers.put(ownerUid, "Owner");
                 } else {
-                    Log.e("QUIZ_SAVE", "❌ ownerUid is NULL — skipping Owner assignmen");
+                    Log.e("QUIZ_SAVE", "❌ ownerUid is NULL — skipping Owner assignment");
                 }
 
                 JSONObject data = new JSONObject();
