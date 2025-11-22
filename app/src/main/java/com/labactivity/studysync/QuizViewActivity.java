@@ -380,7 +380,7 @@
 
                 resetOptionColors();
 
-                cardOption.setCardBackgroundColor(ContextCompat.getColor(this, R.color.pale_green));
+                cardOption.setCardBackgroundColor(ContextCompat.getColor(this, R.color.medium_gray));
 
                 selectedAnswer = optionText;
             });
