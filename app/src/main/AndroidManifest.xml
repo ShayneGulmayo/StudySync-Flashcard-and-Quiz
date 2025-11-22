@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.CAMERA" />
 
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -20,16 +21,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.StudySync"
         tools:targetApi="31">
+        <profileable
+            android:shell="true"
+            tools:targetApi="29" />
+
         <activity
             android:name=".EmailVerificationActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity,DiscouragedApi"/>
-        <activity
-            android:name=".ViewQuizActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity,DiscouragedApi"/>
+
         <activity
             android:name=".NoAccessDeletedActivity"
             android:exported="false"
@@ -88,7 +89,6 @@
 
         <receiver android:name=".receivers.ReminderReceiver" />
         <receiver android:name=".receivers.ReminderReceiver" />
-
 
         <activity
             android:name=".InputPromptActivity"
@@ -151,11 +151,7 @@
             android:exported="false"
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity,DiscouragedApi" />
-        <activity
-            android:name=".ForgotPasswordActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity,DiscouragedApi" />
+
         <activity
             android:name=".AddMembersActivity"
             android:exported="false"
