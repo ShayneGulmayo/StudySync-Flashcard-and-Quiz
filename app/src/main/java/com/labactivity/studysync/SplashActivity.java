@@ -23,11 +23,9 @@ public class SplashActivity extends AppCompatActivity {
 
         new Handler().postDelayed(() -> {
             if (!isInternetAvailable()) {
-                // No internet — open DownloadedSetsActivity
                 startActivity(new Intent(SplashActivity.this, DownloadedSetsActivity.class));
                 finish();
             } else {
-                // Internet available — check user
                 FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                 if (currentUser != null) {
                     startActivity(new Intent(SplashActivity.this, MainActivity.class));

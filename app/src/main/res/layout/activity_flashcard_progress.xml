@@ -39,7 +39,7 @@
             android:gravity="center"
             android:maxLines="1"
             android:text="@string/flashcard_name"
-            android:paddingHorizontal="20dp"
+            android:paddingHorizontal="30dp"
             android:textAlignment="center"
             android:textColor="@color/black"
             android:textSize="18sp"
