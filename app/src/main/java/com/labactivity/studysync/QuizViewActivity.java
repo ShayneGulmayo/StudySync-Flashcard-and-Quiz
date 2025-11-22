@@ -1186,7 +1186,7 @@
                 int correct = 0;
                 int questionIndex = 0;
                 JSONArray finalAttemptsArray = new JSONArray();
-                JSONObject questionsObject = new JSONObject();
+                JSONObject questionsObject = new JSONObject();   // Map of {"0": {...}, "1": {...}}
 
                 for (Map.Entry<String, JSONObject> entry : combinedAnswers.entrySet()) {
                     JSONObject mergedQ = entry.getValue();
