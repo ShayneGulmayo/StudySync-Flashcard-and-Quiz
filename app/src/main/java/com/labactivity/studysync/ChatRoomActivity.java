@@ -171,7 +171,7 @@
 
                             if (questions != null && durationPerQuestion != null) {
                                 announceQuizStarted(roomId);
-                                //runQuizPopup(title, questions, durationPerQuestion.intValue(), roomId, quizId);
+                                runQuizPopup(title, questions, durationPerQuestion.intValue(), roomId, quizId);
                             } else {
                                 Toast.makeText(this, "Invalid quiz data.", Toast.LENGTH_SHORT).show();
                             }
