@@ -14,5 +14,6 @@
     <color name="vibrant_green">#4CAF50</color>
     <color name="pale_green">#51C58E</color>
     <color name="light_red">#F24F4F</color>
+    <color name="medium_gray">#D3D3D3</color>
 <color name="bg_yellow">#FFBF00</color>
 </resources>
