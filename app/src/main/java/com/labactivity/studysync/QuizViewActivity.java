@@ -1217,11 +1217,11 @@
 
                 JSONObject accessUsers = new JSONObject();
                 accessUsers.put(ownerUid, "Owner");
-                if (accessUsers == null) {
-                    Log.e("QUIZ_SAVE", "❌ JSON keyName is null, skipping entry to prevent crash.");
-                    return; // or skip this item
+                if (ownerUid != null && !ownerUid.isEmpty()) {
+                    accessUsers.put(ownerUid, "Owner");
+                } else {
+                    Log.e("QUIZ_SAVE", "❌ ownerUid is NULL — skipping Owner assignment");
                 }
-
 
                 JSONObject data = new JSONObject();
                 data.put("quizId", quizId);
