@@ -63,9 +63,6 @@ public class HomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        android.view.Window window = requireActivity().getWindow();
-        WindowCompat.setDecorFitsSystemWindows(window, false);
-
         userGreetingTxt = view.findViewById(R.id.userGreetingTxt);
         profileImage = view.findViewById(R.id.profileImage);
         flashcardsCard = view.findViewById(R.id.flashcardsCard);
