@@ -1255,7 +1255,7 @@
             } catch (Exception e) {
                 e.printStackTrace();
                 Log.e("QUIZ_SAVE", "Error saving offline quiz progress", e);
-                Toast.makeText(this, "Failed to save offline quiz progress: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                //Toast.makeText(this, "Failed to save offline quiz progress: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         }
 
