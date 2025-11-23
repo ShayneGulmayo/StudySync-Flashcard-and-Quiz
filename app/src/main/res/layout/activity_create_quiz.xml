@@ -13,7 +13,7 @@
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
+        android:layout_height="wrap_content"
         android:background="@color/white"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"

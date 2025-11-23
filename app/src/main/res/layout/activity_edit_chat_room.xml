@@ -11,7 +11,8 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
+        android:layout_height="wrap_content"
+        android:paddingVertical="20dp"
         android:background="@color/white"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -20,9 +21,9 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginStart="20dp"
-            android:layout_marginTop="20dp"
             android:contentDescription="Back"
             android:src="@drawable/arrow_back"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -31,7 +32,6 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginEnd="20dp"
-            android:layout_marginTop="20dp"
             android:contentDescription="More"
             android:src="@drawable/more_vert"
             app:layout_constraintEnd_toEndOf="parent"

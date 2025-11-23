@@ -21,7 +21,8 @@
         <EditText
             android:id="@+id/searchEditText"
             android:layout_width="wrap_content"
-            android:layout_height="50dp"
+            android:layout_height="wrap_content"
+            android:paddingVertical="15dp"
             android:layout_marginEnd="15dp"
             android:layout_weight="1.94"
             android:background="@drawable/green_stroke_bg"
