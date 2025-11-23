@@ -188,7 +188,7 @@
             Map<String, Object> startMessage = new HashMap<>();
             startMessage.put("senderId", "Live Quiz Manager");
             startMessage.put("senderName", "Live Quiz Manager");
-            startMessage.put("senderPhotoUrl", "https://firebasestorage.googleapis.com/v0/b/studysync-cf3ef.appspot.com/o/studysync_logo.png?alt=media&token=ddfbb29d-2682-457e-a700-ebba6b6b79d0");
+            startMessage.put("senderPhotoUrl", "https://firebasestorage.googleapis.com/v0/b/studysync-cf3ef.firebasestorage.app/o/studysync_logo.png?alt=media&token=ddfbb29d-2682-457e-a700-ebba6b6b79d0");
             startMessage.put("text", "🚨 A Live Quiz has just started! Get ready to answer quickly.");
             startMessage.put("timestamp", Timestamp.now());
             startMessage.put("type", "text");
