@@ -463,12 +463,10 @@ public class SetFragment extends Fragment {
         Window window = dialog.getWindow();
         if (window != null) {
             window.setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            window.setBackgroundDrawableResource(android.R.color.transparent); // Keep your background styling
+            window.setBackgroundDrawableResource(android.R.color.transparent);
 
             WindowManager.LayoutParams params = window.getAttributes();
-            params.gravity = Gravity.TOP | Gravity.START;
-            params.x = 25;
-            params.y = 895;
+            params.gravity = Gravity.CENTER;
             window.setAttributes(params);
         }
 

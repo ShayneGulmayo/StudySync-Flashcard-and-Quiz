@@ -13,6 +13,9 @@
 
         <item name="textInputStyle">@style/Widget.Material3.TextInputLayout.OutlinedBox</item>
     </style>
+    <style name="Theme.StudySync.NoSystemWindowFitting" parent="Base.Theme.StudySync">
+        <item name="android:fitsSystemWindows">false</item>
+    </style>
 
     <style name="Theme.StudySync" parent="Base.Theme.StudySync" />
 </resources>

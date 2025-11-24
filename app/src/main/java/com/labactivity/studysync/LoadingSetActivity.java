@@ -421,6 +421,7 @@ public class LoadingSetActivity extends AppCompatActivity {
                 "  \"terms\": [\n" +
                 "    { \"term\": \"<Term 1>\", \"definition\": \"<Definition 1>\" },\n" +
                 "    { \"term\": \"<Term 2>\", \"definition\": \"<Definition 2>\" }\n" +
+                "    // ... Include as many term-definition pairs as possible ...\n" +
                 "  ]\n" +
                 "}\nReturn only this JSON object. No extra text.";
     }
@@ -435,10 +436,12 @@ public class LoadingSetActivity extends AppCompatActivity {
                 "      \"type\": \"multiple choice\",\n" +
                 "      \"choices\": [\"Option 1\", \"Option 2\", \"Option 3\", \"Option 4\"],\n" +
                 "      \"correctAnswer\": \"Correct Answer\",\n" +
+                "    // ... Include as many distinct questions as possible ...\n" +
                 "    }\n" +
                 "  ]\n" +
                 "}\n\n" +
                 "Important rules:\n" +
+                "- **Maximize the number of questions** extracted from the source content.\n" +
                 "- Use ONLY \"multiple choice\" questions. DO NOT use enumeration.\n" +
                 "- The `choices` array must contain 4 plausible but incorrect answers, except for one correct one.\n" +
                 "- The `correctAnswer` string must exactly match one of the values in the `choices` array.\n" +

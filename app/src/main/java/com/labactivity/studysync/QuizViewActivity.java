@@ -1187,6 +1187,7 @@
                 int questionIndex = 0;
                 JSONArray finalAttemptsArray = new JSONArray();
                 JSONObject questionsObject = new JSONObject();
+
                 for (Map.Entry<String, JSONObject> entry : combinedAnswers.entrySet()) {
                     JSONObject mergedQ = entry.getValue();
                     mergedQ.put("order", questionIndex + 1);
@@ -1254,6 +1255,7 @@
             } catch (Exception e) {
                 e.printStackTrace();
                 Log.e("QUIZ_SAVE", "Error saving offline quiz progress", e);
+                Toast.makeText(this, "Failed to save offline quiz progress: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         }
 

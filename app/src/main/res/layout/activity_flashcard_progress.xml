@@ -121,12 +121,10 @@
             <LinearLayout
                 android:id="@+id/know_progress_value"
                 android:layout_width="250dp"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:layout_marginTop="20dp"
                 android:background="@drawable/progress_bg"
                 android:orientation="horizontal"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/frameLayout">
@@ -160,12 +158,10 @@
             <LinearLayout
                 android:id="@+id/still_learning_value"
                 android:layout_width="250dp"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:layout_marginTop="20dp"
                 android:background="@drawable/proggress_bg_2"
                 android:orientation="horizontal"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/know_progress_value">

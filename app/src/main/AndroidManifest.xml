@@ -74,11 +74,13 @@
         <activity
             android:name=".ChatRoomSharedMediaActivity"
             android:exported="false"
+
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity,DiscouragedApi" />
         <activity
             android:name=".ChatRoomSharedSetsActivity"
             android:exported="false"
+            android:theme="@style/Theme.StudySync.NoSystemWindowFitting"
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity,DiscouragedApi" />
         <activity
@@ -145,6 +147,7 @@
             android:name=".QuizPreviewActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            android:theme="@style/Theme.StudySync.NoSystemWindowFitting"
             tools:ignore="LockedOrientationActivity,DiscouragedApi" />
         <activity
             android:name=".EmailResetPasswordActivity"
