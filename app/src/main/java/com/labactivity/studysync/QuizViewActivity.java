@@ -963,7 +963,6 @@
                 Log.d("QUIZ_OFFLINE", "Quiz progress updated in file: " + file.getAbsolutePath());
 
             } catch (Exception e) {
-                Log.e("QUIZ_OFFLINE", "Failed to save user answers offline", e);
             }
         }
 
