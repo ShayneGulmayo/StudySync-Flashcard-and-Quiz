@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".LiveQuizActivity"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="true"
+    android:background="@color/white">
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="0dp"
