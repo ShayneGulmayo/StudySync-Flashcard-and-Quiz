@@ -71,6 +71,9 @@ public class QuizProgressActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_quiz_progress);
         boolean isOffline = getIntent().getBooleanExtra("isOffline", false);
+        boolean shouldShuffle = getIntent().getBooleanExtra("shuffleQuestions", false);
+        boolean shouldShuffleOptions = getIntent().getBooleanExtra("shuffleOptions", false);
+
 
         quizTitleText = findViewById(R.id.txtView_quiz_title);
         correctText = findViewById(R.id.know_items);
@@ -188,6 +191,8 @@ public class QuizProgressActivity extends AppCompatActivity {
                 intent.putExtra("isOffline", false);
                 intent.putExtra("quizId", quizId);
                 intent.putExtra("mode", "normal");
+                intent.putExtra("shuffleQuestions", shouldShuffle);
+                intent.putExtra("shuffleOptions", shouldShuffleOptions);
             }
 
             startActivity(intent);
@@ -297,6 +302,8 @@ public class QuizProgressActivity extends AppCompatActivity {
                     intent.putExtra("quizId", quizId);
                     intent.putExtra("mode", "retake_incorrect_only");
                     intent.putExtra("isOffline", true);
+                    intent.putExtra("shuffleQuestions", shouldShuffle);
+                    intent.putExtra("shuffleOptions", shouldShuffleOptions);
                     intent.putExtra("userAnswersList", new Gson().toJson(incorrectAnswersOnly));
                     intent.putExtra("progressFileName", fileName);
 
@@ -342,6 +349,8 @@ public class QuizProgressActivity extends AppCompatActivity {
                                     intent.putExtra("quizId", quizId);
                                     intent.putExtra("photoUrl", getIntent().getStringExtra("photoUrl"));
                                     intent.putExtra("mode", "retake_incorrect_only");
+                                    intent.putExtra("shuffle", shouldShuffle);
+                                    intent.putExtra("shuffleOptions", shouldShuffleOptions);
                                     intent.putExtra("userAnswersList", new Gson().toJson(incorrectOnly));
                                     startActivity(intent);
                                     finish();

@@ -80,6 +80,7 @@
 
         private boolean hasAnswered = false;
         private boolean shouldShuffle = false;
+        private boolean shouldShuffleOptions = false;
         private boolean isOffline = false;
 
         private List<Map<String, Object>> questions;
@@ -97,6 +98,7 @@
             Intent intent = getIntent();
             quizId = intent.getStringExtra("quizId");
             mode = intent.getStringExtra("mode");
+            //intent.putExtra("shuffle", true);
             if (mode == null) mode = "normal";
             isOffline = intent.getBooleanExtra("isOffline", false);
 
@@ -107,6 +109,7 @@
             }
 
             shouldShuffle = intent.getBooleanExtra("shuffle", false);
+            shouldShuffleOptions = intent.getBooleanExtra("shuffleOptions", false); // choices/options
             isOffline = getIntent().getBooleanExtra("isOffline", false);
             progressFileName = getIntent().getStringExtra("progressFileName");
 
@@ -236,6 +239,8 @@
                 Intent intent = new Intent(this, QuizProgressActivity.class);
                 intent.putExtra("quizId", quizId);
                 intent.putExtra("quizTitle", getIntent().getStringExtra("quizTitle"));
+                intent.putExtra("shuffleQuestions", shouldShuffle);
+                intent.putExtra("shuffleOptions", shouldShuffleOptions);
                 intent.putExtra("isOffline", isOffline);
                 intent.putExtra("score", correctCount);
                 intent.putExtra("incorrect", incorrectCount);
@@ -350,7 +355,7 @@
             }
 
             if (choices != null && correctAnswer != null) {
-                if (shouldShuffle) {
+                if (shouldShuffleOptions) {
                     Collections.shuffle(choices);
                 }
                 for (String optionText : choices) {
@@ -489,7 +494,7 @@
             List<String> tfChoices = Arrays.asList("true", "false");
 
             // Optional shuffle if enabled
-            if (shouldShuffle) {
+            if (shouldShuffleOptions) {
                 Collections.shuffle(tfChoices);
             }
 
@@ -781,6 +786,10 @@
                                 } else {
                                     continue;
                                 }
+                            } else if ("true or false".equals(quizType)) {
+                                // Add handling for TRUE/FALSE
+                                reconstructed.put("correctAnswer", q.get("correct")); // usually a String
+                                reconstructed.put("selected", q.get("selected"));
                             } else {
                                 continue;
                             }
@@ -793,6 +802,26 @@
                         }
 
                         questions = incorrectQuestions;
+
+                        // Shuffle questions if enabled
+                        if (shouldShuffle) {
+                            Collections.shuffle(questions);
+                        }
+
+// Shuffle choices/options for multiple-choice and True/False
+                        if (shouldShuffleOptions) {
+                            for (Map<String, Object> q : questions) {
+                                String type = q.get("quizType").toString().toLowerCase().trim();
+                                if ("multiple choice".equals(type) || "true or false".equals(type)) {
+                                    List<String> choices = (List<String>) q.get("choices");
+                                    if (choices != null) {
+                                        Collections.shuffle(choices);
+                                        q.put("choices", choices); // update shuffled choices
+                                    }
+                                }
+                            }
+                        }
+
                         if (!questions.isEmpty()) {
                             currentQuestionIndex = 0;
                             displayNextValidQuestion();
@@ -801,6 +830,8 @@
                                 Toast.makeText(this, "🎉 All questions were answered correctly!", Toast.LENGTH_LONG).show();
                                 Intent intent = new Intent(this, QuizProgressActivity.class);
                                 intent.putExtra("quizId", quizId);
+                                intent.putExtra("shuffleQuestions", shouldShuffle);
+                                intent.putExtra("shuffleOptions", shouldShuffleOptions);
                                 startActivity(intent);
                                 finish();
                             } else {
