@@ -1446,7 +1446,7 @@
             ImageButton exitButton = dialogView.findViewById(R.id.exit_button);
 
             List<String> pages = Arrays.asList(
-                    "1️⃣ There are two types of questions:\n\n🟩 Multiple Choice – Select one correct answer\n🟨 Enumeration – Fill in one or more correct answers",
+                    "1️⃣ There are three types of questions:\n\n🟩 Multiple Choice – Select one correct answer\n🟨 Enumeration – Fill in one or more correct answers\n🟦 True or False – Determine if the statement is correct",
                     "2️⃣ Answers are checked instantly. You must submit an answer to proceed.\n✅ Correct answers are shown immediately after submission.",
                     "3️⃣ Answer colors matter:\n\n🟥 Red = Incorrect\n🟩 Green = Correct",
                     "4️⃣ Enumeration is scored strictly to help reinforce memorization. This approach enhances learners’ ability to retain information more effectively.\n",
