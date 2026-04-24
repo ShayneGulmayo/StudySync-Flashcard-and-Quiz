@@ -25,6 +25,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
+import com.labactivity.studysync.CreatorAnalyticsActivity;
 import com.labactivity.studysync.DownloadedSetsActivity;
 import com.labactivity.studysync.LoginActivity;
 import com.labactivity.studysync.NotificationsActivity;
@@ -39,7 +40,7 @@ import java.util.*;
 public class UserProfileFragment extends Fragment {
 
     private TextView userFullName, usernameTxt;
-    private MaterialButton settingsBtn, logoutBtn, downloadedSetBtn, notifBtn;
+    private MaterialButton settingsBtn, logoutBtn, downloadedSetBtn, notifBtn, creatorBtn;
     private ImageView profileImage;
 
     private FirebaseAuth mAuth;
@@ -65,7 +66,7 @@ public class UserProfileFragment extends Fragment {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         currentUser = mAuth.getCurrentUser();
-
+        creatorBtn = view.findViewById(R.id.creatorAnalyticsBtn);
         userFullName = view.findViewById(R.id.userFullName);
         usernameTxt = view.findViewById(R.id.usernameTxt);
         profileImage = view.findViewById(R.id.profileImage);
@@ -74,6 +75,13 @@ public class UserProfileFragment extends Fragment {
         downloadedSetBtn = view.findViewById(R.id.downloadedSetBtn);
         notifBtn = view.findViewById(R.id.notifBtn);
         userId = currentUser.getUid();
+
+        creatorBtn.setVisibility(View.GONE);
+
+        creatorBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), CreatorAnalyticsActivity.class);
+            startActivity(intent);
+        });
 
 
         loadUserData();
@@ -160,6 +168,13 @@ public class UserProfileFragment extends Fragment {
                         String username = document.getString("username");
                         String photoUrl = document.getString("photoUrl");
                         previousFileName = document.getString("photoFileName");
+
+                        String role = document.getString("role");
+                        if ("creator".equals(role)) {
+                            creatorBtn.setVisibility(View.VISIBLE);
+                        } else {
+                            creatorBtn.setVisibility(View.GONE);
+                        }
 
                         String fullName = (firstName != null ? firstName : "") +
                                 (lastName != null ? " " + lastName : "");

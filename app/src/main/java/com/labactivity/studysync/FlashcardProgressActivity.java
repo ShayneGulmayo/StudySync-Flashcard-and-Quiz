@@ -189,9 +189,10 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                 .addOnSuccessListener(documentSnapshot -> {
                     if (!documentSnapshot.exists()) return;
 
+                    // --- EXISTING LOGIC START ---
+                    String ownerId = documentSnapshot.getString("owner_uid");
                     String collectionField;
                     if (documentSnapshot.contains("owner_uid")) {
-                        String ownerId = documentSnapshot.getString("owner_uid");
                         collectionField = ownerId != null && ownerId.equals(currentUserId) ? "owned_sets" : "saved_sets";
                     } else {
                         collectionField = "saved_sets";
@@ -225,6 +226,36 @@ public class FlashcardProgressActivity extends AppCompatActivity {
                                 db.collection("users").document(currentUserId)
                                         .update(collectionField, setList)
                                         .addOnFailureListener(e -> Toast.makeText(this, "Failed to save progress.", Toast.LENGTH_SHORT).show());
+                                // --- EXISTING LOGIC END ---
+
+                                // ========================================================
+                                // NEW TRACKING LOGIC: Records every attempt for "Proof"
+                                // ========================================================
+
+                                // 1. Log this specific attempt in a subcollection
+                                Map<String, Object> sessionAttempt = new HashMap<>();
+                                sessionAttempt.put("setId", setId);
+                                sessionAttempt.put("progress", progressValue);
+                                sessionAttempt.put("timestamp", com.google.firebase.Timestamp.now());
+                                sessionAttempt.put("type", "flashcard");
+
+                                db.collection("users").document(currentUserId)
+                                        .collection("performance_history")
+                                        .add(sessionAttempt);
+
+                                // 2. Update Creator's Global Dashboard Stats
+                                if (ownerId != null) {
+                                    com.google.firebase.firestore.DocumentReference analyticsRef =
+                                            db.collection("creator_analytics").document(ownerId);
+
+                                    Map<String, Object> globalUpdates = new HashMap<>();
+                                    globalUpdates.put("totalSessions", com.google.firebase.firestore.FieldValue.increment(1));
+                                    globalUpdates.put("totalProgressSum", com.google.firebase.firestore.FieldValue.increment(progressValue));
+
+                                    analyticsRef.set(globalUpdates, com.google.firebase.firestore.SetOptions.merge());
+                                }
+                                // ========================================================
+
                             })
                             .addOnFailureListener(e -> Toast.makeText(this, "Failed to load user data.", Toast.LENGTH_SHORT).show());
                 })

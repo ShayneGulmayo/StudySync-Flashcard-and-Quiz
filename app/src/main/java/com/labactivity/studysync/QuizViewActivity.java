@@ -33,6 +33,7 @@
     import com.google.firebase.auth.FirebaseAuth;
     import com.google.firebase.firestore.FieldValue;
     import com.google.firebase.firestore.FirebaseFirestore;
+    import com.google.firebase.firestore.SetOptions;
     import com.google.gson.Gson;
     import com.google.gson.GsonBuilder;
     import com.google.gson.JsonElement;
@@ -1310,8 +1311,8 @@
                     .document(userId)
                     .get()
                     .addOnSuccessListener(existingDoc -> {
+                        // --- [EXISTING MERGING LOGIC START] ---
                         Map<String, Map<String, Object>> answerMap = new HashMap<>();
-
                         if (existingDoc.exists()) {
                             List<Map<String, Object>> oldAnswers = (List<Map<String, Object>>) existingDoc.get("answeredQuestions");
                             if (oldAnswers != null) {
@@ -1366,28 +1367,50 @@
                                 .document(quizId)
                                 .collection("quiz_attempt")
                                 .document(userId)
-                                .set(resultData)
-                                .addOnSuccessListener(unused -> {
-                                    Map<String, Object> percentData = new HashMap<>();
-                                    percentData.put("percentage", percentage);
+                                .set(resultData);
+                        // --- [EXISTING MERGING LOGIC END] ---
 
-                                });
+                        // ============================================================
+                        // NEW TRACKING LOGIC (Safely added without breaking existing flow)
+                        // ============================================================
 
+                        // 1. Log to User Performance History
+                        Map<String, Object> historyEntry = new HashMap<>();
+                        historyEntry.put("setId", quizId);
+                        historyEntry.put("progress", percentage);
+                        historyEntry.put("type", "quiz");
+                        historyEntry.put("timestamp", FieldValue.serverTimestamp());
+
+                        db.collection("users").document(userId)
+                                .collection("performance_history").add(historyEntry);
+
+                        // 2. Fetch Creator ID to update Dashboard Stats
+                        db.collection("quiz").document(quizId).get().addOnSuccessListener(quizDoc -> {
+                            if (quizDoc.exists()) {
+                                String creatorId = quizDoc.getString("owner_uid");
+                                if (creatorId != null) {
+                                    Map<String, Object> analyticsUpdate = new HashMap<>();
+                                    analyticsUpdate.put("totalSessions", FieldValue.increment(1));
+                                    analyticsUpdate.put("totalProgressSum", FieldValue.increment(percentage));
+
+                                    db.collection("creator_analytics").document(creatorId)
+                                            .set(analyticsUpdate, SetOptions.merge());
+                                }
+                            }
+                        });
+                        // ============================================================
+
+                        // --- [REMAINDER OF EXISTING USER UPDATES] ---
                         db.collection("users").document(userId)
                                 .get()
                                 .addOnSuccessListener(userDoc -> {
                                     if (!userDoc.exists()) return;
-
-                                    Map<String, Object> progressMap = new HashMap<>();
-                                    progressMap.put("progress", percentage);
+                                    // ... (Your existing logic for updating owned_sets and saved_sets remains here)
+                                    boolean ownedUpdated = false;
+                                    boolean savedUpdated = false;
 
                                     List<Map<String, Object>> ownedSets = (List<Map<String, Object>>) userDoc.get("owned_sets");
                                     List<Map<String, Object>> savedSets = (List<Map<String, Object>>) userDoc.get("saved_sets");
-
-                                    boolean updated = false;
-
-                                    boolean ownedUpdated = false;
-                                    boolean savedUpdated = false;
 
                                     if (ownedSets != null) {
                                         for (Map<String, Object> item : ownedSets) {
@@ -1414,24 +1437,9 @@
                                     if (savedUpdated) {
                                         db.collection("users").document(userId).update("saved_sets", savedSets);
                                     }
-
-                                    if (savedSets != null) {
-                                        for (Map<String, Object> item : savedSets) {
-                                            if (quizId.equals(item.get("id"))) {
-                                                item.put("progress", percentage);
-                                                updated = true;
-                                                break;
-                                            }
-                                        }
-                                        if (updated) {
-                                            db.collection("users").document(userId)
-                                                    .update("saved_sets", savedSets);
-                                        }
-                                    }
                                 });
                     });
         }
-
         private void showQuizMoreBottomSheet() {
             View view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_quiz_more_viewer, null);
 

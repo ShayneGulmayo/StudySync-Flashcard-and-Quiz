@@ -136,6 +136,27 @@
             tools:ignore="RtlCompat" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/creatorAnalyticsBtn"
+            android:layout_width="300dp"
+            android:layout_height="60dp"
+            android:layout_marginBottom="5dp"
+            android:text="Creator Analytics"
+            android:textAlignment="textStart"
+            android:textColor="@color/primary"
+            android:textSize="16sp"
+            app:backgroundTint="@color/white"
+            app:cornerRadius="15dp"
+            app:icon="@drawable/analytics"
+            app:iconGravity="start"
+            app:iconPadding="20dp"
+            app:iconSize="24dp"
+            app:iconTint="@color/primary"
+            app:strokeColor="@color/primary"
+            app:strokeWidth="2dp"
+            tools:ignore="RtlCompat"
+            android:visibility="gone"/>
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/logoutBtn"
             android:layout_width="300dp"
             android:layout_height="60dp"

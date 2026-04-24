@@ -569,9 +569,9 @@ public class QuizProgressActivity extends AppCompatActivity {
             }
 
             // ✅ Cumulative Progress Logic
+
             int correctCount = 0;
             int totalItems = 0;
-
             JSONArray questionsArray = jsonObject.optJSONArray("questions");
             if (questionsArray != null) {
                 for (int i = 0; i < questionsArray.length(); i++) {
