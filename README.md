@@ -41,6 +41,3 @@ A modern, interactive learning platform that combines **spaced‑repetition flas
 
 - This README is intentionally focused on what the app does and how to get it running. If you’d like, tell me what’s in the repo (screenshots, app name styling, package name, build variant info, etc.) and I can tailor the setup section to match the exact Gradle/Firebase/Gemini configuration used here.
 
-## License
-
-If you plan to open-source this project, add a license file (e.g., MIT) and reference it here.
