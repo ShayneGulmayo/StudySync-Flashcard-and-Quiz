@@ -137,8 +137,8 @@ public class CreatorAnalyticsActivity extends AppCompatActivity {
         tvInitialAvg.setText(globalAvgStart + "%");
         tvLatestAvg.setText(globalAvgNow + "%");
 
-        String proof = String.format("Across %d total study journeys, users have improved their scores by %d%% on average using this platform.",
-                totalJourneys, improvement);
+        String proof = String.format("Users have improved their scores by %d%% on average using this platform.",
+                improvement);
         tvImprovementMsg.setText(proof);
     }
 }
