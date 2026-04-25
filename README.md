@@ -1,17 +1,46 @@
-# 🗂️ STUDYSYNC FLASHCARD AND PRACTICE QUIZ
+# StudySync — Flashcards & Practice Quizzes
 
-A modern, interactive learning platform that combines **spaced-repetition flashcards**, **practice quizzes**, and **real-time collaboration** with AI integration for automatic set generation.
+A modern, interactive learning platform that combines **spaced‑repetition flashcards**, **practice quizzes**, **real‑time collaboration**, and **AI-assisted set generation**.
 
-## 🚀 Key Features
+## Key Features
 
-* **AI-Powered Study Material:** Automatically generate flashcards and quiz questions from raw text or uploaded documents using AI integration.
-* **Dynamic Practice Quizzes:** Test your knowledge with various question types and track your progress over time.
-* **Real-Time Chat Rooms:** Study together with peers in dedicated rooms. Share resources, ask questions, and collaborate in real-time.
-* **Smart Flashcards:** Organized decks with a clean, intuitive UI for efficient memorization.
-* **Chat Room Live Quiz:** Use sets to review with peers within the chat rooms, gamify learning.
+- **AI‑powered study material**: Generate flashcards and quiz questions from raw text (and supported uploads) using the **Google Gemini API**.
+- **Dynamic practice quizzes**: Multiple question types with progress tracking.
+- **Real‑time chat rooms**: Study together in dedicated rooms—share resources, ask questions, and collaborate live.
+- **Smart flashcards**: Organized decks with a clean, intuitive UI for efficient memorization.
+- **Live quiz in chat rooms**: Review sets with peers and gamify studying.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-* **Software:** Android Studio 
-* **Database:** Firebase
-* **AI Integration:** Google Gemini API
+- **Platform / IDE**: Android (Android Studio)
+- **Database / Backend**: Firebase
+- **AI Integration**: Google Gemini API
+
+## Getting Started (Local Development)
+
+> If you run into a missing step below (e.g., an absent `google-services.json`), it’s usually because secrets/config files are intentionally not committed.
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/ShayneGulmayo/StudySync-Flashcard-and-Quiz.git
+   ```
+2. **Open in Android Studio**
+   - `File` → `Open…` → select the project folder.
+3. **Set up Firebase**
+   - Create or select a Firebase project.
+   - Add an Android app in Firebase.
+   - Download `google-services.json` and place it in the app module directory (commonly `app/google-services.json`).
+   - Ensure the Firebase dependencies and Google Services plugin are enabled in Gradle (project structure may already include this).
+4. **Configure Gemini API**
+   - Obtain a Gemini API key.
+   - Add it using the project’s existing configuration approach (recommended: **do not** hardcode keys in source).
+5. **Build & run**
+   - Select a device/emulator and press **Run**.
+
+## Notes
+
+- This README is intentionally focused on what the app does and how to get it running. If you’d like, tell me what’s in the repo (screenshots, app name styling, package name, build variant info, etc.) and I can tailor the setup section to match the exact Gradle/Firebase/Gemini configuration used here.
+
+## License
+
+If you plan to open-source this project, add a license file (e.g., MIT) and reference it here.
