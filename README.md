@@ -1,4 +1,4 @@
-# 🗂️ [Project Name]
+# 🗂️ STUDYSYNC FLASHCARD AND PRACTICE QUIZ
 
 A modern, interactive learning platform that combines **spaced-repetition flashcards**, **practice quizzes**, and **real-time collaboration** with AI integration for automatic set generation.
 
