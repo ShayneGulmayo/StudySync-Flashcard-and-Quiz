@@ -37,7 +37,4 @@ A modern, interactive learning platform that combines **spaced‑repetition flas
 5. **Build & run**
    - Select a device/emulator and press **Run**.
 
-## Notes
-
-- This README is intentionally focused on what the app does and how to get it running. If you’d like, tell me what’s in the repo (screenshots, app name styling, package name, build variant info, etc.) and I can tailor the setup section to match the exact Gradle/Firebase/Gemini configuration used here.
 
